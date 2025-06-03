@@ -1,0 +1,22 @@
+{
+  "name": "inperson-days-app",
+  "version": "1.0.0",
+  "description": "A web application to manage in-person workdays for the current month, specifically every Wednesday and Thursday.",
+  "main": "src/index.html",
+  "scripts": {
+    "start": "live-server src"
+  },
+  "keywords": [
+    "in-person",
+    "workdays",
+    "calendar",
+    "javascript",
+    "responsive"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.1"
+  }
+}
