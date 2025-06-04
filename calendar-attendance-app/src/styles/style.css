@@ -1,0 +1,104 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.itau-logo {
+    display: block;
+    margin: 0 auto 20px;
+}
+
+.itau-logo {
+    display: block;
+    margin: 0 auto 16px auto;
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 16px;
+    background: #ff8200;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#dias-trabalhados {
+    text-align: center;
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.day {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.day:hover {
+    background-color: #f0f0f0;
+}
+
+.day.attended {
+    background-color: #4caf50;
+    color: white;
+}
+
+.day.not-attended {
+    background-color: #f44336;
+    color: white;
+}
+
+#calendar-header {
+    display: grid;
+    grid-template-columns: repeat(5, 40px);
+    gap: 8px;
+    justify-content: center;
+    margin: 0 auto 8px auto;
+    font-weight: bold;
+    color: #1e40af;
+    text-align: center;
+}
+
+#calendar {
+    display: grid;
+    grid-template-columns: repeat(5, 40px);
+    gap: 8px;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.calendar-day {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0e7ef;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s;
+    user-select: none;
+}
+
+.calendar-day.selected {
+    background: #2563eb;
+    color: #fff;
+}
