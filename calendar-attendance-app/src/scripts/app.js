@@ -1,11 +1,26 @@
-// This file contains the JavaScript logic for the calendar attendance application.
+// ...existing code...
 
 document.addEventListener('DOMContentLoaded', () => {
-    const daysContainer = document.createElement('div');
-    daysContainer.classList.add('calendar');
-
     const totalDaysCount = document.getElementById('dias-contagem');
     let attendedDays = new Set();
+
+    // Função para gerar uma chave única para cada mês/ano
+    function getStorageKey(year, month) {
+        return `attendance-${year}-${month}`;
+    }
+
+    // Carrega os dias marcados do localStorage
+    function loadAttendance(year, month) {
+        const key = getStorageKey(year, month);
+        const data = localStorage.getItem(key);
+        attendedDays = new Set(data ? JSON.parse(data) : []);
+    }
+
+    // Salva os dias marcados no localStorage
+    function saveAttendance(year, month) {
+        const key = getStorageKey(year, month);
+        localStorage.setItem(key, JSON.stringify(Array.from(attendedDays)));
+    }
 
     function createCalendar(year, month) {
         const calendar = document.getElementById('calendar');
@@ -24,10 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstDay = new Date(year, month, 1);
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Encontrar o primeiro dia útil (segunda-feira) do mês
-        let currentRow = [];
         let dayOfWeek = firstDay.getDay();
-        let offset = (dayOfWeek === 0) ? 6 : dayOfWeek - 1; // Ajusta para segunda=0, domingo=6
+        let offset = (dayOfWeek === 0) ? 6 : dayOfWeek - 1;
 
         // Preenche espaços vazios antes do primeiro dia útil
         for (let i = 0; i < offset && i < 5; i++) {
@@ -39,43 +52,43 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(year, month, day);
             const weekDay = date.getDay();
-            if (weekDay === 0 || weekDay === 6) continue; // pula domingos e sábados
+            if (weekDay === 0 || weekDay === 6) continue;
 
             const dayDiv = document.createElement('div');
             dayDiv.className = 'calendar-day';
             dayDiv.textContent = day;
+
+            // Marca como selecionado se estiver em attendedDays
+            if (attendedDays.has(day)) {
+                dayDiv.classList.add('selected');
+            }
+
             dayDiv.addEventListener('click', function () {
-                dayDiv.classList.toggle('selected');
+                if (attendedDays.has(day)) {
+                    attendedDays.delete(day);
+                    dayDiv.classList.remove('selected');
+                } else {
+                    attendedDays.add(day);
+                    dayDiv.classList.add('selected');
+                }
                 updateAttendanceCount();
+                saveAttendance(year, month);
             });
             calendar.appendChild(dayDiv);
         }
+        updateAttendanceCount();
     }
 
     function updateAttendanceCount() {
-        const selectedDays = document.querySelectorAll('.calendar-day.selected').length;
-        document.getElementById('dias-contagem').textContent = selectedDays;
-    }
-    function toggleAttendance(day) {
-        const dateKey = `${day}-${new Date().getMonth()}-${new Date().getFullYear()}`;
-        if (attendedDays.has(dateKey)) {
-            attendedDays.delete(dateKey);
-        } else {
-            attendedDays.add(dateKey);
-        }
-        updateTotalDays();
+        document.getElementById('dias-contagem').textContent = attendedDays.size;
     }
 
-    function updateTotalDays() {
-        totalDaysCount.textContent = attendedDays.size;
-    }
-
-    const currentDate = new Date();
-    createCalendar(currentDate.getMonth(), currentDate.getFullYear());
-
-    // Inicializa o calendário com o mês atual
+    // Inicializa o calendário com o mês atual e carrega os dados do localStorage
     const today = new Date();
-    createCalendar(today.getFullYear(), today.getMonth());
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    loadAttendance(year, month);
+    createCalendar(year, month);
     document.getElementById('month-year').textContent =
         today.toLocaleString('default', { month: 'long', year: 'numeric' });
 });
