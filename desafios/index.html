@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhamento de Desafio</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Acompanhe seu Desafio Diário!</h1>
+
+        <div class="input-section">
+            <label for="challengeName">Nome do Desafio:</label>
+            <input type="text" id="challengeName" placeholder="Ex: Desafio de Leitura">
+
+            <label for="totalDays">Total de Dias:</label>
+            <input type="number" id="totalDays" min="1" value="30">
+
+            <button id="startChallenge">Iniciar Desafio</button>
+        </div>
+
+        <div class="challenge-display" style="display: none;">
+            <h2 id="currentChallengeTitle"></h2>
+            <p>Dias Completos: <span id="completedDaysCount">0</span> / <span id="totalDaysDisplay"></span></p>
+            <div id="daysContainer" class="days-container">
+            </div>
+            <button id="resetChallenge">Reiniciar Desafio</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

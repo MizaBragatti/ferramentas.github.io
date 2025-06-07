@@ -1,0 +1,119 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    /* Alinha no topo */
+    min-height: 100vh;
+    margin: 20px 0;
+    /* Adiciona margem para não colar no topo */
+    color: #333;
+}
+
+.container {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+}
+
+h1 {
+    color: #007bff;
+    margin-bottom: 25px;
+}
+
+.input-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.input-section input[type="text"],
+.input-section input[type="number"] {
+    width: calc(100% - 20px);
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.input-section button,
+.challenge-display button {
+    background-color: #28a745;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 17px;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+
+.input-section button:hover {
+    background-color: #218838;
+}
+
+.challenge-display {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.challenge-display h2 {
+    color: #007bff;
+    margin-bottom: 15px;
+}
+
+.challenge-display p {
+    font-size: 1.1em;
+    margin-bottom: 20px;
+}
+
+.days-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.day-box {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #e9ecef;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.day-box.completed {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.day-box:hover:not(.completed) {
+    background-color: #cfe2ff;
+    border-color: #007bff;
+}
+
+.challenge-display button {
+    background-color: #dc3545;
+    margin-top: 25px;
+}
+
+.challenge-display button:hover {
+    background-color: #c82333;
+}
