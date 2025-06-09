@@ -4,10 +4,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    /* Alinha no topo */
     min-height: 100vh;
     margin: 20px 0;
-    /* Adiciona margem para não colar no topo */
     color: #333;
 }
 
@@ -17,7 +15,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     width: 90%;
-    max-width: 600px;
+    max-width: 700px; /* Aumentado para acomodar o calendário */
     text-align: center;
 }
 
@@ -34,7 +32,8 @@ h1 {
 }
 
 .input-section input[type="text"],
-.input-section input[type="number"] {
+.input-section input[type="number"],
+.input-section input[type="date"] { /* Adicionado input type date */
     width: calc(100% - 20px);
     padding: 12px;
     margin-bottom: 15px;
@@ -76,17 +75,27 @@ h1 {
     margin-bottom: 20px;
 }
 
-.days-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
+/* Estilos do Calendário */
+.calendar-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 colunas para os dias da semana */
+    gap: 5px;
     margin-top: 20px;
+    text-align: center;
+}
+
+.day-header {
+    font-weight: bold;
+    background-color: #e0f2f7;
+    padding: 8px 0;
+    border-radius: 4px;
+    color: #0056b3;
 }
 
 .day-box {
-    width: 40px;
-    height: 40px;
+    width: 100%; /* Ajustado para preencher a célula da grid */
+    padding-top: 100%; /* Para fazer a caixa quadrada */
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -96,6 +105,20 @@ h1 {
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    font-size: 0.9em;
+}
+
+.day-box span.date-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.day-box.empty {
+    background-color: #f8f9fa;
+    border: 1px dashed #ced4da;
+    cursor: default;
 }
 
 .day-box.completed {
@@ -104,7 +127,7 @@ h1 {
     border-color: #28a745;
 }
 
-.day-box:hover:not(.completed) {
+.day-box:hover:not(.completed):not(.empty) {
     background-color: #cfe2ff;
     border-color: #007bff;
 }

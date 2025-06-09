@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acompanhamento de Desafio</title>
+    <title>Acompanhamento de Desafio em Calendário</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <div class="container">
         <h1>Acompanhe seu Desafio Diário!</h1>
@@ -18,6 +16,9 @@
 
             <label for="totalDays">Total de Dias:</label>
             <input type="number" id="totalDays" min="1" value="30">
+            
+            <label for="startDate">Data de Início:</label>
+            <input type="date" id="startDate">
 
             <button id="startChallenge">Iniciar Desafio</button>
         </div>
@@ -25,13 +26,14 @@
         <div class="challenge-display" style="display: none;">
             <h2 id="currentChallengeTitle"></h2>
             <p>Dias Completos: <span id="completedDaysCount">0</span> / <span id="totalDaysDisplay"></span></p>
-            <div id="daysContainer" class="days-container">
-            </div>
+            <p>Seu desafio começou em: <span id="challengeStartDate"></span></p>
+            
+            <div id="calendarContainer" class="calendar-container">
+                </div>
             <button id="resetChallenge">Reiniciar Desafio</button>
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
-
 </html>
