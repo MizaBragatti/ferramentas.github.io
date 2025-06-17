@@ -102,3 +102,36 @@ h1 {
     background: #2563eb;
     color: #fff;
 }
+
+.feriado {
+    background: #ffd6d6 !important;
+    color: #b71c1c !important;
+    cursor: not-allowed !important;
+}
+
+.destaque-trabalhados {
+    text-align: center;
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #1e40af;
+}
+
+.total-dias {
+    display: inline-block;
+    background: #ff8200;
+    color: #fff;
+    padding: 0.25em 0.8em;
+    border-radius: 8px;
+    font-size: 1em;
+    margin-left: 0.5em;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+    font-weight: 200;
+    letter-spacing: 1px;
+}
+
+.label-total {
+    font-size: 1em;
+    color: #1e40af;
+    font-weight: 200;
+}
