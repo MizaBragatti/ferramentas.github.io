@@ -92,3 +92,12 @@ li {
 .acoes button:hover {
     background-color: #d1d5db;
 }
+
+#cabecalho-fixo {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  padding: 10px 0;
+  border-bottom: 1px solid #ccc;
+}

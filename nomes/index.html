@@ -10,12 +10,17 @@
 
 <body>
     <div class="app">
-        <h1>Meus 10 mil nomes</h1>
-        <div class="input-area">
-            <input type="text" id="nomeInput" placeholder="Digite um nome" />
-            <button onclick="adicionarNome()">+</button>
+        <div id="cabecalho-fixo">
+            <h1>Meus 10 mil nomes</h1>
+            <div class="input-area">
+                <input type="text" id="nomeInput" placeholder="Digite um nome" />
+                <button onclick="adicionarNome()">+</button>
+                <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="importarCSV(event)" />
+                <button onclick="document.getElementById('csvInput').click()">Importar CSV</button>
+            </div>
+            <div class="contador">Total: <span id="contador">0</span></div>
         </div>
-        <div class="contador">Total: <span id="contador">0</span></div>
+
         <ul id="listaNomes"></ul>
     </div>
     <script src="script.js"></script>

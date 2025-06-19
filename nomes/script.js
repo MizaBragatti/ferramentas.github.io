@@ -36,17 +36,7 @@ function atualizarLista() {
     document.getElementById("contador").textContent = nomes.length;
 }
 
-function adicionarNome() {
-    const input = document.getElementById("nomeInput");
-    const nome = input.value.trim();
-    if (nome) {
-        nomes.push(nome);
-        salvarNomes();
-        atualizarLista();
-        input.value = "";
-        input.focus();
-    }
-}
+
 
 function removerNome(index) {
     if (confirm("Deseja remover este nome?")) {
@@ -66,3 +56,60 @@ function editarNome(index) {
 }
 
 atualizarLista();
+
+function importarCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const linhas = e.target.result.split('\n').map(l => l.replace(/\r$/, ''));
+        if (linhas.length < 2) return;
+
+        // Pega o cabeçalho e acha os índices dos campos de nome
+        const cabecalho = linhas[0].split(',');
+        const idxFirst = cabecalho.indexOf("First Name");
+        const idxMiddle = cabecalho.indexOf("Middle Name");
+        const idxLast = cabecalho.indexOf("Last Name");
+
+        for (let i = 1; i < linhas.length; i++) {
+            if (!linhas[i].trim()) continue;
+            const campos = linhas[i].split(',');
+            let nome = '';
+            if (idxFirst >= 0 && campos[idxFirst]) nome += campos[idxFirst];
+            if (idxMiddle >= 0 && campos[idxMiddle]) nome += ' ' + campos[idxMiddle];
+            if (idxLast >= 0 && campos[idxLast]) nome += ' ' + campos[idxLast];
+            nome = nome.trim();
+            if (nome) adicionarNome(nome);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Modifique adicionarNome para aceitar parâmetro opcional:
+
+function adicionarNome(nomeParam) {
+    const input = document.getElementById('nomeInput');
+    const nome = nomeParam || input.value.trim();
+    if (!nome) return;
+
+    if (nome) {
+        nomes.push(nome);
+        salvarNomes();
+        atualizarLista();
+        input.value = "";
+        input.focus();
+    }
+
+    // Adicione o nome à lista (ajuste conforme sua lógica atual)
+    const lista = document.getElementById('listaNomes');
+    const li = document.createElement('li');
+    li.textContent = nome;
+    lista.appendChild(li);
+
+    // Atualize o contador
+    const contador = document.getElementById('contador');
+    contador.textContent = lista.children.length;
+
+    if (!nomeParam) input.value = '';
+}
