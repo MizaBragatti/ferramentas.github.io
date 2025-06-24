@@ -11,6 +11,13 @@ body {
     align-items: flex-start;
     min-height: 100vh;
     padding: 20px;
+
+}
+
+body,
+html {
+    height: 100%;
+    overflow-x: hidden;
 }
 
 .app {
@@ -19,7 +26,9 @@ body {
     border-radius: 16px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 480px;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 10px;
 }
 
 h1 {
@@ -94,10 +103,10 @@ li {
 }
 
 #cabecalho-fixo {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 10;
-  padding: 10px 0;
-  border-bottom: 1px solid #ccc;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
+    padding: 10px 0;
+    border-bottom: 1px solid #ccc;
 }
