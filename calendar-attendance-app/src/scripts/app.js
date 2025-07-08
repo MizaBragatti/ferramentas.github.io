@@ -103,6 +103,7 @@ const FERIADOS_FIXOS = [
     '01-01', // Confraternização Universal
     '04-21', // Tiradentes
     '05-01', // Dia do Trabalho
+    '07-09', // Revolução Constitucionalista (SP)
     '09-07', // Independência
     '10-12', // Nossa Senhora Aparecida
     '11-02', // Finados
