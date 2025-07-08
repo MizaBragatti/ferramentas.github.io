@@ -83,7 +83,7 @@ function importarCSV(event) {
             if (nome) adicionarNome(nome);
         }
     };
-    reader.readAsText(file);
+    reader.readAsText(file, 'UTF-8');
 }
 
 // Modifique adicionarNome para aceitar parâmetro opcional:
