@@ -1,5 +1,3 @@
-// ...existing code...
-
 document.addEventListener('DOMContentLoaded', () => {
     const totalDaysCount = document.getElementById('dias-contagem');
     let attendedDays = new Set();
@@ -22,68 +20,102 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(key, JSON.stringify(Array.from(attendedDays)));
     }
 
+    // Nomes dos feriados fixos
+    const NOMES_FERIADOS = {
+        '01-01': 'Confraternização Universal',
+        '04-21': 'Tiradentes',
+        '05-01': 'Dia do Trabalho',
+        '07-09': 'Revolução Constitucionalista (SP)',
+        '09-07': 'Independência',
+        '10-12': 'Nossa Senhora Aparecida',
+        '11-02': 'Finados',
+        '11-15': 'Proclamação da República',
+        '12-25': 'Natal'
+    };
+
     function createCalendar(year, month) {
-        const calendar = document.getElementById('calendar');
-        const calendarHeader = document.getElementById('calendar-header');
-        calendar.innerHTML = '';
-        calendarHeader.innerHTML = '';
+    const calendar = document.getElementById('calendar');
+    const calendarHeader = document.getElementById('calendar-header');
+    calendar.innerHTML = '';
+    calendarHeader.innerHTML = '';
 
-        // Cabeçalho dos dias da semana (segunda a sexta)
-        const weekDays = ['seg', 'ter', 'qua', 'qui', 'sex'];
-        weekDays.forEach(day => {
-            const dayHeader = document.createElement('div');
-            dayHeader.textContent = day;
-            calendarHeader.appendChild(dayHeader);
-        });
+    // Cabeçalho dos dias da semana (segunda a sexta)
+    const weekDays = ['seg', 'ter', 'qua', 'qui', 'sex'];
+    weekDays.forEach(day => {
+        const dayHeader = document.createElement('div');
+        dayHeader.textContent = day;
+        calendarHeader.appendChild(dayHeader);
+    });
 
-        const firstDay = new Date(year, month, 1);
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        let dayOfWeek = firstDay.getDay();
-        let offset = (dayOfWeek === 0) ? 6 : dayOfWeek - 1;
+    // Ajusta o getDay para segunda=0, ..., sexta=4
+    let jsDay = firstDay.getDay(); // 0=domingo, 1=segunda, ..., 6=sábado
+    let offset = (jsDay === 0) ? 6 : jsDay - 1; // segunda=0, ..., sexta=4, sábado=5, domingo=6
 
-        // Preenche espaços vazios antes do primeiro dia útil
-        for (let i = 0; i < offset && i < 5; i++) {
-            const empty = document.createElement('div');
-            calendar.appendChild(empty);
+    // Se o mês começa no sábado ou domingo, pula para segunda
+    if (offset > 4) offset = 0;
+
+    // Preenche espaços vazios antes do primeiro dia útil
+    for (let i = 0; i < offset; i++) {
+        const empty = document.createElement('div');
+        calendar.appendChild(empty);
+    }
+
+    // Cria os dias do mês, pulando sábados (6) e domingos (0)
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const weekDay = date.getDay();
+        if (weekDay === 0 || weekDay === 6) {
+            // Não adiciona nada para sábados e domingos
+            continue;
         }
 
-        // Cria os dias do mês, pulando sábados (6) e domingos (0)
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(year, month, day);
-            const weekDay = date.getDay();
-            if (weekDay === 0 || weekDay === 6) continue;
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        dayDiv.textContent = day;
 
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'calendar-day';
-            dayDiv.textContent = day;
+        // Desabilita feriados nacionais
+        if (isFeriado(date)) {
+            dayDiv.classList.add('feriado');
+            // Descobre o nome do feriado
+            const mmdd = date.toISOString().slice(5, 10);
+            let nomeFeriado = NOMES_FERIADOS[mmdd];
+            // Se for Corpus Christi
+            const cc = getCorpusChristi(date.getFullYear());
+            if (date.getDate() === cc.getDate() && date.getMonth() === cc.getMonth()) {
+                nomeFeriado = 'Corpus Christi';
+            }
+            dayDiv.title = nomeFeriado || 'Feriado Nacional';
+            dayDiv.style.opacity = '0.5';
 
-            // Desabilita feriados nacionais
-            if (isFeriado(date)) {
-                dayDiv.classList.add('feriado');
-                dayDiv.title = 'Feriado Nacional';
-                dayDiv.style.pointerEvents = 'none';
-                dayDiv.style.opacity = '0.5';
-            } else {
+            // Permite o toque/click para mostrar tooltip em mobile
+            dayDiv.style.pointerEvents = 'auto';
+            dayDiv.addEventListener('click', function (e) {
+                alert(dayDiv.title);
+                e.stopPropagation();
+            });
+        } else {
+            if (attendedDays.has(day)) {
+                dayDiv.classList.add('selected');
+            }
+            dayDiv.addEventListener('click', function () {
                 if (attendedDays.has(day)) {
+                    attendedDays.delete(day);
+                    dayDiv.classList.remove('selected');
+                } else {
+                    attendedDays.add(day);
                     dayDiv.classList.add('selected');
                 }
-                dayDiv.addEventListener('click', function () {
-                    if (attendedDays.has(day)) {
-                        attendedDays.delete(day);
-                        dayDiv.classList.remove('selected');
-                    } else {
-                        attendedDays.add(day);
-                        dayDiv.classList.add('selected');
-                    }
-                    updateAttendanceCount();
-                    saveAttendance(year, month);
-                });
-            }
-            calendar.appendChild(dayDiv);
+                updateAttendanceCount();
+                saveAttendance(year, month);
+            });
         }
-        updateAttendanceCount();
+        calendar.appendChild(dayDiv);
     }
+    updateAttendanceCount();
+}
 
     function updateAttendanceCount() {
         document.getElementById('dias-contagem').textContent = attendedDays.size;
