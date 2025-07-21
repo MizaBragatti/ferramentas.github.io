@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const challengeStartDate = document.getElementById('challengeStartDate');
     const calendarContainer = document.getElementById('calendarContainer');
     const resetChallengeBtn = document.getElementById('resetChallenge');
+    const deleteChallengeFromDetailBtn = document.getElementById('deleteChallengeFromDetail');
 
     // Estado
     let editingChallengeId = null;
@@ -38,7 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Função para formatar data no padrão brasileiro (dd-mm-aaaa)
     function formatDateBR(dateString) {
-        const date = new Date(dateString);
+        const date = new Date(dateString + 'T12:00:00'); // Usar meio-dia para evitar problemas de fuso
+        date.setHours(0, 0, 0, 0);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
@@ -74,8 +76,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         challenges.forEach(challenge => {
             const li = document.createElement('li');
+            
+            // Container para o conteúdo do desafio
+            const challengeContainer = document.createElement('div');
+            challengeContainer.className = 'challenge-item-container';
+            
             const link = document.createElement('a');
             link.href = '#';
+            link.className = 'challenge-link';
             
             // Calcula progresso
             const progress = Math.round((challenge.completedDays.length / challenge.totalDays) * 100);
@@ -86,7 +94,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 showChallenge(challenge.id);
             };
-            li.appendChild(link);
+            
+            // Botão de exclusão
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-challenge-btn';
+            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.title = 'Excluir desafio';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation(); // Evita que o clique abra o desafio
+                deleteChallenge(challenge.id);
+            };
+            
+            challengeContainer.appendChild(link);
+            challengeContainer.appendChild(deleteBtn);
+            li.appendChild(challengeContainer);
             challengeLinks.appendChild(li);
         });
     }
@@ -189,9 +210,16 @@ document.addEventListener('DOMContentLoaded', function () {
             calendarContainer.appendChild(dayHeader);
         });
         
-        // Calcula o dia da semana de início
-        const startDate = new Date(challenge.startDate);
+        // Calcula o dia da semana de início - corrigindo problema de fuso horário
+        const startDate = new Date(challenge.startDate + 'T12:00:00'); // Usar meio-dia para evitar problemas
+        startDate.setHours(0, 0, 0, 0); // Depois definir para meia-noite local
         const startDayOfWeek = startDate.getDay(); // 0 = domingo, 1 = segunda, etc.
+        
+        // Debug: adicionar logs para verificar
+        console.log('Data original:', challenge.startDate);
+        console.log('Data processada:', startDate.toLocaleDateString('pt-BR'));
+        console.log('Dia da semana (0=Dom, 6=Sáb):', startDayOfWeek);
+        console.log('Nome do dia:', weekDays[startDayOfWeek]);
         
         // Adiciona células vazias antes do primeiro dia
         for (let i = 0; i < startDayOfWeek; i++) {
@@ -202,13 +230,33 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Adiciona os dias do desafio
         for (let i = 1; i <= challenge.totalDays; i++) {
+            // Calcula a data real para este dia do desafio
+            const currentDay = new Date(startDate);
+            currentDay.setDate(startDate.getDate() + (i - 1)); // i-1 porque começamos do dia 1
+            
             const dayBox = document.createElement('div');
             dayBox.className = challenge.completedDays.includes(i) ? 'day-box completed' : 'day-box';
             
-            const dateNumber = document.createElement('span');
-            dateNumber.className = 'date-number';
-            dateNumber.textContent = i;
-            dayBox.appendChild(dateNumber);
+            // Container para número do dia e data
+            const dayContent = document.createElement('div');
+            dayContent.className = 'day-content';
+            
+            // Número do dia do desafio
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'challenge-day-number';
+            dayNumber.textContent = i;
+            
+            // Data real do calendário
+            const realDate = document.createElement('div');
+            realDate.className = 'real-date';
+            realDate.textContent = currentDay.getDate();
+            
+            dayContent.appendChild(dayNumber);
+            dayContent.appendChild(realDate);
+            dayBox.appendChild(dayContent);
+            
+            // Tooltip com informações completas
+            dayBox.title = `Dia ${i} do desafio - ${currentDay.toLocaleDateString('pt-BR')}`;
             
             dayBox.onclick = () => {
                 toggleDay(challenge.id, i);
@@ -233,6 +281,24 @@ document.addEventListener('DOMContentLoaded', function () {
         renderChallengeLinks();
     }
 
+    // Excluir um desafio
+    function deleteChallenge(challengeId) {
+        const challenges = getChallenges();
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (!challenge) return;
+        
+        if (confirm(`Tem certeza que deseja excluir o desafio "${challenge.name}"? Esta ação não pode ser desfeita.`)) {
+            const updatedChallenges = challenges.filter(c => c.id !== challengeId);
+            saveChallenges(updatedChallenges);
+            renderChallengeLinks();
+            
+            // Se estava visualizando o desafio excluído, voltar para a tela principal
+            if (challengeDisplayScreen.dataset.challengeId === challengeId) {
+                showScreen(mainScreen);
+            }
+        }
+    }
+
     // Reiniciar desafio
     resetChallengeBtn.onclick = () => {
         const id = challengeDisplayScreen.dataset.challengeId;
@@ -250,6 +316,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Voltar para tela principal
     backToMainBtn.onclick = () => {
         showScreen(mainScreen);
+    };
+
+    // Excluir desafio da tela de detalhes
+    deleteChallengeFromDetailBtn.onclick = () => {
+        const id = challengeDisplayScreen.dataset.challengeId;
+        if (id) {
+            deleteChallenge(id);
+        }
     };
 
     // Inicialização

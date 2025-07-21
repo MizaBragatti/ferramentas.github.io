@@ -124,7 +124,16 @@ h1 {
     box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
 }
 
-#challengeLinks li a {
+/* Container for challenge item with delete button */
+.challenge-item-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+}
+
+.challenge-link {
+    flex: 1;
     display: block;
     padding: 20px 25px;
     color: white;
@@ -135,13 +144,13 @@ h1 {
     overflow: hidden;
 }
 
-#challengeLinks li a::before {
+.challenge-link::before {
     content: '🎯';
     margin-right: 10px;
     font-size: 1.2rem;
 }
 
-#challengeLinks li a::after {
+.challenge-link::after {
     content: '';
     position: absolute;
     top: 0;
@@ -152,8 +161,32 @@ h1 {
     transition: left 0.5s;
 }
 
-#challengeLinks li:hover a::after {
+#challengeLinks li:hover .challenge-link::after {
     left: 100%;
+}
+
+/* Delete button styles */
+.delete-challenge-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 15px;
+    margin-right: 15px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 45px;
+    height: 45px;
+}
+
+.delete-challenge-btn:hover {
+    background: rgba(255, 107, 107, 0.8);
+    transform: scale(1.1);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 }
 
 /* Empty state styling */
@@ -306,6 +339,26 @@ h1 {
     box-shadow: 0 12px 25px rgba(255, 107, 107, 0.4);
 }
 
+/* Challenge Actions Container */
+.challenge-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+/* Delete button specific styles */
+.delete-btn {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3) !important;
+}
+
+.delete-btn:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%) !important;
+    box-shadow: 0 12px 25px rgba(231, 76, 60, 0.5) !important;
+}
+
 /* Estilos do Calendário */
 .calendar-container {
     display: grid;
@@ -325,7 +378,7 @@ h1 {
 
 .day-box {
     width: 100%; /* Ajustado para preencher a célula da grid */
-    height: 50px; /* Altura fixa para melhor aparência */
+    height: 60px; /* Altura aumentada para acomodar duas linhas */
     position: relative;
     display: flex;
     justify-content: center;
@@ -336,7 +389,37 @@ h1 {
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s ease, border-color 0.2s ease;
-    font-size: 0.9em;
+    font-size: 0.8em;
+}
+
+.day-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.challenge-day-number {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.real-date {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+}
+
+.day-box.completed .challenge-day-number {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.day-box.completed .real-date {
+    color: white;
 }
 
 .day-box .date-number {
@@ -353,10 +436,6 @@ h1 {
     background-color: #28a745;
     color: white;
     border-color: #28a745;
-}
-
-.day-box.completed .date-number {
-    color: white;
 }
 
 .day-box:hover:not(.completed):not(.empty) {
@@ -384,8 +463,16 @@ h1 {
     }
     
     .day-box {
-        height: 40px;
-        font-size: 0.8em;
+        height: 50px;
+        font-size: 0.7em;
+    }
+    
+    .challenge-day-number {
+        font-size: 0.65em;
+    }
+    
+    .real-date {
+        font-size: 1em;
     }
     
     .add-challenge-btn {
