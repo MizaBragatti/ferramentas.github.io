@@ -8,28 +8,56 @@
 </head>
 <body>
     <div class="container">
-        <h1>Acompanhe seu Desafio Diário!</h1>
 
-        <div class="input-section">
-            <label for="challengeName">Nome do Desafio:</label>
-            <input type="text" id="challengeName" placeholder="Ex: Desafio de Leitura">
-
-            <label for="totalDays">Total de Dias:</label>
-            <input type="number" id="totalDays" min="1" value="30">
-            
-            <label for="startDate">Data de Início:</label>
-            <input type="date" id="startDate">
-
-            <button id="startChallenge">Iniciar Desafio</button>
+        <div class="header-section">
+            <div class="trophy-icon">🏆</div>
+            <h1>Acompanhe seu Desafio Diário!</h1>
+            <p class="subtitle">Transforme objetivos em conquistas diárias</p>
         </div>
 
-        <div class="challenge-display" style="display: none;">
+        <!-- Tela principal: lista de desafios -->
+        <div id="mainScreen">
+            <div class="challenges-header">
+                <h2>🎯 Seus Desafios</h2>
+                <div class="stats-summary" id="statsSummary"></div>
+            </div>
+            <div class="challenges-container">
+                <ul id="challengeLinks"></ul>
+                <div class="add-challenge-section">
+                    <button id="addChallengeBtn" class="add-challenge-btn">
+                        <span class="plus-icon">+</span>
+                        <span>Adicionar Novo Desafio</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de criação/edição de desafio -->
+        <div id="challengeFormScreen" style="display: none;">
+            <h2 id="formTitle">Novo Desafio</h2>
+            <div class="input-section">
+                <label for="challengeName">Nome do Desafio:</label>
+                <input type="text" id="challengeName" placeholder="Ex: Desafio de Leitura">
+
+                <label for="totalDays">Total de Dias:</label>
+                <input type="number" id="totalDays" min="1" value="30">
+                
+                <label for="startDate">Data de Início:</label>
+                <input type="date" id="startDate">
+
+                <button id="saveChallenge">Salvar</button>
+                <button id="cancelChallenge">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Tela de acompanhamento do desafio -->
+        <div id="challengeDisplayScreen" class="challenge-display" style="display: none;">
+            <button id="backToMain">← Voltar</button>
             <h2 id="currentChallengeTitle"></h2>
             <p>Dias Completos: <span id="completedDaysCount">0</span> / <span id="totalDaysDisplay"></span></p>
             <p>Seu desafio começou em: <span id="challengeStartDate"></span></p>
             
-            <div id="calendarContainer" class="calendar-container">
-                </div>
+            <div id="calendarContainer" class="calendar-container"></div>
             <button id="resetChallenge">Reiniciar Desafio</button>
         </div>
     </div>

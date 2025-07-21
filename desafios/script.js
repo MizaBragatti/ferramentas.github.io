@@ -1,160 +1,262 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
+    // Elementos principais
+    const mainScreen = document.getElementById('mainScreen');
+    const challengeFormScreen = document.getElementById('challengeFormScreen');
+    const challengeDisplayScreen = document.getElementById('challengeDisplayScreen');
+
+    // Elementos da tela principal
+    const challengeLinks = document.getElementById('challengeLinks');
+    const addChallengeBtn = document.getElementById('addChallengeBtn');
+
+    // Elementos do formulário
+    const formTitle = document.getElementById('formTitle');
     const challengeNameInput = document.getElementById('challengeName');
     const totalDaysInput = document.getElementById('totalDays');
-    const startDateInput = document.getElementById('startDate'); // Novo campo
-    const startChallengeBtn = document.getElementById('startChallenge');
-    const resetChallengeBtn = document.getElementById('resetChallenge');
+    const startDateInput = document.getElementById('startDate');
+    const saveChallengeBtn = document.getElementById('saveChallenge');
+    const cancelChallengeBtn = document.getElementById('cancelChallenge');
 
-    const inputSection = document.querySelector('.input-section');
-    const challengeDisplay = document.querySelector('.challenge-display');
+    // Elementos da tela de acompanhamento
+    const backToMainBtn = document.getElementById('backToMain');
     const currentChallengeTitle = document.getElementById('currentChallengeTitle');
     const completedDaysCount = document.getElementById('completedDaysCount');
     const totalDaysDisplay = document.getElementById('totalDaysDisplay');
-    const challengeStartDateDisplay = document.getElementById('challengeStartDate'); // Novo elemento
-    const calendarContainer = document.getElementById('calendarContainer'); // Alterado para calendarContainer
+    const challengeStartDate = document.getElementById('challengeStartDate');
+    const calendarContainer = document.getElementById('calendarContainer');
+    const resetChallengeBtn = document.getElementById('resetChallenge');
 
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    // Estado
+    let editingChallengeId = null;
 
-    let challenge = null;
-
-    // Carregar desafio do localStorage (se existir)
-    function loadChallenge() {
-        const storedChallenge = localStorage.getItem('dailyChallenge');
-        if (storedChallenge) {
-            challenge = JSON.parse(storedChallenge);
-            // Converter a string da data de volta para um objeto Date
-            challenge.startDate = new Date(challenge.startDate); 
-            renderChallenge();
-            challengeDisplay.style.display = 'block';
-            inputSection.style.display = 'none';
-        }
+    // Utilidades de armazenamento
+    function getChallenges() {
+        return JSON.parse(localStorage.getItem('challenges') || '[]');
+    }
+    function saveChallenges(challenges) {
+        localStorage.setItem('challenges', JSON.stringify(challenges));
     }
 
-    // Salvar desafio no localStorage
-    function saveChallenge() {
-        // Armazenar a data como string para fácil serialização
-        const challengeToSave = {
-            ...challenge,
-            startDate: challenge.startDate.toISOString().split('T')[0] // Formato YYYY-MM-DD
-        };
-        localStorage.setItem('dailyChallenge', JSON.stringify(challengeToSave));
+    // Função para formatar data no padrão brasileiro (dd-mm-aaaa)
+    function formatDateBR(dateString) {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
     }
 
-    // Iniciar um novo desafio
-    startChallengeBtn.addEventListener('click', () => {
-        const name = challengeNameInput.value.trim();
-        const days = parseInt(totalDaysInput.value);
-        const startDateString = startDateInput.value;
+    // Navegação entre telas
+    function showScreen(screen) {
+        mainScreen.style.display = 'none';
+        challengeFormScreen.style.display = 'none';
+        challengeDisplayScreen.style.display = 'none';
+        screen.style.display = '';
+    }
 
-        if (!name) {
-            alert('Por favor, insira o nome do desafio.');
-            return;
-        }
-        if (isNaN(days) || days <= 0) {
-            alert('Por favor, insira um número válido de dias.');
-            return;
-        }
-        if (!startDateString) {
-            alert('Por favor, selecione a data de início do desafio.');
-            return;
-        }
-
-        const startDate = new Date(startDateString + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário
-        startDate.setHours(0, 0, 0, 0); // Zera hora, minuto, segundo e milissegundo
-
-        challenge = {
-            name: name,
-            totalDays: days,
-            startDate: startDate,
-            completedDays: Array(days).fill(false) // Array para controlar quais dias foram completados
-        };
-        saveChallenge();
-        renderChallenge();
-
-        inputSection.style.display = 'none';
-        challengeDisplay.style.display = 'block';
-    });
-
-    // Reiniciar desafio
-    resetChallengeBtn.addEventListener('click', () => {
-        if (confirm('Tem certeza que deseja reiniciar o desafio? Todo o progresso será perdido.')) {
-            localStorage.removeItem('dailyChallenge');
-            challenge = null;
-            challengeNameInput.value = '';
-            totalDaysInput.value = '30';
-            startDateInput.value = ''; // Limpa o campo de data
-            challengeDisplay.style.display = 'none';
-            inputSection.style.display = 'block';
-            calendarContainer.innerHTML = ''; // Limpa o calendário
-        }
-    });
-
-    // Renderizar o desafio na tela
-    function renderChallenge() {
-        if (!challenge) return;
-
-        currentChallengeTitle.textContent = challenge.name;
-        totalDaysDisplay.textContent = challenge.totalDays;
-        challengeStartDateDisplay.textContent = challenge.startDate.toLocaleDateString('pt-BR');
+    // Renderiza lista de desafios na tela principal
+    function renderChallengeLinks() {
+        const challenges = getChallenges();
+        challengeLinks.innerHTML = '';
         
-        const completedCount = challenge.completedDays.filter(day => day).length;
-        completedDaysCount.textContent = completedCount;
+        // Atualiza estatísticas
+        updateStatsDisplay(challenges);
+        
+        if (challenges.length === 0) {
+            const li = document.createElement('li');
+            li.innerHTML = '<span style="color: #8b4513; font-weight: 500;">🌟 Nenhum desafio cadastrado ainda. Que tal começar sua jornada?</span>';
+            li.style.background = 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)';
+            li.style.padding = '30px';
+            li.style.borderRadius = '15px';
+            li.style.boxShadow = '0 8px 25px rgba(252, 182, 159, 0.3)';
+            li.style.listStyle = 'none';
+            challengeLinks.appendChild(li);
+            return;
+        }
+        challenges.forEach(challenge => {
+            const li = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = '#';
+            
+            // Calcula progresso
+            const progress = Math.round((challenge.completedDays.length / challenge.totalDays) * 100);
+            const progressText = progress > 0 ? ` (${progress}% completo)` : '';
+            
+            link.innerHTML = `${challenge.name}${progressText}`;
+            link.onclick = (e) => {
+                e.preventDefault();
+                showChallenge(challenge.id);
+            };
+            li.appendChild(link);
+            challengeLinks.appendChild(li);
+        });
+    }
+    
+    // Atualiza display de estatísticas
+    function updateStatsDisplay(challenges) {
+        const statsElement = document.getElementById('statsSummary');
+        if (!statsElement) return;
+        
+        const totalChallenges = challenges.length;
+        const totalCompletedDays = challenges.reduce((sum, challenge) => sum + challenge.completedDays.length, 0);
+        const activeChallenges = challenges.filter(challenge => challenge.completedDays.length < challenge.totalDays).length;
+        
+        if (totalChallenges === 0) {
+            statsElement.innerHTML = '🚀 Pronto para começar sua primeira conquista?';
+        } else {
+            statsElement.innerHTML = `📊 ${totalChallenges} desafio${totalChallenges > 1 ? 's' : ''} • ${totalCompletedDays} dias conquistados • ${activeChallenges} ativo${activeChallenges !== 1 ? 's' : ''}`;
+        }
+    }
 
-        calendarContainer.innerHTML = ''; // Limpa o calendário anterior
+    // Cria um novo desafio
+    function createChallenge(name, totalDays, startDate) {
+        return {
+            id: Date.now().toString(),
+            name,
+            totalDays: Number(totalDays),
+            startDate,
+            completedDays: []
+        };
+    }
 
+    // Exibe o formulário para novo desafio
+    addChallengeBtn.onclick = () => {
+        editingChallengeId = null;
+        formTitle.textContent = 'Novo Desafio';
+        challengeNameInput.value = '';
+        totalDaysInput.value = 30;
+        startDateInput.value = '';
+        showScreen(challengeFormScreen);
+    };
+
+    // Salva desafio (novo ou edição)
+    saveChallengeBtn.onclick = () => {
+        const name = challengeNameInput.value.trim();
+        const totalDays = totalDaysInput.value;
+        const startDate = startDateInput.value;
+        if (!name || !totalDays || !startDate) {
+            alert('Preencha todos os campos!');
+            return;
+        }
+        let challenges = getChallenges();
+        if (editingChallengeId) {
+            // Editar existente
+            const challenge = challenges.find(c => c.id === editingChallengeId);
+            if (challenge) {
+                challenge.name = name;
+                challenge.totalDays = Number(totalDays);
+                challenge.startDate = startDate;
+            }
+        } else {
+            // Novo desafio
+            const newChallenge = createChallenge(name, totalDays, startDate);
+            challenges.push(newChallenge);
+        }
+        saveChallenges(challenges);
+        renderChallengeLinks();
+        showScreen(mainScreen);
+    };
+
+    // Cancelar criação/edição
+    cancelChallengeBtn.onclick = () => {
+        showScreen(mainScreen);
+    };
+
+    // Exibe acompanhamento de um desafio
+    function showChallenge(id) {
+        const challenges = getChallenges();
+        const challenge = challenges.find(c => c.id === id);
+        if (!challenge) return;
+        currentChallengeTitle.textContent = challenge.name;
+        completedDaysCount.textContent = challenge.completedDays.length;
+        totalDaysDisplay.textContent = challenge.totalDays;
+        challengeStartDate.textContent = formatDateBR(challenge.startDate);
+        renderCalendar(challenge);
+        // Salva id do desafio atual para reiniciar
+        challengeDisplayScreen.dataset.challengeId = challenge.id;
+        showScreen(challengeDisplayScreen);
+    }
+
+    // Renderiza o calendário do desafio
+    function renderCalendar(challenge) {
+        calendarContainer.innerHTML = '';
+        
         // Adiciona os cabeçalhos dos dias da semana
-        dayNames.forEach(day => {
+        const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        weekDays.forEach(day => {
             const dayHeader = document.createElement('div');
-            dayHeader.classList.add('day-header');
+            dayHeader.className = 'day-header';
             dayHeader.textContent = day;
             calendarContainer.appendChild(dayHeader);
         });
-
-        // Calcula o dia da semana do primeiro dia do desafio (0=Domingo, 6=Sábado)
-        const firstDayOfWeek = challenge.startDate.getDay();
-
-        // Adiciona caixas vazias para preencher os dias antes do início do desafio
-        for (let i = 0; i < firstDayOfWeek; i++) {
-            const emptyBox = document.createElement('div');
-            emptyBox.classList.add('day-box', 'empty');
-            calendarContainer.appendChild(emptyBox);
+        
+        // Calcula o dia da semana de início
+        const startDate = new Date(challenge.startDate);
+        const startDayOfWeek = startDate.getDay(); // 0 = domingo, 1 = segunda, etc.
+        
+        // Adiciona células vazias antes do primeiro dia
+        for (let i = 0; i < startDayOfWeek; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'day-box empty';
+            calendarContainer.appendChild(emptyDay);
         }
-
+        
         // Adiciona os dias do desafio
-        for (let i = 0; i < challenge.totalDays; i++) {
-            const currentDay = new Date(challenge.startDate);
-            currentDay.setDate(challenge.startDate.getDate() + i); // Adiciona 'i' dias à data de início
-
+        for (let i = 1; i <= challenge.totalDays; i++) {
             const dayBox = document.createElement('div');
-            dayBox.classList.add('day-box');
-            dayBox.innerHTML = `<span class="date-number">${currentDay.getDate()}</span>`; // Exibe apenas o número do dia
-
-            // Opcional: Adicionar a data completa como um atributo para debug ou tooltip
-            dayBox.title = currentDay.toLocaleDateString('pt-BR');
-
-            // Verifica se o dia atual é o dia "i" do desafio e se está completo
-            if (challenge.completedDays[i]) {
-                dayBox.classList.add('completed');
-            }
-
-            dayBox.dataset.dayIndex = i; // Armazena o índice do dia do desafio (0 a totalDays-1)
-
-            dayBox.addEventListener('click', () => {
-                toggleDayCompletion(i); // Passa o índice do dia do desafio
-            });
+            dayBox.className = challenge.completedDays.includes(i) ? 'day-box completed' : 'day-box';
+            
+            const dateNumber = document.createElement('span');
+            dateNumber.className = 'date-number';
+            dateNumber.textContent = i;
+            dayBox.appendChild(dateNumber);
+            
+            dayBox.onclick = () => {
+                toggleDay(challenge.id, i);
+            };
             calendarContainer.appendChild(dayBox);
         }
     }
 
-    // Alternar o status de completude de um dia
-    function toggleDayCompletion(index) {
-        if (challenge && index >= 0 && index < challenge.totalDays) {
-            challenge.completedDays[index] = !challenge.completedDays[index];
-            saveChallenge();
-            renderChallenge(); // Renderiza novamente para atualizar a visualização
+    // Marca/desmarca um dia como completo
+    function toggleDay(challengeId, day) {
+        const challenges = getChallenges();
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (!challenge) return;
+        const idx = challenge.completedDays.indexOf(day);
+        if (idx > -1) {
+            challenge.completedDays.splice(idx, 1);
+        } else {
+            challenge.completedDays.push(day);
         }
+        saveChallenges(challenges);
+        showChallenge(challengeId);
+        renderChallengeLinks();
     }
 
-    // Carregar o desafio ao carregar a página
-    loadChallenge();
+    // Reiniciar desafio
+    resetChallengeBtn.onclick = () => {
+        const id = challengeDisplayScreen.dataset.challengeId;
+        if (!id) return;
+        const challenges = getChallenges();
+        const challenge = challenges.find(c => c.id === id);
+        if (!challenge) return;
+        if (!confirm('Tem certeza que deseja reiniciar este desafio?')) return;
+        challenge.completedDays = [];
+        saveChallenges(challenges);
+        showChallenge(id);
+        renderChallengeLinks();
+    };
+
+    // Voltar para tela principal
+    backToMainBtn.onclick = () => {
+        showScreen(mainScreen);
+    };
+
+    // Inicialização
+    function init() {
+        renderChallengeLinks();
+        showScreen(mainScreen);
+    }
+
+    init();
 });

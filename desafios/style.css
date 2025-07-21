@@ -1,78 +1,309 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f2f5;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    margin: 20px 0;
+    margin: 0;
+    padding: 20px;
     color: #333;
 }
 
 .container {
-    background-color: #ffffff;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     width: 90%;
-    max-width: 700px; /* Aumentado para acomodar o calendário */
+    max-width: 800px;
+    margin: 0 auto;
     text-align: center;
 }
 
+/* Header Section */
+.header-section {
+    margin-bottom: 40px;
+}
+
+.trophy-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
 h1 {
-    color: #007bff;
-    margin-bottom: 25px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+    background-size: 300% 300%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 3s ease infinite;
+    margin: 0;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 10px 0 0 0;
+    font-weight: 300;
+}
+
+/* Challenges Section */
+.challenges-header {
+    margin-bottom: 30px;
+}
+
+.challenges-header h2 {
+    color: #2c3e50;
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.stats-summary {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    display: inline-block;
+    font-weight: 500;
+    box-shadow: 0 8px 20px rgba(240, 147, 251, 0.3);
+}
+
+.challenges-container {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Challenge List Styles */
+#challengeLinks {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 30px 0;
+}
+
+#challengeLinks li {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 15px 0;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    transform: translateY(0);
+    transition: all 0.3s ease;
+}
+
+#challengeLinks li:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+#challengeLinks li a {
+    display: block;
+    padding: 20px 25px;
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+#challengeLinks li a::before {
+    content: '🎯';
+    margin-right: 10px;
+    font-size: 1.2rem;
+}
+
+#challengeLinks li a::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+#challengeLinks li:hover a::after {
+    left: 100%;
+}
+
+/* Empty state styling */
+#challengeLinks li:only-child:has-text("Nenhum desafio cadastrado.") {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #8b4513;
+    padding: 30px;
+    border-radius: 15px;
+    font-style: italic;
+    box-shadow: 0 8px 25px rgba(252, 182, 159, 0.3);
+}
+
+/* Add Challenge Button */
+.add-challenge-section {
+    text-align: center;
+}
+
+.add-challenge-btn {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border: none;
+    padding: 18px 35px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.add-challenge-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 40px rgba(79, 172, 254, 0.6);
+}
+
+.add-challenge-btn .plus-icon {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Form Styles */
+.input-section {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .input-section label {
     display: block;
     margin-bottom: 8px;
-    font-weight: bold;
+    font-weight: 600;
     text-align: left;
+    color: #2c3e50;
+    font-size: 1rem;
 }
 
 .input-section input[type="text"],
 .input-section input[type="number"],
-.input-section input[type="date"] { /* Adicionado input type date */
+.input-section input[type="date"] {
     width: calc(100% - 20px);
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
     font-size: 16px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
 }
 
-.input-section button,
-.challenge-display button {
-    background-color: #28a745;
+.input-section input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+}
+
+.input-section button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 12px 25px;
+    padding: 15px 30px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 17px;
-    transition: background-color 0.3s ease;
-    margin-top: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin: 10px 5px;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
 }
 
 .input-section button:hover {
-    background-color: #218838;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(102, 126, 234, 0.4);
 }
 
 .challenge-display {
     margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .challenge-display h2 {
-    color: #007bff;
-    margin-bottom: 15px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+    font-weight: 700;
 }
 
 .challenge-display p {
-    font-size: 1.1em;
+    font-size: 1.2em;
     margin-bottom: 20px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.challenge-display button {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin: 10px 5px;
+    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+}
+
+.challenge-display button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(255, 107, 107, 0.4);
 }
 
 /* Estilos do Calendário */
@@ -94,7 +325,7 @@ h1 {
 
 .day-box {
     width: 100%; /* Ajustado para preencher a célula da grid */
-    padding-top: 100%; /* Para fazer a caixa quadrada */
+    height: 50px; /* Altura fixa para melhor aparência */
     position: relative;
     display: flex;
     justify-content: center;
@@ -108,11 +339,8 @@ h1 {
     font-size: 0.9em;
 }
 
-.day-box span.date-number {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+.day-box .date-number {
+    color: #333;
 }
 
 .day-box.empty {
@@ -127,16 +355,41 @@ h1 {
     border-color: #28a745;
 }
 
+.day-box.completed .date-number {
+    color: white;
+}
+
 .day-box:hover:not(.completed):not(.empty) {
     background-color: #cfe2ff;
     border-color: #007bff;
 }
 
-.challenge-display button {
-    background-color: #dc3545;
-    margin-top: 25px;
-}
-
-.challenge-display button:hover {
-    background-color: #c82333;
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .trophy-icon {
+        font-size: 2rem;
+    }
+    
+    .calendar-container {
+        gap: 3px;
+    }
+    
+    .day-box {
+        height: 40px;
+        font-size: 0.8em;
+    }
+    
+    .add-challenge-btn {
+        padding: 15px 25px;
+        font-size: 1rem;
+    }
 }
