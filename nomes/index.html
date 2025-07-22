@@ -5,23 +5,54 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meus 10 mil nomes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="app">
-        <div id="cabecalho-fixo">
-            <h1>Meus 10 mil nomes</h1>
-            <div class="input-area">
-                <input type="text" id="nomeInput" placeholder="Digite um nome" />
-                <button onclick="adicionarNome()">+</button>
-                <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="importarCSV(event)" />
-                <button onclick="document.getElementById('csvInput').click()">Importar CSV</button>
+        <header class="header">
+            <div class="header-content">
+                <h1>
+                    <span class="icon">📝</span>
+                    Meus 10 mil nomes
+                </h1>
+                <div class="stats-card">
+                    <div class="stats-content">
+                        <span class="stats-label">Total de nomes</span>
+                        <span class="stats-number" id="contador">0</span>
+                    </div>
+                </div>
             </div>
-            <div class="contador">Total: <span id="contador">0</span></div>
-        </div>
+        </header>
 
-        <ul id="listaNomes"></ul>
+        <main class="main-content">
+            <div class="add-section">
+                <div class="input-group">
+                    <input type="text" id="nomeInput" placeholder="Digite um nome..." class="name-input" />
+                    <button onclick="adicionarNome()" class="btn-add" aria-label="Adicionar nome">
+                        <span class="btn-icon">+</span>
+                    </button>
+                </div>
+                
+                <div class="actions-row">
+                    <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="importarCSV(event)" />
+                    <button onclick="document.getElementById('csvInput').click()" class="btn-secondary">
+                        <span class="btn-icon">📁</span>
+                        Importar CSV
+                    </button>
+                </div>
+            </div>
+
+            <div class="names-section">
+                <div class="section-header">
+                    <h2>Lista de nomes</h2>
+                </div>
+                <ul id="listaNomes" class="names-list"></ul>
+            </div>
+        </main>
     </div>
     <script src="script.js"></script>
 </body>
