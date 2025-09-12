@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000/presenciais";
+const API_URL = "/api/presenciais";
 
 const form = document.getElementById('cadastro-form');
 const nomeInput = document.getElementById('nome');
@@ -42,10 +42,10 @@ form.onsubmit = async (e) => {
     if (!nome) return alert("Informe o nome!");
     if (dias.length !== 2) return alert("Selecione exatamente 2 dias!");
     if (editId) {
-        await fetch(`${API_URL}/${editId}`, {
+        await fetch(API_URL, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome, dias })
+            body: JSON.stringify({ id: editId, nome, dias })
         });
         editId = null;
     } else {
@@ -70,7 +70,7 @@ window.editar = (id) => {
 
 window.excluir = async (id) => {
     if (!confirm("Excluir este cadastro?")) return;
-    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    await fetch(`${API_URL}?id=${id}`, { method: "DELETE" });
     carregarLista();
 };
 
