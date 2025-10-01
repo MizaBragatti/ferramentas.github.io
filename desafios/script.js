@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const totalDaysDisplay = document.getElementById('totalDaysDisplay');
     const challengeStartDate = document.getElementById('challengeStartDate');
     const calendarContainer = document.getElementById('calendarContainer');
+    const editChallengeFromDetailBtn = document.getElementById('editChallengeFromDetail');
     const resetChallengeBtn = document.getElementById('resetChallenge');
     const deleteChallengeFromDetailBtn = document.getElementById('deleteChallengeFromDetail');
 
@@ -95,6 +96,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 showChallenge(challenge.id);
             };
             
+            // Container para os botões de ação
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'challenge-actions-container';
+            
+            // Botão de editar
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-challenge-btn';
+            editBtn.innerHTML = '✏️';
+            editBtn.title = 'Editar desafio';
+            editBtn.onclick = (e) => {
+                e.stopPropagation(); // Evita que o clique abra o desafio
+                editChallenge(challenge.id);
+            };
+            
             // Botão de exclusão
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-challenge-btn';
@@ -105,8 +120,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 deleteChallenge(challenge.id);
             };
             
+            actionsContainer.appendChild(editBtn);
+            actionsContainer.appendChild(deleteBtn);
+            
             challengeContainer.appendChild(link);
-            challengeContainer.appendChild(deleteBtn);
+            challengeContainer.appendChild(actionsContainer);
             li.appendChild(challengeContainer);
             challengeLinks.appendChild(li);
         });
@@ -149,36 +167,83 @@ document.addEventListener('DOMContentLoaded', function () {
         showScreen(challengeFormScreen);
     };
 
+    // Função para editar um desafio existente
+    function editChallenge(challengeId) {
+        const challenges = getChallenges();
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (!challenge) {
+            alert('Desafio não encontrado!');
+            return;
+        }
+        
+        // Configura o formulário para edição
+        editingChallengeId = challengeId;
+        formTitle.textContent = 'Editar Desafio';
+        challengeNameInput.value = challenge.name;
+        totalDaysInput.value = challenge.totalDays;
+        startDateInput.value = challenge.startDate;
+        
+        // Adiciona aviso se o desafio já tem progresso
+        if (challenge.completedDays.length > 0) {
+            formTitle.innerHTML = 'Editar Desafio <small style="color: #e67e22; font-size: 0.7em; display: block;">⚠️ Atenção: Este desafio já possui dias marcados como completos</small>';
+        }
+        
+        showScreen(challengeFormScreen);
+    }
+
     // Salva desafio (novo ou edição)
     saveChallengeBtn.onclick = () => {
         const name = challengeNameInput.value.trim();
         const totalDays = totalDaysInput.value;
         const startDate = startDateInput.value;
+        
         if (!name || !totalDays || !startDate) {
             alert('Preencha todos os campos!');
             return;
         }
+        
+        if (totalDays <= 0) {
+            alert('O número de dias deve ser maior que zero!');
+            return;
+        }
+        
         let challenges = getChallenges();
+        
         if (editingChallengeId) {
             // Editar existente
             const challenge = challenges.find(c => c.id === editingChallengeId);
             if (challenge) {
+                const oldTotalDays = challenge.totalDays;
                 challenge.name = name;
                 challenge.totalDays = Number(totalDays);
                 challenge.startDate = startDate;
+                
+                // Se o novo total de dias for menor, remove dias completados que excedem o novo limite
+                if (Number(totalDays) < oldTotalDays) {
+                    challenge.completedDays = challenge.completedDays.filter(day => day <= Number(totalDays));
+                }
+                
+                alert(`Desafio "${name}" foi atualizado com sucesso!`);
             }
         } else {
             // Novo desafio
             const newChallenge = createChallenge(name, totalDays, startDate);
             challenges.push(newChallenge);
+            alert(`Desafio "${name}" foi criado com sucesso!`);
         }
+        
         saveChallenges(challenges);
         renderChallengeLinks();
         showScreen(mainScreen);
+        
+        // Reset do estado de edição
+        editingChallengeId = null;
     };
 
     // Cancelar criação/edição
     cancelChallengeBtn.onclick = () => {
+        // Reset do estado de edição
+        editingChallengeId = null;
         showScreen(mainScreen);
     };
 
@@ -316,6 +381,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Voltar para tela principal
     backToMainBtn.onclick = () => {
         showScreen(mainScreen);
+    };
+
+    // Editar desafio da tela de detalhes
+    editChallengeFromDetailBtn.onclick = () => {
+        const id = challengeDisplayScreen.dataset.challengeId;
+        if (id) {
+            editChallenge(id);
+        }
     };
 
     // Excluir desafio da tela de detalhes
