@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Frases - Cadastro de Frases</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Minhas Frases</h1>
+            <p>Visualize, pesquise e gerencie suas frases cadastradas</p>
+        </header>
+
+        <nav class="navigation">
+            <a href="index.html" class="nav-link">📝 Cadastrar Nova Frase</a>
+        </nav>
+
+        <main class="main-list">
+            <div class="list-controls">
+                <div class="search-bar">
+                    <input type="text" id="search" placeholder="🔍 Pesquisar frases..." onkeyup="searchPhrases()">
+                    <select id="filter-category" onchange="filterByCategory()">
+                        <option value="">Todas as categorias</option>
+                        <option value="motivacional">Motivacional</option>
+                        <option value="inspiracional">Inspiracional</option>
+                        <option value="reflexao">Reflexão</option>
+                        <option value="humor">Humor</option>
+                        <option value="sabedoria">Sabedoria</option>
+                        <option value="amor">Amor</option>
+                        <option value="vida">Vida</option>
+                        <option value="sucesso">Sucesso</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                
+                <div class="list-stats" id="list-stats">
+                    <span id="phrases-count">0 frases encontradas</span>
+                </div>
+            </div>
+
+            <div id="phrases-list" class="phrases-list">
+                <p class="empty-state">Nenhuma frase cadastrada ainda. <a href="index.html">Comece adicionando sua primeira frase!</a></p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Editar Frase</h2>
+                <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="edit-phrase-form" class="edit-form">
+                <div class="form-group">
+                    <label for="edit-phrase">Frase:</label>
+                    <textarea id="edit-phrase" name="phrase" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-author">Autor (opcional):</label>
+                    <input type="text" id="edit-author" name="author">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-category">Categoria:</label>
+                    <select id="edit-category" name="category" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="motivacional">Motivacional</option>
+                        <option value="inspiracional">Inspiracional</option>
+                        <option value="reflexao">Reflexão</option>
+                        <option value="humor">Humor</option>
+                        <option value="sabedoria">Sabedoria</option>
+                        <option value="amor">Amor</option>
+                        <option value="vida">Vida</option>
+                        <option value="sucesso">Sucesso</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-tags">Tags (separadas por vírgula):</label>
+                    <input type="text" id="edit-tags" name="tags">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">💾 Salvar Alterações</button>
+                    <button type="button" class="btn-secondary" onclick="closeEditModal()">❌ Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/list.js"></script>
+</body>
+</html>

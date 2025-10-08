@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Frases</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📝 Cadastro de Frases</h1>
+            <p>Registre suas frases favoritas, citações inspiradoras ou pensamentos importantes</p>
+        </header>
+
+        <nav class="navigation">
+            <a href="list.html" class="nav-link">📚 Ver Minhas Frases</a>
+        </nav>
+
+        <main class="main-form">
+            <form id="phrase-form" class="phrase-form">
+                <div class="form-group">
+                    <label for="phrase">Frase:</label>
+                    <textarea id="phrase" name="phrase" placeholder="Digite sua frase aqui..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="author">Autor (opcional):</label>
+                    <input type="text" id="author" name="author" placeholder="Nome do autor">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Categoria:</label>
+                    <select id="category" name="category" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="motivacional">Motivacional</option>
+                        <option value="inspiracional">Inspiracional</option>
+                        <option value="reflexao">Reflexão</option>
+                        <option value="humor">Humor</option>
+                        <option value="sabedoria">Sabedoria</option>
+                        <option value="amor">Amor</option>
+                        <option value="vida">Vida</option>
+                        <option value="sucesso">Sucesso</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="tags">Tags (separadas por vírgula):</label>
+                    <input type="text" id="tags" name="tags" placeholder="Ex: sucesso, motivação, vida">
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salvar Frase</button>
+                    <button type="button" class="btn-secondary" onclick="clearForm()">🗑️ Limpar</button>
+                </div>
+            </form>
+
+            <div class="success-stats" id="success-stats" style="display: none;">
+                <h3>� Suas Estatísticas</h3>
+                <div class="stats-content">
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-phrases">0</span>
+                        <span class="stat-label">Frases Cadastradas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="favorite-category">-</span>
+                        <span class="stat-label">Categoria Favorita</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Editar Frase</h2>
+                <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="edit-phrase-form" class="edit-form">
+                <div class="form-group">
+                    <label for="edit-phrase">Frase:</label>
+                    <textarea id="edit-phrase" name="phrase" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-author">Autor (opcional):</label>
+                    <input type="text" id="edit-author" name="author">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-category">Categoria:</label>
+                    <select id="edit-category" name="category" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="motivacional">Motivacional</option>
+                        <option value="inspiracional">Inspiracional</option>
+                        <option value="reflexao">Reflexão</option>
+                        <option value="humor">Humor</option>
+                        <option value="sabedoria">Sabedoria</option>
+                        <option value="amor">Amor</option>
+                        <option value="vida">Vida</option>
+                        <option value="sucesso">Sucesso</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-tags">Tags (separadas por vírgula):</label>
+                    <input type="text" id="edit-tags" name="tags">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">💾 Salvar Alterações</button>
+                    <button type="button" class="btn-secondary" onclick="closeEditModal()">❌ Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
