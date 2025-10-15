@@ -24,6 +24,10 @@
                         <span class="stats-label">Total de nomes</span>
                         <span class="stats-number" id="contador">0</span>
                     </div>
+                    <div class="stats-content" id="statsExibidos" style="display: none;">
+                        <span class="stats-label">Exibindo</span>
+                        <span class="stats-number" id="contadorExibidos">0</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -49,7 +53,50 @@
             <div class="names-section">
                 <div class="section-header">
                     <h2>Lista de nomes</h2>
+                    
+                    <div class="search-controls">
+                        <div class="search-group">
+                            <input type="text" id="searchInput" placeholder="Buscar nomes..." class="search-input" />
+                            <button onclick="limparBusca()" class="btn-clear" aria-label="Limpar busca">
+                                <span class="btn-icon">×</span>
+                            </button>
+                        </div>
+                        
+                        <div class="sort-controls">
+                            <select id="sortSelect" onchange="aplicarOrdenacao()" class="sort-select">
+                                <option value="original">Ordem original</option>
+                                <option value="alphabetical">Ordem alfabética (A-Z)</option>
+                                <option value="reverse">Ordem alfabética (Z-A)</option>
+                                <option value="length-asc">Por tamanho (menor primeiro)</option>
+                                <option value="length-desc">Por tamanho (maior primeiro)</option>
+                            </select>
+                            
+                            <button onclick="exportarNomesFiltrados()" class="btn-export" title="Exportar nomes visíveis">
+                                <span class="btn-icon">📥</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
+                
+                <div class="filter-info" id="filterInfo" style="display: none;">
+                    <span id="filterText"></span>
+                </div>
+                
+                <div class="quick-stats" id="quickStats" style="display: none;">
+                    <div class="stat-item">
+                        <span class="stat-label">Maior nome:</span>
+                        <span class="stat-value" id="statMaior"></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Menor nome:</span>
+                        <span class="stat-value" id="statMenor"></span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tamanho médio:</span>
+                        <span class="stat-value" id="statMedia"></span>
+                    </div>
+                </div>
+                
                 <ul id="listaNomes" class="names-list"></ul>
             </div>
         </main>
