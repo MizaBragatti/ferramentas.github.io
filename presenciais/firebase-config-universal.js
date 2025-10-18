@@ -22,16 +22,13 @@ window.getFirebaseConfig = function() {
         return window.FIREBASE_CONFIG_LOCAL;
     }
     
-    // Prioridade 3: Configuração real como fallback (temporário)
-    console.log('⚠️ Usando configuração de fallback - Configure as secrets para produção');
-    return {
-        apiKey: "AIzaSyBHE6qTXR1Iy64J3E5DygeiQ29Fwi6yq2c",
-        authDomain: "presenciais-63551.firebaseapp.com",
-        projectId: "presenciais-63551",
-        storageBucket: "presenciais-63551.firebasestorage.app",
-        messagingSenderId: "509316904369",
-        appId: "1:509316904369:web:94b186cc7c5bd926687990"
-    };
+    // Sem configuração disponível - falha com mensagem clara
+    console.error('❌ Nenhuma configuração Firebase encontrada!');
+    console.log('🔐 Para configurar:');
+    console.log('  📍 Desenvolvimento: Configure firebase-config-local.js');
+    console.log('  📍 Produção: Configure secrets no GitHub Actions');
+    
+    throw new Error('Configuração Firebase não encontrada. Configure as variáveis de ambiente ou secrets do GitHub.');
 };
 
 // Disponibilizar configuração globalmente
