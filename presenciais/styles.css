@@ -1,0 +1,263 @@
+/* Reset e estilos base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background: #f7f6f3;
+    color: #002663;
+}
+
+.container {
+    max-width: 700px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0, 38, 99, 0.1);
+    padding: 32px 24px;
+    border: 2px solid #ff8200;
+}
+
+/* Títulos */
+h1, h2 {
+    text-align: center;
+    color: #002663;
+    margin-bottom: 20px;
+}
+
+/* Formulário */
+#cadastro-form {
+    background: #f7f6f3;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    border: 1.5px solid #ffb600;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: #002663;
+    margin-bottom: 8px;
+    margin-top: 16px;
+}
+
+.form-label:first-of-type {
+    margin-top: 0;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1.5px solid #ff8200;
+    border-radius: 7px;
+    background: #fff7ed;
+    color: #002663;
+}
+
+/* Botões dos dias */
+.dias-botoes {
+    display: flex;
+    gap: 10px;
+    margin: 16px 0;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.dia-btn {
+    background: #ff8200;
+    color: #fff;
+    border: 2px solid #ff8200;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 130, 0, 0.2);
+}
+
+.dia-btn:hover {
+    background: #e67300;
+    transform: translateY(-1px);
+}
+
+.dia-btn.selecionado {
+    background: #007bff !important;
+    color: white !important;
+    border-color: #007bff !important;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.dia-btn.desabilitado {
+    background: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Botão de cadastrar */
+.btn-cadastrar {
+    background: #002663;
+    color: #fff;
+    border: 2px solid #002663;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 16px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 38, 99, 0.2);
+}
+
+.btn-cadastrar:hover {
+    background: #ff8200;
+    border-color: #ff8200;
+    transform: translateY(-1px);
+}
+
+/* Tabela */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+th {
+    background: #002663;
+    color: #fff;
+    padding: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+
+td {
+    background: #fff7ed;
+    color: #002663;
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+tbody tr:hover {
+    background-color: rgba(255, 130, 0, 0.05);
+}
+
+/* Células dos dias com check */
+.dia-cell {
+    text-align: center;
+    font-weight: bold;
+}
+
+.dia-cell.ativo {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+/* Botões de ação */
+.btn-editar, .btn-excluir {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0 2px;
+    transition: all 0.2s ease;
+}
+
+.btn-editar {
+    background: #007bff;
+    color: white;
+}
+
+.btn-editar:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-excluir {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-excluir:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+/* Mensagens de feedback */
+.mensagem {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.mensagem.sucesso {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.mensagem.erro {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .container {
+        margin: 20px;
+        padding: 20px;
+    }
+    
+    .dias-botoes {
+        gap: 8px;
+    }
+    
+    .dia-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    table {
+        font-size: 14px;
+    }
+    
+    th, td {
+        padding: 8px 4px;
+    }
+    
+    .btn-editar, .btn-excluir {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dias-botoes {
+        justify-content: space-between;
+        gap: 4px;
+    }
+    
+    .dia-btn {
+        flex: 1;
+        padding: 8px 4px;
+        font-size: 13px;
+    }
+}

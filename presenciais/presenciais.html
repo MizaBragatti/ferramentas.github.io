@@ -10,30 +10,25 @@
     <div class="container">
         <h1>Cadastro de Dias Presenciais</h1>
         <form id="cadastro-form">
-                <label for="nome" class="form-label">Nome</label>
-                <input type="text" 
-                       id="nome" 
-                       placeholder="Digite o nome" 
-                       required 
-                       maxlength="100"
-                       pattern="[a-zA-ZÀ-ÿ0-9\s\-\.']{2,100}"
-                       title="Nome deve ter entre 2 e 100 caracteres, apenas letras, números, espaços, hífens, pontos e apostrofos"
-                       autocomplete="name">
-                <span class="form-label">Selecione 2 dias</span>
-                <div class="dias-botoes">
-                    <button type="button" class="dia-btn" data-dia="Seg">Seg</button>
-                    <button type="button" class="dia-btn" data-dia="Ter">Ter</button>
-                    <button type="button" class="dia-btn" data-dia="Qua">Qua</button>
-                    <button type="button" class="dia-btn" data-dia="Qui">Qui</button>
-                    <button type="button" class="dia-btn" data-dia="Sex">Sex</button>
-                </div>
-                <button type="submit" class="btn-cadastrar">Cadastrar</button>
+            <label for="nome" class="form-label">Nome</label>
+            <input type="text" 
+                   id="nome" 
+                   placeholder="Digite o nome" 
+                   required 
+                   maxlength="100"
+                   pattern="[a-zA-ZÀ-ÿ0-9\s\-\.']{2,100}"
+                   title="Nome deve ter entre 2 e 100 caracteres, apenas letras, números, espaços, hífens, pontos e apostrofos"
+                   autocomplete="name">
+            <span class="form-label">Selecione 2 dias</span>
+            <div class="dias-botoes">
+                <button type="button" class="dia-btn" data-dia="Seg">Seg</button>
+                <button type="button" class="dia-btn" data-dia="Ter">Ter</button>
+                <button type="button" class="dia-btn" data-dia="Qua">Qua</button>
+                <button type="button" class="dia-btn" data-dia="Qui">Qui</button>
+                <button type="button" class="dia-btn" data-dia="Sex">Sex</button>
+            </div>
+            <button type="submit" class="btn-cadastrar">Cadastrar</button>
         </form>
-        
-        <div class="loading" id="loading" style="display: none;">
-            <div class="spinner"></div>
-            <span>Carregando...</span>
-        </div>
 
         <h2>Lista de Presenciais</h2>
         <table id="lista">
@@ -54,49 +49,7 @@
         </table>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="firebase-config-universal.js"></script>
-    <script src="firebase-config-local.js"></script>
-    <script src="firebase-config-safe.js"></script>
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            getDocs, 
-            doc, 
-            updateDoc, 
-            deleteDoc,
-            serverTimestamp 
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        
-        // Inicialização segura do Firebase
-        async function initializeFirebase() {
-            try {
-                console.log('🔄 Inicializando Firebase com configuração segura...');
-                
-                const configManager = new FirebaseConfigManager();
-                const firebaseConfig = await configManager.loadConfig();
-                
-                // Validar se a configuração foi carregada
-                if (!firebaseConfig || !firebaseConfig.apiKey) {
-                    throw new Error('Configuração Firebase inválida ou não carregada');
-                }
-                
-                console.log('🔐 Configuração validada, inicializando Firebase...');
-                console.log('🔑 API Key presente:', firebaseConfig.apiKey ? 'Sim' : 'Não');
-                console.log('🏗️ Project ID:', firebaseConfig.projectId || 'Não definido');
-                
-                const app = initializeApp(firebaseConfig);
-                const db = getFirestore(app);
-                
-                console.log('✅ Firebase inicializado com sucesso!');
-                
-                // Disponibilizar globalmente
-                window.firebaseApp = app;
-                window.firebaseDB = db;
+    <script src="presenciais.js"></script>
                 
                 return { app, db };
             } catch (error) {
