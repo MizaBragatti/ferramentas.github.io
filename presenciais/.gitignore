@@ -2,6 +2,7 @@
 .env.local
 .env.production
 .env
+firebase-config-local.js
 
 # Logs
 *.log

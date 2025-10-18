@@ -9,32 +9,19 @@ class FirebaseConfigManager {
                            window.location.hostname === '127.0.0.1';
     }
 
-    // Carrega variáveis de ambiente do arquivo .env.local (desenvolvimento)
-    async loadLocalEnv() {
-        try {
-            const response = await fetch('./.env.local');
-            if (!response.ok) {
-                throw new Error('Arquivo .env.local não encontrado');
-            }
-            
-            const text = await response.text();
-            const env = {};
-            
-            text.split('\n').forEach(line => {
-                line = line.trim();
-                if (line && !line.startsWith('#')) {
-                    const [key, ...valueParts] = line.split('=');
-                    if (key && valueParts.length > 0) {
-                        env[key.trim()] = valueParts.join('=').trim();
-                    }
-                }
-            });
-            
-            return env;
-        } catch (error) {
-            console.warn('Não foi possível carregar .env.local:', error.message);
-            return {};
+    // Carrega configuração do desenvolvimento local
+    getLocalConfig() {
+        if (window.FIREBASE_CONFIG_LOCAL) {
+            return {
+                FIREBASE_API_KEY: window.FIREBASE_CONFIG_LOCAL.apiKey,
+                FIREBASE_AUTH_DOMAIN: window.FIREBASE_CONFIG_LOCAL.authDomain,
+                FIREBASE_PROJECT_ID: window.FIREBASE_CONFIG_LOCAL.projectId,
+                FIREBASE_STORAGE_BUCKET: window.FIREBASE_CONFIG_LOCAL.storageBucket,
+                FIREBASE_MESSAGING_SENDER_ID: window.FIREBASE_CONFIG_LOCAL.messagingSenderId,
+                FIREBASE_APP_ID: window.FIREBASE_CONFIG_LOCAL.appId
+            };
         }
+        return {};
     }
 
     // Obtém configuração das variáveis globais (produção)
@@ -92,9 +79,9 @@ class FirebaseConfigManager {
                 env = this.getProductionConfig();
             } else if (this.isDevelopment) {
                 console.log('🛠️ Ambiente: Desenvolvimento');
-                env = await this.loadLocalEnv();
+                env = this.getLocalConfig();
                 
-                // Se não conseguiu carregar .env.local, usa fallback
+                // Se não conseguiu carregar configuração local, usar fallback
                 if (Object.keys(env).length === 0) {
                     env = this.getDevelopmentFallback();
                 }
