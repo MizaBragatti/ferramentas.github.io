@@ -48,6 +48,16 @@ jobs:
         with open('presenciais/presenciais.html', 'r', encoding='utf-8') as f:
             html_content = f.read()
         
+        # Remover referência ao firebase-config-local.js (não existe em produção)
+        html_content = html_content.replace(
+            '<script src="firebase-config-local.js"></script>\n    ',
+            ''
+        )
+        html_content = html_content.replace(
+            '<script src="firebase-config-local.js"></script>',
+            ''
+        )
+        
         # Criar o script de configuração
         firebase_script = '''<script>
         // Configuração Firebase injetada pelo GitHub Actions
@@ -61,13 +71,7 @@ jobs:
         </script>'''
         
         # Substituir ou inserir o script
-        if 'firebase-config-local.js' in html_content:
-            # Substituir firebase-config-local.js
-            html_content = html_content.replace(
-                '<script src="firebase-config-local.js"></script>',
-                firebase_script
-            )
-        elif 'firebase-config-universal.js' in html_content:
+        if 'firebase-config-universal.js' in html_content:
             # Inserir depois do firebase-config-universal.js
             html_content = html_content.replace(
                 '<script src="firebase-config-universal.js"></script>',

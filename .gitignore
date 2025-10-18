@@ -5,3 +5,4 @@ cabeleireiro
 meet-transcrito
 meetTranscrito
 presenciais/.env.local
+presenciais/firebase-config-local.js
