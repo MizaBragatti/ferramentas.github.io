@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Teste de Configuração Firebase</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 40px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .code {
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Teste de Configuração Firebase</h1>
+        <p>Esta página verifica se as configurações Firebase estão sendo carregadas corretamente.</p>
+        
+        <button onclick="executarTestes()">🧪 Executar Testes</button>
+        <button onclick="testarConexaoFirebase()">🔥 Testar Conexão Firebase</button>
+        <button onclick="limparResultados()">🧹 Limpar</button>
+        
+        <div id="resultados"></div>
+    </div>
+
+    <!-- Scripts Firebase -->
+    <script src="firebase-config-universal.js"></script>
+    <script src="firebase-config-safe.js"></script>
+    
+    <script>
+        function log(tipo, titulo, conteudo) {
+            const div = document.createElement('div');
+            div.className = `test-section ${tipo}`;
+            div.innerHTML = `
+                <h3>${titulo}</h3>
+                <div class="code">${conteudo}</div>
+            `;
+            document.getElementById('resultados').appendChild(div);
+        }
+
+        function executarTestes() {
+            document.getElementById('resultados').innerHTML = '';
+            
+            // Teste 1: Verificar ambiente
+            const ambiente = window.location.hostname.includes('github.io') ? 'produção' : 'desenvolvimento';
+            log('info', '🌍 Ambiente Detectado', `Ambiente: ${ambiente}
+Hostname: ${window.location.hostname}
+Protocol: ${window.location.protocol}`);
+
+            // Teste 2: Verificar variáveis globais
+            const variaveisGlobais = {
+                'getFirebaseConfig (função)': typeof window.getFirebaseConfig === 'function',
+                'FIREBASE_CONFIG (objeto)': !!window.FIREBASE_CONFIG,
+                'FIREBASE_API_KEY (global)': !!window.FIREBASE_API_KEY,
+                'FIREBASE_AUTH_DOMAIN (global)': !!window.FIREBASE_AUTH_DOMAIN,
+                'FIREBASE_PROJECT_ID (global)': !!window.FIREBASE_PROJECT_ID,
+                'FIREBASE_CONFIG_LOCAL (dev)': !!window.FIREBASE_CONFIG_LOCAL
+            };
+            
+            const statusVariaveis = Object.entries(variaveisGlobais)
+                .map(([nome, status]) => `${nome}: ${status ? '✅ Disponível' : '❌ Não encontrado'}`)
+                .join('\n');
+            
+            log('info', '🔧 Variáveis Globais', statusVariaveis);
+
+            // Teste 3: Testar função getFirebaseConfig
+            try {
+                if (typeof window.getFirebaseConfig === 'function') {
+                    const config = window.getFirebaseConfig();
+                    const configMascarado = {
+                        apiKey: config.apiKey ? config.apiKey.substring(0, 8) + '...' : 'Não encontrado',
+                        authDomain: config.authDomain || 'Não encontrado',
+                        projectId: config.projectId || 'Não encontrado',
+                        storageBucket: config.storageBucket || 'Não encontrado',
+                        messagingSenderId: config.messagingSenderId || 'Não encontrado',
+                        appId: config.appId ? config.appId.substring(0, 10) + '...' : 'Não encontrado'
+                    };
+                    
+                    const configTexto = Object.entries(configMascarado)
+                        .map(([chave, valor]) => `${chave}: ${valor}`)
+                        .join('\n');
+                    
+                    log('success', '✅ Configuração Firebase', configTexto);
+                } else {
+                    log('error', '❌ Função getFirebaseConfig não encontrada', 'A função getFirebaseConfig não está disponível');
+                }
+            } catch (error) {
+                log('error', '❌ Erro ao obter configuração', `Erro: ${error.message}`);
+            }
+        }
+
+        async function testarConexaoFirebase() {
+            try {
+                log('info', '🔄 Testando Conexão Firebase', 'Iniciando teste de conexão...');
+                
+                // Importar Firebase
+                const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+                const { getFirestore, connectFirestoreEmulator } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                
+                // Obter configuração
+                const configManager = new FirebaseConfigManager();
+                const config = await configManager.loadConfig();
+                
+                if (!config || !config.apiKey) {
+                    throw new Error('Configuração Firebase não encontrada ou inválida');
+                }
+                
+                // Inicializar Firebase
+                const app = initializeApp(config);
+                const db = getFirestore(app);
+                
+                log('success', '🎉 Conexão Firebase Bem-sucedida!', `✅ Firebase inicializado com sucesso
+✅ Firestore conectado
+✅ Project ID: ${config.projectId}
+✅ Auth Domain: ${config.authDomain}`);
+                
+            } catch (error) {
+                log('error', '❌ Falha na Conexão Firebase', `Erro: ${error.message}
+Stack: ${error.stack}`);
+            }
+        }
+
+        function limparResultados() {
+            document.getElementById('resultados').innerHTML = '';
+        }
+
+        // Executar testes automaticamente ao carregar
+        window.addEventListener('load', () => {
+            setTimeout(executarTestes, 1000);
+        });
+    </script>
+</body>
+</html>
