@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug - HTML Produção</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .section { margin: 20px 0; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        pre { background: #222; color: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; background: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug - Verificação do HTML de Produção</h1>
+        
+        <div class="section">
+            <h3>🎯 Objetivo</h3>
+            <p>Verificar se o GitHub Actions está injetando as variáveis Firebase no HTML de produção.</p>
+            <p><strong>Ambiente:</strong> <span id="environment"></span></p>
+            <p><strong>URL:</strong> <span id="currentUrl"></span></p>
+        </div>
+
+        <div class="section">
+            <h3>🔑 Variáveis Firebase</h3>
+            <div id="firebaseVars"></div>
+        </div>
+
+        <div class="section">
+            <h3>📄 Análise do HTML</h3>
+            <button onclick="analyzeCurrentHTML()">🔍 Analisar HTML Atual</button>
+            <div id="htmlAnalysis"></div>
+        </div>
+
+        <div class="section">
+            <h3>🌐 View Source</h3>
+            <p>Para verificação manual:</p>
+            <button onclick="openViewSource()">📋 Abrir View Source</button>
+            <p><small>Procure por scripts com "FIREBASE_" no HTML</small></p>
+        </div>
+    </div>
+
+    <script>
+        // Detectar ambiente
+        const isProduction = window.location.hostname === 'mizabragatti.github.io';
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        document.getElementById('environment').textContent = isProduction ? '🌐 Produção (GitHub Pages)' : 
+                                                           isLocal ? '🏠 Local' : '❓ Desconhecido';
+        document.getElementById('currentUrl').textContent = window.location.href;
+
+        // Verificar variáveis Firebase
+        function checkFirebaseVars() {
+            const vars = {
+                'window.FIREBASE_CONFIG': window.FIREBASE_CONFIG,
+                'window.FIREBASE_API_KEY': window.FIREBASE_API_KEY,
+                'window.FIREBASE_AUTH_DOMAIN': window.FIREBASE_AUTH_DOMAIN,
+                'window.FIREBASE_PROJECT_ID': window.FIREBASE_PROJECT_ID,
+                'window.FIREBASE_STORAGE_BUCKET': window.FIREBASE_STORAGE_BUCKET,
+                'window.FIREBASE_MESSAGING_SENDER_ID': window.FIREBASE_MESSAGING_SENDER_ID,
+                'window.FIREBASE_APP_ID': window.FIREBASE_APP_ID
+            };
+
+            let html = '<table border="1" style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="background: #f8f9fa;"><th>Variável</th><th>Status</th><th>Tipo</th><th>Preview</th></tr>';
+
+            let foundVars = 0;
+            for (const [key, value] of Object.entries(vars)) {
+                const present = value !== undefined && value !== null;
+                if (present) foundVars++;
+                
+                const type = typeof value;
+                const preview = present ? 
+                    (type === 'object' ? 'Object {...}' : 
+                     type === 'string' && value.length > 20 ? value.substring(0, 15) + '...' : 
+                     String(value).substring(0, 25)) 
+                    : 'undefined';
+                
+                const rowClass = present ? 'success' : 'error';
+                html += `<tr style="background: ${present ? '#d4edda' : '#f8d7da'};">
+                    <td><code>${key}</code></td>
+                    <td>${present ? '✅ Presente' : '❌ Ausente'}</td>
+                    <td>${type}</td>
+                    <td><code>${preview}</code></td>
+                </tr>`;
+            }
+            html += '</table>';
+            
+            html += `<div style="margin-top: 15px;">
+                <strong>Resumo:</strong> ${foundVars}/7 variáveis encontradas
+                ${foundVars === 0 ? 
+                    '<div style="color: #dc3545; font-weight: bold;">❌ NENHUMA variável Firebase encontrada!</div>' :
+                    foundVars === 7 ? 
+                        '<div style="color: #28a745; font-weight: bold;">✅ Todas as variáveis presentes!</div>' :
+                        '<div style="color: #ffc107; font-weight: bold;">⚠️ Algumas variáveis faltando</div>'
+                }
+            </div>`;
+
+            document.getElementById('firebaseVars').innerHTML = html;
+            
+            // Log no console
+            console.log('🔍 Debug Firebase Variables:');
+            console.table(vars);
+            
+            return foundVars;
+        }
+
+        // Analisar HTML atual
+        async function analyzeCurrentHTML() {
+            const resultDiv = document.getElementById('htmlAnalysis');
+            resultDiv.innerHTML = '<p>🔄 Analisando HTML...</p>';
+
+            try {
+                const response = await fetch(window.location.href);
+                const htmlContent = await response.text();
+                
+                // Procurar por evidências de injeção
+                const checks = {
+                    'Contém FIREBASE_API_KEY': htmlContent.includes('FIREBASE_API_KEY'),
+                    'Contém FIREBASE_CONFIG': htmlContent.includes('FIREBASE_CONFIG'),
+                    'Contém window.FIREBASE_': htmlContent.includes('window.FIREBASE_'),
+                    'Contém comentário GitHub Actions': htmlContent.includes('GitHub Actions'),
+                    'Scripts Firebase encontrados': (htmlContent.match(/window\.FIREBASE_[A-Z_]+\s*=/g) || []).length,
+                    'Tamanho do HTML': `${htmlContent.length} caracteres`
+                };
+
+                // Extrair scripts Firebase
+                const firebaseScripts = [];
+                const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+                let match;
+                
+                while ((match = scriptRegex.exec(htmlContent)) !== null) {
+                    const scriptContent = match[1];
+                    if (scriptContent.includes('FIREBASE_') && 
+                        (scriptContent.includes('window.FIREBASE_') || scriptContent.includes('GitHub Actions'))) {
+                        firebaseScripts.push(scriptContent.trim());
+                    }
+                }
+
+                let html = '<h4>📊 Análise Completa:</h4>';
+                html += '<table border="1" style="width: 100%; border-collapse: collapse;">';
+                html += '<tr style="background: #f8f9fa;"><th>Verificação</th><th>Resultado</th></tr>';
+
+                for (const [check, result] of Object.entries(checks)) {
+                    const isPositive = typeof result === 'boolean' ? result : 
+                                     typeof result === 'number' ? result > 0 : 
+                                     true;
+                    
+                    html += `<tr style="background: ${isPositive ? '#d4edda' : '#f8d7da'};">
+                        <td>${check}</td>
+                        <td>${typeof result === 'boolean' ? (result ? '✅ Sim' : '❌ Não') : result}</td>
+                    </tr>`;
+                }
+                html += '</table>';
+
+                if (firebaseScripts.length > 0) {
+                    html += '<h4>🔥 Scripts Firebase Encontrados:</h4>';
+                    firebaseScripts.forEach((script, index) => {
+                        html += `<h5>Script ${index + 1}:</h5>`;
+                        html += `<pre>${script.length > 800 ? script.substring(0, 800) + '\n\n... (truncado - total: ' + script.length + ' chars)' : script}</pre>`;
+                    });
+                } else {
+                    html += '<div style="background: #f8d7da; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #dc3545;">';
+                    html += '<h4>❌ PROBLEMA IDENTIFICADO!</h4>';
+                    html += '<p><strong>Nenhum script Firebase foi encontrado no HTML!</strong></p>';
+                    html += '<p>Isso significa que o GitHub Actions <strong>NÃO está injetando</strong> as variáveis no HTML durante o deployment.</p>';
+                    html += '</div>';
+                }
+
+                resultDiv.innerHTML = html;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erro ao analisar HTML: ${error.message}</div>`;
+            }
+        }
+
+        function openViewSource() {
+            window.open('view-source:' + window.location.href, '_blank');
+        }
+
+        // Executar verificação inicial
+        document.addEventListener('DOMContentLoaded', function() {
+            const varsFound = checkFirebaseVars();
+            
+            console.log(`🔍 Ambiente detectado: ${isProduction ? 'Produção' : 'Local/Dev'}`);
+            console.log(`🔑 Variáveis Firebase encontradas: ${varsFound}/7`);
+            
+            if (isProduction && varsFound === 0) {
+                console.error('❌ PROBLEMA: Nenhuma variável Firebase em produção!');
+                console.log('💡 Isso indica que o GitHub Actions não está injetando as variáveis.');
+            }
+        });
+    </script>
+</body>
+</html>
