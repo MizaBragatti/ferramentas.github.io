@@ -6,22 +6,37 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
       
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         
     - name: Inject Firebase Configuration
       run: |
+        # Verificar se os secrets estão definidos
+        echo "🔍 Verificando secrets do Firebase..."
+        if [ -z "${{ secrets.FIREBASE_API_KEY }}" ]; then
+          echo "❌ FIREBASE_API_KEY não definido"
+          exit 1
+        fi
+        
         # Criar arquivo de configuração com as secrets
+        echo "📝 Criando arquivo firebase-env.js..."
         cat > presenciais/firebase-env.js << EOF
         // Configuração Firebase injetada pelo GitHub Actions
         window.FIREBASE_API_KEY = '${{ secrets.FIREBASE_API_KEY }}';
@@ -33,17 +48,49 @@ jobs:
         console.log('🔐 Variáveis Firebase carregadas via GitHub Actions');
         EOF
         
+        echo "✅ Arquivo firebase-env.js criado com sucesso"
+        echo "📋 Conteúdo (sem secrets):"
+        sed 's/= .*/= "[REDACTED]"/g' presenciais/firebase-env.js
+        
     - name: Update HTML to include environment file
       run: |
-        # Adicionar o script de configuração antes do firebase-config-safe.js
-        sed -i 's|<script src="firebase-config-safe.js"></script>|<script src="firebase-env.js"></script>\n    <script src="firebase-config-safe.js"></script>|' presenciais/presenciais.html
+        # Verificar se o arquivo existe
+        if [ -f "presenciais/presenciais.html" ]; then
+          # Criar backup
+          cp presenciais/presenciais.html presenciais/presenciais.html.backup
+          
+          # Adicionar o script de configuração antes do firebase-config-local.js (se existir) ou firebase-config-safe.js
+          if grep -q "firebase-config-local.js" presenciais/presenciais.html; then
+            sed -i 's|<script src="firebase-config-local.js"></script>|<script src="firebase-env.js"></script>|' presenciais/presenciais.html
+          else
+            sed -i 's|<script src="firebase-config-safe.js"></script>|<script src="firebase-env.js"></script>\n    <script src="firebase-config-safe.js"></script>|' presenciais/presenciais.html
+          fi
+          
+          echo "✅ HTML atualizado com sucesso"
+          echo "📝 Verificando mudanças:"
+          diff presenciais/presenciais.html.backup presenciais/presenciais.html || true
+        else
+          echo "❌ Arquivo presenciais.html não encontrado"
+          exit 1
+        fi
+        
+    - name: List files before deploy
+      run: |
+        echo "📂 Estrutura do projeto antes do deploy:"
+        find . -type f -name "*.html" -o -name "*.js" -o -name "*.css" | head -20
+        echo ""
+        echo "📋 Arquivos na pasta presenciais:"
+        ls -la presenciais/
         
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       if: github.ref == 'refs/heads/main'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
         
     - name: Success notification
       run: |
