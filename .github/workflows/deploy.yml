@@ -1,0 +1,175 @@
+name: Deploy to GitHub Pages with Firebase Config
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Inject Firebase Configuration
+      env:
+        FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+        FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+        FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+        FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+      run: |
+        # Verificar se TODAS as secrets estão definidas
+        echo "🔍 Verificando secrets obrigatórias do Firebase..."
+        
+        MISSING_SECRETS=""
+        
+        if [ -z "${{ secrets.FIREBASE_API_KEY }}" ]; then
+          MISSING_SECRETS="$MISSING_SECRETS FIREBASE_API_KEY"
+        fi
+        if [ -z "${{ secrets.FIREBASE_AUTH_DOMAIN }}" ]; then
+          MISSING_SECRETS="$MISSING_SECRETS FIREBASE_AUTH_DOMAIN"
+        fi
+        if [ -z "${{ secrets.FIREBASE_PROJECT_ID }}" ]; then
+          MISSING_SECRETS="$MISSING_SECRETS FIREBASE_PROJECT_ID"
+        fi
+        if [ -z "${{ secrets.FIREBASE_STORAGE_BUCKET }}" ]; then
+          MISSING_SECRETS="$MISSING_SECRETS FIREBASE_STORAGE_BUCKET"
+        fi
+        if [ -z "${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" ]; then
+          MISSING_SECRETS="$MISSING_SECRETS FIREBASE_MESSAGING_SENDER_ID"
+        fi
+        if [ -z "${{ secrets.FIREBASE_APP_ID }}" ]; then
+          MISSING_SECRETS="$MISSING_SECRETS FIREBASE_APP_ID"
+        fi
+        
+        if [ ! -z "$MISSING_SECRETS" ]; then
+          echo "❌ Secrets Firebase faltando:$MISSING_SECRETS"
+          echo ""
+          echo "🔐 Configure as seguintes secrets em:"
+          echo "   https://github.com/${{ github.repository }}/settings/secrets/actions"
+          echo ""
+          echo "📋 Secrets necessárias:"
+          echo "   - FIREBASE_API_KEY"
+          echo "   - FIREBASE_AUTH_DOMAIN"
+          echo "   - FIREBASE_PROJECT_ID"
+          echo "   - FIREBASE_STORAGE_BUCKET"
+          echo "   - FIREBASE_MESSAGING_SENDER_ID"
+          echo "   - FIREBASE_APP_ID"
+          exit 1
+        fi
+        
+        echo "✅ Todas as secrets Firebase estão configuradas"
+        
+        # Criar configuração inline no HTML usando Python
+        echo "📝 Injetando configuração Firebase diretamente no HTML..."
+        
+        python3 << 'EOF'
+        import os
+        import re
+        
+        # Ler o arquivo HTML
+        with open('presenciais/presenciais.html', 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Remover referência ao firebase-config-local.js (não existe em produção)
+        html_content = html_content.replace(
+            '<script src="firebase-config-local.js"></script>\n    ',
+            ''
+        )
+        html_content = html_content.replace(
+            '<script src="firebase-config-local.js"></script>',
+            ''
+        )
+        
+        # Criar o script de configuração usando variáveis de ambiente
+        firebase_script = f'''<script>
+        // Configuração Firebase injetada pelo GitHub Actions
+        window.FIREBASE_API_KEY = '{os.environ.get('FIREBASE_API_KEY', '')}';
+        window.FIREBASE_AUTH_DOMAIN = '{os.environ.get('FIREBASE_AUTH_DOMAIN', '')}';
+        window.FIREBASE_PROJECT_ID = '{os.environ.get('FIREBASE_PROJECT_ID', '')}';
+        window.FIREBASE_STORAGE_BUCKET = '{os.environ.get('FIREBASE_STORAGE_BUCKET', '')}';
+        window.FIREBASE_MESSAGING_SENDER_ID = '{os.environ.get('FIREBASE_MESSAGING_SENDER_ID', '')}';
+        window.FIREBASE_APP_ID = '{os.environ.get('FIREBASE_APP_ID', '')}';
+        
+        // Configurar FIREBASE_CONFIG diretamente para compatibilidade
+        window.FIREBASE_CONFIG = {{
+            apiKey: window.FIREBASE_API_KEY,
+            authDomain: window.FIREBASE_AUTH_DOMAIN,
+            projectId: window.FIREBASE_PROJECT_ID,
+            storageBucket: window.FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID,
+            appId: window.FIREBASE_APP_ID
+        }};
+        
+        console.log('🔐 Variáveis Firebase carregadas via GitHub Actions');
+        console.log('🔥 FIREBASE_CONFIG configurado:', !!window.FIREBASE_CONFIG);
+        console.log('🔑 API Key presente:', !!window.FIREBASE_API_KEY);
+        console.log('📋 Project ID:', window.FIREBASE_PROJECT_ID);
+        </script>'''
+        
+        # Substituir ou inserir o script
+        if 'firebase-config-universal.js' in html_content:
+            # Inserir depois do firebase-config-universal.js
+            html_content = html_content.replace(
+                '<script src="firebase-config-universal.js"></script>',
+                '<script src="firebase-config-universal.js"></script>\n    ' + firebase_script
+            )
+        else:
+            # Inserir antes do firebase-config-safe.js
+            html_content = html_content.replace(
+                '<script src="firebase-config-safe.js"></script>',
+                firebase_script + '\n    <script src="firebase-config-safe.js"></script>'
+            )
+        
+        # Salvar o arquivo modificado
+        with open('presenciais/presenciais.html', 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        print("✅ Configuração Firebase injetada com sucesso")
+        EOF
+        
+    - name: List files before deploy
+      run: |
+        echo "📂 Estrutura do projeto antes do deploy:"
+        find . -type f -name "*.html" -o -name "*.js" -o -name "*.css" | head -20
+        echo ""
+        echo "📋 Arquivos na pasta presenciais:"
+        ls -la presenciais/
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+        
+    - name: Success notification
+      run: |
+        echo "✅ Deploy realizado com sucesso!"
+        echo "🔐 Configuração Firebase injetada"
+        echo "🌐 Site disponível em: ${{ steps.deployment.outputs.page_url }}"
