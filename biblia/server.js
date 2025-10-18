@@ -160,19 +160,12 @@ app.get('/api/buscar-verso', async (req, res) => {
     }
 });
 
-// Função para buscar verso em fontes externas
+// Função para buscar verso online apenas
 async function buscarVersoExterno(referencia) {
     try {
-        console.log(`Buscando verso: ${referencia}`);
+        console.log(`Buscando verso online: ${referencia}`);
         
-        // Primeiro tentar a base local expandida
-        const versoLocal = buscarVersoLocal(referencia);
-        if (versoLocal) {
-            console.log('Verso encontrado na base local');
-            return versoLocal;
-        }
-        
-        // Se não encontrar localmente, fazer web scraping
+        // Buscar diretamente online
         const versoWeb = await buscarVersoBibliaOnline(referencia);
         if (versoWeb) {
             console.log('Verso encontrado via web scraping');
@@ -187,7 +180,7 @@ async function buscarVersoExterno(referencia) {
     }
 }
 
-// Buscar verso na Bíblia Online
+// Buscar verso na Bíblia Online com headers completos
 async function buscarVersoBibliaOnline(referencia) {
     try {
         const { livroAbrev, capitulo, versiculo } = parseReferencia(referencia);
@@ -202,47 +195,71 @@ async function buscarVersoBibliaOnline(referencia) {
         
         const response = await axios.get(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                'referer': `https://www.bibliaonline.com.br/nvi/${livroAbrev}/${capitulo}`,
+                'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                'sec-fetch-dest': 'document',
+                'sec-fetch-mode': 'navigate',
+                'sec-fetch-site': 'same-origin',
+                'sec-fetch-user': '?1',
+                'upgrade-insecure-requests': '1',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
             },
-            timeout: 10000
+            timeout: 15000
         });
         
         const $ = cheerio.load(response.data);
         
-        // Buscar o versículo específico
-        const verseSelector = `span[data-verse="${versiculo}"]`;
-        const verseElement = $(verseSelector);
+        // Buscar o versículo específico usando diferentes seletores
+        const possibleSelectors = [
+            `span[data-verse="${versiculo}"]`,
+            `[data-verse="${versiculo}"]`,
+            `.verse-${versiculo}`,
+            `#verse-${versiculo}`,
+            `.v${versiculo}`,
+            `span:contains("${versiculo}")`,
+            `.verse:nth-child(${versiculo})`
+        ];
         
-        if (verseElement.length > 0) {
-            // Extrair o texto do versículo
-            let texto = verseElement.text().trim();
-            
-            // Limpar o texto removendo números e formatação desnecessária
-            texto = texto.replace(/^\d+\s*/, ''); // Remove número do versículo no início
-            texto = texto.trim();
-            
-            if (texto) {
-                console.log(`Verso encontrado: ${texto.substring(0, 50)}...`);
-                return texto;
+        let texto = null;
+        
+        for (const selector of possibleSelectors) {
+            const element = $(selector);
+            if (element.length > 0) {
+                texto = element.text().trim();
+                
+                // Limpar o texto removendo números e formatação desnecessária
+                texto = texto.replace(/^\d+\s*/, ''); // Remove número do versículo no início
+                texto = texto.replace(/\s+/g, ' ').trim(); // Normaliza espaços
+                
+                if (texto && texto.length > 10) { // Verifica se o texto tem tamanho razoável
+                    console.log(`Verso encontrado com seletor ${selector}: ${texto.substring(0, 50)}...`);
+                    return texto;
+                }
             }
         }
         
-        // Tentar método alternativo - buscar por classe ou id
-        const alternativeSelector = `.verse-${versiculo}, #verse-${versiculo}, .v${versiculo}`;
-        const altElement = $(alternativeSelector);
-        
-        if (altElement.length > 0) {
-            let texto = altElement.text().trim();
-            texto = texto.replace(/^\d+\s*/, '');
-            texto = texto.trim();
-            
-            if (texto) {
-                console.log(`Verso encontrado (método alternativo): ${texto.substring(0, 50)}...`);
-                return texto;
+        // Se não encontrou com seletores específicos, tentar buscar todo o conteúdo do capítulo
+        const chapterContent = $('.chapter-content, .bible-text, .verses, .content').text();
+        if (chapterContent) {
+            // Tentar extrair o versículo do texto completo
+            const lines = chapterContent.split('\n');
+            for (const line of lines) {
+                if (line.includes(`${versiculo} `) || line.startsWith(`${versiculo}`)) {
+                    texto = line.replace(/^\d+\s*/, '').trim();
+                    if (texto && texto.length > 10) {
+                        console.log(`Verso encontrado no conteúdo completo: ${texto.substring(0, 50)}...`);
+                        return texto;
+                    }
+                }
             }
         }
         
         console.log('Verso não encontrado na página');
+        console.log('HTML da resposta (primeiros 500 caracteres):', response.data.substring(0, 500));
         return null;
         
     } catch (error) {
@@ -333,29 +350,6 @@ function parseReferencia(referencia) {
         capitulo: parseInt(capitulo),
         versiculo: parseInt(versiculo)
     };
-}
-
-// Base local expandida (para fallback)
-function buscarVersoLocal(referencia) {
-    try {
-        // Base expandida de versos conhecidos
-        const versosConhecidos = {
-            // Adicionando mais versos populares
-            'João 3:16': 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.',
-            'Salmos 23:1': 'O Senhor é o meu pastor; nada me faltará.',
-            'Mateus 28:19': 'Portanto ide, fazei discípulos de todas as nações, batizando-os em nome do Pai, e do Filho, e do Espírito Santo.',
-            'Filipenses 4:13': 'Posso todas as coisas naquele que me fortalece.',
-            'Romanos 8:28': 'E sabemos que todas as coisas contribuem juntamente para o bem daqueles que amam a Deus, daqueles que são chamados por seu decreto.',
-            'Gênesis 1:1': 'No princípio criou Deus os céus e a terra.'
-        };
-        
-        const verso = versosConhecidos[referencia];
-        return verso || null;
-        
-    } catch (error) {
-        console.error('Erro ao buscar verso local:', error);
-        return null;
-    }
 }
 
 // Rota principal - servir a página HTML
