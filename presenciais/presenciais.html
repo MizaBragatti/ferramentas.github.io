@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Dias Presenciais</title>
+    <link rel="stylesheet" href="presenciais.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Cadastro de Dias Presenciais</h1>
+        <form id="cadastro-form">
+                <label for="nome" class="form-label">Nome</label>
+                <input type="text" 
+                       id="nome" 
+                       placeholder="Digite o nome" 
+                       required 
+                       maxlength="100"
+                       pattern="[a-zA-ZÀ-ÿ0-9\s\-\.']{2,100}"
+                       title="Nome deve ter entre 2 e 100 caracteres, apenas letras, números, espaços, hífens, pontos e apostrofos"
+                       autocomplete="name">
+                <span class="form-label">Selecione 2 dias</span>
+                <div class="dias-botoes">
+                    <button type="button" class="dia-btn" data-dia="Seg">Seg</button>
+                    <button type="button" class="dia-btn" data-dia="Ter">Ter</button>
+                    <button type="button" class="dia-btn" data-dia="Qua">Qua</button>
+                    <button type="button" class="dia-btn" data-dia="Qui">Qui</button>
+                    <button type="button" class="dia-btn" data-dia="Sex">Sex</button>
+                </div>
+                <button type="submit" class="btn-cadastrar">Cadastrar</button>
+        </form>
+        
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <span>Carregando...</span>
+        </div>
+
+        <h2>Lista de Presenciais</h2>
+        <table id="lista">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Seg</th>
+                    <th>Ter</th>
+                    <th>Qua</th>
+                    <th>Qui</th>
+                    <th>Sex</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Linhas geradas via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="firebase-config-safe.js"></script>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            doc, 
+            updateDoc, 
+            deleteDoc,
+            serverTimestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Inicialização segura do Firebase
+        async function initializeFirebase() {
+            try {
+                console.log('🔄 Inicializando Firebase com configuração segura...');
+                
+                const configManager = new FirebaseConfigManager();
+                const firebaseConfig = await configManager.getConfig();
+                
+                console.log('🔐 Configuração carregada, inicializando Firebase...');
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                
+                console.log('✅ Firebase inicializado com sucesso!');
+                
+                // Disponibilizar globalmente
+                window.firebaseApp = app;
+                window.firebaseDB = db;
+                
+                return { app, db };
+            } catch (error) {
+                console.error('❌ Erro na inicialização do Firebase:', error);
+                
+                // Mostrar erro para o usuário
+                const container = document.querySelector('.container');
+                const errorDiv = document.createElement('div');
+                errorDiv.innerHTML = `
+                    <div style="background: #ff4444; color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3>⚠️ Erro de Configuração</h3>
+                        <p>Não foi possível conectar ao Firebase:</p>
+                        <p><strong>${error.message}</strong></p>
+                        <p>Verifique a configuração das variáveis de ambiente.</p>
+                    </div>
+                `;
+                container.insertBefore(errorDiv, container.firstChild);
+                
+                throw error;
+            }
+        }
+
+        // Classe para gerenciar operações do Firestore
+        class FirestorePresenciais {
+            constructor() {
+                this.collectionName = 'presenciais';
+                this.timeout = 10000; // 10 segundos timeout
+                this.db = null;
+            }
+
+            // Aguarda o Firebase estar pronto
+            async waitForFirebase() {
+                let attempts = 0;
+                while (!window.firebaseDB && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                if (!window.firebaseDB) {
+                    throw new Error('Firebase não foi inicializado');
+                }
+                this.db = window.firebaseDB;
+                return this.db;
+            }
+
+            // Função para adicionar timeout às operações
+            async comTimeout(operacao) {
+                return Promise.race([
+                    operacao,
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Operação expirou')), this.timeout)
+                    )
+                ]);
+            }
+
+            // Adicionar novo presencial
+            async adicionarPresencial(dadosPresencial) {
+                try {
+                    await this.waitForFirebase();
+                    console.log('Tentando adicionar presencial:', dadosPresencial);
+                    
+                    const operacao = addDoc(collection(this.db, this.collectionName), {
+                        ...dadosPresencial,
+                        criadoEm: serverTimestamp(),
+                        atualizadoEm: serverTimestamp()
+                    });
+                    
+                    const docRef = await this.comTimeout(operacao);
+                    console.log('Presencial adicionado com sucesso, ID:', docRef.id);
+                    return docRef.id;
+                } catch (error) {
+                    console.error('Erro detalhado ao adicionar presencial:', error);
+                    console.error('Código do erro:', error.code);
+                    console.error('Mensagem do erro:', error.message);
+                    console.error('Dados enviados:', dadosPresencial);
+                    throw this.tratarErro(error);
+                }
+            }
+
+            // Buscar todos os presenciais
+            async buscarPresenciais() {
+                try {
+                    await this.waitForFirebase();
+                    console.log('=== DEBUG: Iniciando busca ===');
+                    console.log('Collection name:', this.collectionName);
+                    console.log('Database instance:', this.db);
+                    
+                    // Teste simples primeiro
+                    console.log('Testando acesso básico ao Firestore...');
+                    const testCollection = collection(this.db, this.collectionName);
+                    console.log('Collection reference criada:', testCollection);
+                    
+                    console.log('Executando getDocs...');
+                    const querySnapshot = await getDocs(testCollection);
+                    
+                    console.log('Query executada com sucesso!');
+                    console.log('Número de documentos:', querySnapshot.size);
+                    console.log('Query snapshot:', querySnapshot);
+                    
+                    const presenciais = [];
+                    querySnapshot.forEach((doc) => {
+                        console.log('Documento ID:', doc.id);
+                        console.log('Documento data:', doc.data());
+                        presenciais.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    console.log('Presenciais encontrados:', presenciais);
+                    
+                    // Ordenar por data de criação (mais recentes primeiro)
+                    return presenciais.sort((a, b) => {
+                        const dataA = a.criadoEm?.toDate() || new Date(0);
+                        const dataB = b.criadoEm?.toDate() || new Date(0);
+                        return dataB - dataA;
+                    });
+                } catch (error) {
+                    console.error('=== ERROR DETAILS ===');
+                    console.error('Error object:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    console.error('Error stack:', error.stack);
+                    console.error('Request details:', error.details);
+                    console.error('===================');
+                    throw this.tratarErro(error);
+                }
+            }
+
+            // Atualizar presencial
+            async atualizarPresencial(id, novosDados) {
+                try {
+                    await this.waitForFirebase();
+                    const docRef = doc(this.db, this.collectionName, id);
+                    const operacao = updateDoc(docRef, {
+                        ...novosDados,
+                        atualizadoEm: serverTimestamp()
+                    });
+                    
+                    await this.comTimeout(operacao);
+                } catch (error) {
+                    console.error('Erro ao atualizar presencial:', error);
+                    throw this.tratarErro(error);
+                }
+            }
+
+            // Excluir presencial
+            async excluirPresencial(id) {
+                try {
+                    await this.waitForFirebase();
+                    const operacao = deleteDoc(doc(this.db, this.collectionName, id));
+                    await this.comTimeout(operacao);
+                } catch (error) {
+                    console.error('Erro ao excluir presencial:', error);
+                    throw this.tratarErro(error);
+                }
+            }
+
+            // Tratar erros de forma padronizada
+            tratarErro(error) {
+                if (error.message === 'Operação expirou') {
+                    return { code: 'timeout', message: 'Operação demorou muito para responder' };
+                }
+                return error;
+            }
+        }
+
+        // Inicializar Firebase e disponibilizar classe
+        initializeFirebase().then(({ app, db }) => {
+            window.FirestorePresenciais = FirestorePresenciais;
+            console.log('🎉 Sistema Firebase pronto para uso!');
+        }).catch(error => {
+            console.error('❌ Falha na inicialização:', error);
+        });
+    </script>
+    <script src="presenciais.js"></script>
+</body>
+</html>
