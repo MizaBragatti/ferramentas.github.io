@@ -67,6 +67,12 @@ jobs:
                 '<script src="firebase-config-local.js"></script>',
                 firebase_script
             )
+        elif 'firebase-config-universal.js' in html_content:
+            # Inserir depois do firebase-config-universal.js
+            html_content = html_content.replace(
+                '<script src="firebase-config-universal.js"></script>',
+                '<script src="firebase-config-universal.js"></script>\n    ' + firebase_script
+            )
         else:
             # Inserir antes do firebase-config-safe.js
             html_content = html_content.replace(

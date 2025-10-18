@@ -1,136 +1,56 @@
-// Configuração Firebase Segura com Variáveis de Ambiente
-// Este arquivo gerencia as credenciais do Firebase de forma segura
-
+// Configuração Firebase Segura Simplificada
 class FirebaseConfigManager {
     constructor() {
         this.config = null;
-        this.isProduction = window.location.hostname.includes('github.io');
-        this.isDevelopment = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1';
     }
 
-    // Carrega configuração do desenvolvimento local
-    getLocalConfig() {
-        if (window.FIREBASE_CONFIG_LOCAL) {
-            return {
-                FIREBASE_API_KEY: window.FIREBASE_CONFIG_LOCAL.apiKey,
-                FIREBASE_AUTH_DOMAIN: window.FIREBASE_CONFIG_LOCAL.authDomain,
-                FIREBASE_PROJECT_ID: window.FIREBASE_CONFIG_LOCAL.projectId,
-                FIREBASE_STORAGE_BUCKET: window.FIREBASE_CONFIG_LOCAL.storageBucket,
-                FIREBASE_MESSAGING_SENDER_ID: window.FIREBASE_CONFIG_LOCAL.messagingSenderId,
-                FIREBASE_APP_ID: window.FIREBASE_CONFIG_LOCAL.appId
-            };
-        }
-        return {};
-    }
-
-    // Obtém configuração das variáveis globais (produção)
-    getProductionConfig() {
-        return {
-            FIREBASE_API_KEY: window.FIREBASE_API_KEY,
-            FIREBASE_AUTH_DOMAIN: window.FIREBASE_AUTH_DOMAIN,
-            FIREBASE_PROJECT_ID: window.FIREBASE_PROJECT_ID,
-            FIREBASE_STORAGE_BUCKET: window.FIREBASE_STORAGE_BUCKET,
-            FIREBASE_MESSAGING_SENDER_ID: window.FIREBASE_MESSAGING_SENDER_ID,
-            FIREBASE_APP_ID: window.FIREBASE_APP_ID
-        };
-    }
-
-    // Configuração de fallback para desenvolvimento
-    getDevelopmentFallback() {
-        console.warn('⚠️ Usando configuração de fallback - configure .env.local para maior segurança');
-        return {
-            FIREBASE_API_KEY: 'your_api_key_here',
-            FIREBASE_AUTH_DOMAIN: 'your_project_id.firebaseapp.com',
-            FIREBASE_PROJECT_ID: 'your_project_id',
-            FIREBASE_STORAGE_BUCKET: 'your_project_id.firebasestorage.app',
-            FIREBASE_MESSAGING_SENDER_ID: 'your_sender_id',
-            FIREBASE_APP_ID: 'your_app_id'
-        };
-    }
-
-    // Valida se todas as configurações necessárias estão presentes
-    validateConfig(env) {
-        const required = [
-            'FIREBASE_API_KEY',
-            'FIREBASE_AUTH_DOMAIN', 
-            'FIREBASE_PROJECT_ID',
-            'FIREBASE_STORAGE_BUCKET',
-            'FIREBASE_MESSAGING_SENDER_ID',
-            'FIREBASE_APP_ID'
-        ];
-
-        const missing = required.filter(key => {
-            const value = env[key];
-            return !value || 
-                   value === 'your_api_key_here' || 
-                   value === 'undefined' ||
-                   value.trim() === '';
-        });
-        
-        if (missing.length > 0) {
-            const errorMsg = `Configurações Firebase faltando: ${missing.join(', ')}`;
-            console.error('❌ Erro de configuração Firebase:', {
-                missing,
-                environment: this.isProduction ? 'produção' : 'desenvolvimento',
-                hostname: window.location.hostname
-            });
-            throw new Error(errorMsg);
-        }
-
-        return true;
-    }
-
-    // Carrega a configuração baseada no ambiente
+    // Carrega a configuração usando a função universal
     async loadConfig() {
         try {
-            let env = {};
-
-            if (this.isProduction) {
-                console.log('🌐 Ambiente: Produção (GitHub Pages)');
-                env = this.getProductionConfig();
-            } else if (this.isDevelopment) {
-                console.log('🛠️ Ambiente: Desenvolvimento');
-                env = this.getLocalConfig();
-                
-                // Se não conseguiu carregar configuração local, usar fallback
-                if (Object.keys(env).length === 0) {
-                    env = this.getDevelopmentFallback();
-                }
-            } else {
-                throw new Error(`Domínio não autorizado: ${window.location.hostname}`);
-            }
-
-            this.validateConfig(env);
-
-            this.config = {
-                apiKey: env.FIREBASE_API_KEY,
-                authDomain: env.FIREBASE_AUTH_DOMAIN,
-                projectId: env.FIREBASE_PROJECT_ID,
-                storageBucket: env.FIREBASE_STORAGE_BUCKET,
-                messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
-                appId: env.FIREBASE_APP_ID
-            };
-
-            console.log('✅ Configuração Firebase carregada com sucesso');
-            console.log('📍 Projeto:', this.config.projectId);
+            // Aguardar um pouco para garantir que os scripts foram carregados
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            return this.config;
-
+            if (typeof window.getFirebaseConfig === 'function') {
+                this.config = window.getFirebaseConfig();
+                console.log('✅ Configuração Firebase carregada via getFirebaseConfig()');
+                return this.config;
+            } else if (window.FIREBASE_CONFIG) {
+                this.config = window.FIREBASE_CONFIG;
+                console.log('✅ Configuração Firebase obtida de FIREBASE_CONFIG');
+                return this.config;
+            } else {
+                // Verificar se existem variáveis globais do GitHub Actions
+                if (window.FIREBASE_API_KEY) {
+                    this.config = {
+                        apiKey: window.FIREBASE_API_KEY,
+                        authDomain: window.FIREBASE_AUTH_DOMAIN,
+                        projectId: window.FIREBASE_PROJECT_ID,
+                        storageBucket: window.FIREBASE_STORAGE_BUCKET,
+                        messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID,
+                        appId: window.FIREBASE_APP_ID
+                    };
+                    console.log('✅ Configuração Firebase obtida de variáveis globais');
+                    return this.config;
+                } else {
+                    throw new Error('Nenhuma configuração Firebase encontrada');
+                }
+            }
         } catch (error) {
             console.error('❌ Erro ao carregar configuração Firebase:', error);
-            throw error;
+            console.log('🔍 Debug - variáveis disponíveis:', {
+                getFirebaseConfig: typeof window.getFirebaseConfig,
+                FIREBASE_CONFIG: !!window.FIREBASE_CONFIG,
+                FIREBASE_API_KEY: !!window.FIREBASE_API_KEY,
+                hostname: window.location.hostname
+            });
+            throw new Error(`Não foi possível conectar ao Firebase: ${error.message}`);
         }
     }
 
-    // Retorna a configuração (carrega se necessário)
-    async getConfig() {
-        if (!this.config) {
-            await this.loadConfig();
-        }
+    getConfig() {
         return this.config;
     }
 }
 
-// Instância global do gerenciador
+// Disponibilizar globalmente
 window.FirebaseConfigManager = FirebaseConfigManager;

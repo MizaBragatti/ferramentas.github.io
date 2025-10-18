@@ -55,6 +55,7 @@
     </div>
 
     <!-- Firebase SDKs -->
+    <script src="firebase-config-universal.js"></script>
     <script src="firebase-config-local.js"></script>
     <script src="firebase-config-safe.js"></script>
     <script type="module">
@@ -77,9 +78,17 @@
                 console.log('🔄 Inicializando Firebase com configuração segura...');
                 
                 const configManager = new FirebaseConfigManager();
-                const firebaseConfig = await configManager.getConfig();
+                const firebaseConfig = await configManager.loadConfig();
                 
-                console.log('🔐 Configuração carregada, inicializando Firebase...');
+                // Validar se a configuração foi carregada
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    throw new Error('Configuração Firebase inválida ou não carregada');
+                }
+                
+                console.log('🔐 Configuração validada, inicializando Firebase...');
+                console.log('🔑 API Key presente:', firebaseConfig.apiKey ? 'Sim' : 'Não');
+                console.log('🏗️ Project ID:', firebaseConfig.projectId || 'Não definido');
+                
                 const app = initializeApp(firebaseConfig);
                 const db = getFirestore(app);
                 
