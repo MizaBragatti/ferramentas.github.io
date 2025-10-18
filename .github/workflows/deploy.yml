@@ -38,9 +38,14 @@ jobs:
           exit 1
         fi
         
-        # Criar arquivo de configuração com as secrets
-        echo "📝 Criando arquivo firebase-env.js..."
-        cat > presenciais/firebase-env.js << EOF
+        # Criar configuração inline no HTML
+        echo "📝 Injetando configuração Firebase diretamente no HTML..."
+        
+        # Criar backup do arquivo original
+        cp presenciais/presenciais.html presenciais/presenciais.html.backup
+        
+        # Criar script inline com as configurações
+        FIREBASE_SCRIPT="<script>
         // Configuração Firebase injetada pelo GitHub Actions
         window.FIREBASE_API_KEY = '${{ secrets.FIREBASE_API_KEY }}';
         window.FIREBASE_AUTH_DOMAIN = '${{ secrets.FIREBASE_AUTH_DOMAIN }}';
@@ -49,33 +54,18 @@ jobs:
         window.FIREBASE_MESSAGING_SENDER_ID = '${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}';
         window.FIREBASE_APP_ID = '${{ secrets.FIREBASE_APP_ID }}';
         console.log('🔐 Variáveis Firebase carregadas via GitHub Actions');
-        EOF
+        </script>"
         
-        echo "✅ Arquivo firebase-env.js criado com sucesso"
-        echo "📋 Conteúdo (sem secrets):"
-        sed 's/= .*/= "[REDACTED]"/g' presenciais/firebase-env.js
-        
-    - name: Update HTML to include environment file
-      run: |
-        # Verificar se o arquivo existe
-        if [ -f "presenciais/presenciais.html" ]; then
-          # Criar backup
-          cp presenciais/presenciais.html presenciais/presenciais.html.backup
-          
-          # Adicionar o script de configuração antes do firebase-config-local.js (se existir) ou firebase-config-safe.js
-          if grep -q "firebase-config-local.js" presenciais/presenciais.html; then
-            sed -i 's|<script src="firebase-config-local.js"></script>|<script src="firebase-env.js"></script>|' presenciais/presenciais.html
-          else
-            sed -i 's|<script src="firebase-config-safe.js"></script>|<script src="firebase-env.js"></script>\n    <script src="firebase-config-safe.js"></script>|' presenciais/presenciais.html
-          fi
-          
-          echo "✅ HTML atualizado com sucesso"
-          echo "📝 Verificando mudanças:"
-          diff presenciais/presenciais.html.backup presenciais/presenciais.html || true
+        # Inserir o script antes do firebase-config-safe.js
+        if grep -q "firebase-config-local.js" presenciais/presenciais.html; then
+          # Substituir firebase-config-local.js pelo script inline
+          sed -i "s|<script src=\"firebase-config-local.js\"></script>|$FIREBASE_SCRIPT|" presenciais/presenciais.html
         else
-          echo "❌ Arquivo presenciais.html não encontrado"
-          exit 1
+          # Inserir antes do firebase-config-safe.js
+          sed -i "s|<script src=\"firebase-config-safe.js\"></script>|$FIREBASE_SCRIPT\n    <script src=\"firebase-config-safe.js\"></script>|" presenciais/presenciais.html
         fi
+        
+        echo "✅ Configuração Firebase injetada com sucesso"
         
     - name: List files before deploy
       run: |

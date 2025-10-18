@@ -60,10 +60,22 @@ class FirebaseConfigManager {
             'FIREBASE_APP_ID'
         ];
 
-        const missing = required.filter(key => !env[key] || env[key] === 'your_api_key_here');
+        const missing = required.filter(key => {
+            const value = env[key];
+            return !value || 
+                   value === 'your_api_key_here' || 
+                   value === 'undefined' ||
+                   value.trim() === '';
+        });
         
         if (missing.length > 0) {
-            throw new Error(`Configurações Firebase faltando: ${missing.join(', ')}`);
+            const errorMsg = `Configurações Firebase faltando: ${missing.join(', ')}`;
+            console.error('❌ Erro de configuração Firebase:', {
+                missing,
+                environment: this.isProduction ? 'produção' : 'desenvolvimento',
+                hostname: window.location.hostname
+            });
+            throw new Error(errorMsg);
         }
 
         return true;
