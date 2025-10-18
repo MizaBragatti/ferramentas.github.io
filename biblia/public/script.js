@@ -1,35 +1,44 @@
 // Estado da aplicação
-let currentEditingId = null;
 let livros = [];
 let versos = [];
+let versosFiltrados = [];
+let currentView = 'list'; // 'list' ou 'grid'
 
 // Elementos do DOM
-const versoForm = document.getElementById('verso-form');
-const livroSelect = document.getElementById('livro-select');
-const capituloInput = document.getElementById('capitulo');
-const versiculoInput = document.getElementById('versiculo');
-const textoInput = document.getElementById('texto');
-const versoIdInput = document.getElementById('verso-id');
-const formTitle = document.getElementById('form-title');
-const submitBtn = document.getElementById('submit-btn');
-const cancelBtn = document.getElementById('cancel-btn');
 const searchInput = document.getElementById('search-input');
+const testamentoFilter = document.getElementById('testamento-filter');
+const livroFilter = document.getElementById('livro-filter');
+const addNewBtn = document.getElementById('add-new-btn');
+const refreshBtn = document.getElementById('refresh-btn');
 const versosContainer = document.getElementById('versos-container');
 const loadingDiv = document.getElementById('loading');
+const versosCount = document.getElementById('versos-count');
+const viewGridBtn = document.getElementById('view-grid');
+const viewListBtn = document.getElementById('view-list');
 const confirmModal = document.getElementById('confirm-modal');
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     carregarLivros();
     carregarVersos();
+    configurarEventListeners();
 });
 
-versoForm.addEventListener('submit', handleSubmitForm);
-cancelBtn.addEventListener('click', cancelarEdicao);
-searchInput.addEventListener('input', debounce(filtrarVersos, 300));
-document.getElementById('search-btn').addEventListener('click', filtrarVersos);
-document.getElementById('confirm-delete').addEventListener('click', confirmarExclusao);
-document.getElementById('cancel-delete').addEventListener('click', fecharModal);
+function configurarEventListeners() {
+    searchInput.addEventListener('input', debounce(filtrarVersos, 300));
+    document.getElementById('search-btn').addEventListener('click', filtrarVersos);
+    testamentoFilter.addEventListener('change', filtrarVersos);
+    livroFilter.addEventListener('change', filtrarVersos);
+    addNewBtn.addEventListener('click', () => window.location.href = 'cadastro.html');
+    refreshBtn.addEventListener('click', carregarVersos);
+    viewGridBtn.addEventListener('click', () => alternarVisualizacao('grid'));
+    viewListBtn.addEventListener('click', () => alternarVisualizacao('list'));
+    
+    if (confirmModal) {
+        document.getElementById('confirm-delete').addEventListener('click', confirmarExclusao);
+        document.getElementById('cancel-delete').addEventListener('click', fecharModal);
+    }
+}
 
 // Variável para armazenar o ID do verso a ser excluído
 let versoParaExcluir = null;
@@ -55,14 +64,15 @@ async function carregarLivros() {
         
         livros = await response.json();
         
-        // Limpar e popular o select de livros
-        livroSelect.innerHTML = '<option value="">Selecione um livro</option>';
+        // Popular filtro de livros
+        livroFilter.innerHTML = '<option value="">Todos os Livros</option>';
         livros.forEach(livro => {
             const option = document.createElement('option');
             option.value = livro.id;
             option.textContent = livro.nome;
-            livroSelect.appendChild(option);
+            livroFilter.appendChild(option);
         });
+        
     } catch (error) {
         console.error('Erro ao carregar livros:', error);
         mostrarMensagem('Erro ao carregar livros', 'error');
@@ -90,36 +100,64 @@ async function carregarVersos() {
 
 // Renderizar versos na interface
 function renderizarVersos(versosParaRenderizar) {
+    versosFiltrados = versosParaRenderizar;
+    atualizarEstatisticas();
+    
     if (versosParaRenderizar.length === 0) {
         versosContainer.innerHTML = `
             <div class="empty-state">
                 <h3>📖 Nenhum verso encontrado</h3>
-                <p>Adicione o primeiro verso usando o formulário ao lado</p>
+                <p>Experimente ajustar os filtros ou <a href="cadastro.html">adicionar um novo verso</a></p>
             </div>
         `;
         return;
     }
 
+    const viewClass = currentView === 'grid' ? 'versos-grid' : 'versos-list';
+    versosContainer.className = viewClass;
+
     versosContainer.innerHTML = versosParaRenderizar.map(verso => `
-        <div class="verso-card" data-id="${verso.id}">
+        <div class="verso-card ${currentView === 'grid' ? 'card-grid' : 'card-list'}" data-id="${verso.id}">
             <div class="verso-header">
                 <div class="verso-reference">
                     ${verso.livro} ${verso.capitulo}:${verso.versiculo}
                 </div>
                 <div class="verso-actions">
                     <button class="btn btn-small btn-edit" onclick="editarVerso(${verso.id})" title="Editar">
-                        ✏️
+                        ✏️ Editar
                     </button>
                     <button class="btn btn-small btn-delete" onclick="excluirVerso(${verso.id})" title="Excluir">
-                        🗑️
+                        🗑️ Excluir
                     </button>
                 </div>
             </div>
             <div class="verso-text">
                 "${verso.texto}"
             </div>
+            <div class="verso-footer">
+                <span class="verso-length">${verso.texto.length} caracteres</span>
+            </div>
         </div>
     `).join('');
+}
+
+// Atualizar estatísticas
+function atualizarEstatisticas() {
+    const total = versosFiltrados.length;
+    const texto = total === 1 ? '1 verso encontrado' : `${total} versos encontrados`;
+    versosCount.textContent = texto;
+}
+
+// Alternar visualização
+function alternarVisualizacao(novaView) {
+    currentView = novaView;
+    
+    // Atualizar botões
+    viewGridBtn.classList.toggle('active', novaView === 'grid');
+    viewListBtn.classList.toggle('active', novaView === 'list');
+    
+    // Re-renderizar com nova visualização
+    renderizarVersos(versosFiltrados);
 }
 
 // Mostrar/ocultar loading
@@ -127,85 +165,11 @@ function mostrarLoading(show) {
     loadingDiv.style.display = show ? 'block' : 'none';
 }
 
-// Manipular envio do formulário
-async function handleSubmitForm(e) {
-    e.preventDefault();
-    
-    const formData = {
-        livro_id: parseInt(livroSelect.value),
-        capitulo: parseInt(capituloInput.value),
-        versiculo: parseInt(versiculoInput.value),
-        texto: textoInput.value.trim()
-    };
 
-    // Validações
-    if (!formData.livro_id || !formData.capitulo || !formData.versiculo || !formData.texto) {
-        mostrarMensagem('Por favor, preencha todos os campos', 'error');
-        return;
-    }
 
-    try {
-        const isEditing = currentEditingId !== null;
-        const url = isEditing ? `/api/versos/${currentEditingId}` : '/api/versos';
-        const method = isEditing ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || 'Erro ao salvar verso');
-        }
-
-        mostrarMensagem(
-            isEditing ? 'Verso atualizado com sucesso!' : 'Verso adicionado com sucesso!', 
-            'success'
-        );
-        
-        // Limpar formulário e recarregar versos
-        limparFormulario();
-        carregarVersos();
-
-    } catch (error) {
-        console.error('Erro ao salvar verso:', error);
-        mostrarMensagem(error.message, 'error');
-    }
-}
-
-// Editar verso
-async function editarVerso(id) {
-    try {
-        const response = await fetch(`/api/versos/${id}`);
-        if (!response.ok) throw new Error('Erro ao carregar verso');
-        
-        const verso = await response.json();
-        
-        // Preencher formulário
-        versoIdInput.value = verso.id;
-        livroSelect.value = verso.livro_id;
-        capituloInput.value = verso.capitulo;
-        versiculoInput.value = verso.versiculo;
-        textoInput.value = verso.texto;
-        
-        // Atualizar interface
-        currentEditingId = id;
-        formTitle.textContent = 'Editar Verso';
-        submitBtn.querySelector('.btn-text').textContent = 'Atualizar Verso';
-        cancelBtn.style.display = 'inline-block';
-        
-        // Scroll para o formulário
-        document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
-        
-    } catch (error) {
-        console.error('Erro ao editar verso:', error);
-        mostrarMensagem('Erro ao carregar verso para edição', 'error');
-    }
+// Editar verso - redirecionar para página de cadastro
+function editarVerso(id) {
+    window.location.href = `cadastro.html?edit=${id}`;
 }
 
 // Excluir verso
@@ -264,17 +228,39 @@ function limparFormulario() {
 // Filtrar versos
 function filtrarVersos() {
     const termo = searchInput.value.toLowerCase().trim();
+    const testamentoSelecionado = testamentoFilter.value;
+    const livroSelecionado = livroFilter.value;
     
-    if (!termo) {
-        renderizarVersos(versos);
-        return;
+    let versosFiltrados = [...versos];
+    
+    // Filtro por termo de busca
+    if (termo) {
+        versosFiltrados = versosFiltrados.filter(verso => 
+            verso.livro.toLowerCase().includes(termo) ||
+            verso.texto.toLowerCase().includes(termo) ||
+            `${verso.capitulo}:${verso.versiculo}`.includes(termo) ||
+            `${verso.livro} ${verso.capitulo}:${verso.versiculo}`.toLowerCase().includes(termo)
+        );
     }
-
-    const versosFiltrados = versos.filter(verso => 
-        verso.livro.toLowerCase().includes(termo) ||
-        verso.texto.toLowerCase().includes(termo) ||
-        `${verso.capitulo}:${verso.versiculo}`.includes(termo)
-    );
+    
+    // Filtro por testamento
+    if (testamentoSelecionado) {
+        const livrosDoTestamento = livros
+            .filter(livro => livro.testamento === testamentoSelecionado)
+            .map(livro => livro.nome);
+        
+        versosFiltrados = versosFiltrados.filter(verso => 
+            livrosDoTestamento.includes(verso.livro)
+        );
+    }
+    
+    // Filtro por livro específico
+    if (livroSelecionado) {
+        const livroNome = livros.find(livro => livro.id == livroSelecionado)?.nome;
+        if (livroNome) {
+            versosFiltrados = versosFiltrados.filter(verso => verso.livro === livroNome);
+        }
+    }
 
     renderizarVersos(versosFiltrados);
 }
@@ -289,10 +275,9 @@ function mostrarMensagem(mensagem, tipo = 'info') {
     div.className = tipo === 'error' ? 'error-message' : 'success-message';
     div.textContent = mensagem;
     
-    // Inserir após o cabeçalho do formulário
-    const formSection = document.querySelector('.form-section');
-    const formTitle = formSection.querySelector('h2');
-    formTitle.parentNode.insertBefore(div, formTitle.nextSibling);
+    // Inserir no cabeçalho
+    const header = document.querySelector('header');
+    header.appendChild(div);
     
     // Remover automaticamente após 5 segundos
     setTimeout(() => {
@@ -302,28 +287,27 @@ function mostrarMensagem(mensagem, tipo = 'info') {
     }, 5000);
 }
 
-// Fechar modal clicando fora dele
-confirmModal.addEventListener('click', (e) => {
-    if (e.target === confirmModal) {
-        fecharModal();
-    }
-});
+// Configurar modal de confirmação (se existir)
+if (confirmModal) {
+    confirmModal.addEventListener('click', (e) => {
+        if (e.target === confirmModal) {
+            fecharModal();
+        }
+    });
+}
 
 // Atalhos de teclado
 document.addEventListener('keydown', (e) => {
-    // ESC para cancelar edição ou fechar modal
+    // ESC para fechar modal
     if (e.key === 'Escape') {
-        if (confirmModal.style.display === 'flex') {
+        if (confirmModal && confirmModal.style.display === 'flex') {
             fecharModal();
-        } else if (currentEditingId !== null) {
-            cancelarEdicao();
         }
     }
     
-    // Ctrl+Enter para submeter formulário
-    if (e.ctrlKey && e.key === 'Enter') {
-        if (document.activeElement.closest('#verso-form')) {
-            versoForm.dispatchEvent(new Event('submit'));
-        }
+    // F5 para atualizar
+    if (e.key === 'F5') {
+        e.preventDefault();
+        carregarVersos();
     }
 });

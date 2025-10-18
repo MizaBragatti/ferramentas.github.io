@@ -30,6 +30,13 @@ jobs:
         node-version: '20'
         
     - name: Inject Firebase Configuration
+      env:
+        FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+        FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+        FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+        FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+        FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
       run: |
         # Verificar se TODAS as secrets estão definidas
         echo "🔍 Verificando secrets obrigatórias do Firebase..."
@@ -77,6 +84,7 @@ jobs:
         echo "📝 Injetando configuração Firebase diretamente no HTML..."
         
         python3 << 'EOF'
+        import os
         import re
         
         # Ler o arquivo HTML
@@ -93,28 +101,30 @@ jobs:
             ''
         )
         
-        # Criar o script de configuração
-        firebase_script = '''<script>
+        # Criar o script de configuração usando variáveis de ambiente
+        firebase_script = f'''<script>
         // Configuração Firebase injetada pelo GitHub Actions
-        window.FIREBASE_API_KEY = '${{ secrets.FIREBASE_API_KEY }}';
-        window.FIREBASE_AUTH_DOMAIN = '${{ secrets.FIREBASE_AUTH_DOMAIN }}';
-        window.FIREBASE_PROJECT_ID = '${{ secrets.FIREBASE_PROJECT_ID }}';
-        window.FIREBASE_STORAGE_BUCKET = '${{ secrets.FIREBASE_STORAGE_BUCKET }}';
-        window.FIREBASE_MESSAGING_SENDER_ID = '${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}';
-        window.FIREBASE_APP_ID = '${{ secrets.FIREBASE_APP_ID }}';
+        window.FIREBASE_API_KEY = '{os.environ.get('FIREBASE_API_KEY', '')}';
+        window.FIREBASE_AUTH_DOMAIN = '{os.environ.get('FIREBASE_AUTH_DOMAIN', '')}';
+        window.FIREBASE_PROJECT_ID = '{os.environ.get('FIREBASE_PROJECT_ID', '')}';
+        window.FIREBASE_STORAGE_BUCKET = '{os.environ.get('FIREBASE_STORAGE_BUCKET', '')}';
+        window.FIREBASE_MESSAGING_SENDER_ID = '{os.environ.get('FIREBASE_MESSAGING_SENDER_ID', '')}';
+        window.FIREBASE_APP_ID = '{os.environ.get('FIREBASE_APP_ID', '')}';
         
         // Configurar FIREBASE_CONFIG diretamente para compatibilidade
-        window.FIREBASE_CONFIG = {
+        window.FIREBASE_CONFIG = {{
             apiKey: window.FIREBASE_API_KEY,
             authDomain: window.FIREBASE_AUTH_DOMAIN,
             projectId: window.FIREBASE_PROJECT_ID,
             storageBucket: window.FIREBASE_STORAGE_BUCKET,
             messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID,
             appId: window.FIREBASE_APP_ID
-        };
+        }};
         
         console.log('🔐 Variáveis Firebase carregadas via GitHub Actions');
         console.log('🔥 FIREBASE_CONFIG configurado:', !!window.FIREBASE_CONFIG);
+        console.log('🔑 API Key presente:', !!window.FIREBASE_API_KEY);
+        console.log('📋 Project ID:', window.FIREBASE_PROJECT_ID);
         </script>'''
         
         # Substituir ou inserir o script
