@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List - Firebase</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-tasks"></i> Todo List</h1>
+            <p>Organize suas tarefas de forma simples e eficiente</p>
+        </header>
+
+        <main>
+            <!-- Formulário para adicionar nova tarefa -->
+            <div class="add-task-form">
+                <div class="input-group">
+                    <input type="text" id="taskInput" placeholder="Digite sua nova tarefa..." maxlength="100">
+                    <select id="prioritySelect">
+                        <option value="baixa">Baixa</option>
+                        <option value="media" selected>Média</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                    <button id="addTaskBtn" onclick="addTask()">
+                        <i class="fas fa-plus"></i> Adicionar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros e estatísticas -->
+            <div class="controls">
+                <div class="filters">
+                    <button class="filter-btn active" onclick="filterTasks('all')">
+                        <i class="fas fa-list"></i> Todas (<span id="totalCount">0</span>)
+                    </button>
+                    <button class="filter-btn" onclick="filterTasks('pending')">
+                        <i class="fas fa-clock"></i> Pendentes (<span id="pendingCount">0</span>)
+                    </button>
+                    <button class="filter-btn" onclick="filterTasks('completed')">
+                        <i class="fas fa-check"></i> Concluídas (<span id="completedCount">0</span>)
+                    </button>
+                </div>
+                <div class="actions">
+                    <button class="clear-btn" onclick="clearCompleted()">
+                        <i class="fas fa-trash"></i> Limpar Concluídas
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="loading" class="loading">
+                <i class="fas fa-spinner fa-spin"></i> Carregando tarefas...
+            </div>
+
+            <!-- Lista de tarefas -->
+            <div class="tasks-container">
+                <ul id="tasksList" class="tasks-list">
+                    <!-- Tarefas serão inseridas aqui dinamicamente -->
+                </ul>
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Nenhuma tarefa encontrada</h3>
+                    <p>Adicione uma nova tarefa para começar!</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal para editar tarefa -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit"></i> Editar Tarefa</h2>
+                    <span class="close" onclick="closeEditModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="editTaskInput" placeholder="Digite o texto da tarefa..." maxlength="100">
+                    <select id="editPrioritySelect">
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                    <button class="btn-primary" onclick="saveEditTask()">Salvar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast notifications -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Configure Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAZsdJZGHPSqHaI7RSJwXh6OzoKOwYbIFo",
+            authDomain: "mercado-630f9.firebaseapp.com",
+            projectId: "mercado-630f9",
+            storageBucket: "mercado-630f9.firebasestorage.app",
+            messagingSenderId: "497966054785",
+            appId: "1:497966054785:web:9e932451cbe3496fcb3c80"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -25,6 +25,13 @@ Uma aplicação web completa para gerenciar listas de compras de mercado com fun
 - Visual diferenciado para itens já comprados
 - Cálculo automático do total de itens pendentes
 
+### 🔍 Busca e Filtros
+- Campo de busca inteligente por código, descrição, quantidade ou valores
+- Filtro para mostrar apenas itens pendentes
+- Destaque visual dos termos encontrados na busca
+- Atalho de teclado (Ctrl+K) para focar na busca rapidamente
+- Contador de resultados encontrados
+
 ### 🧾 Consulta de Nota Fiscal (NFCe)
 - Página integrada para consultar notas fiscais eletrônicas
 - Interface via iframe com o site oficial da Fazenda de São Paulo
@@ -81,6 +88,13 @@ Uma aplicação web completa para gerenciar listas de compras de mercado com fun
 - Cole dados no formato: "PRODUTO (Código: 1234)" seguido de linha com quantidade e preços
 - Use o botão "Carregar Dados de Exemplo" para ver o formato esperado
 - Confirme a importação para substituir todos os itens atuais
+
+### Buscando Itens
+- Use o campo de busca para encontrar itens por código, descrição, quantidade ou valores
+- Pressione **Ctrl+K** (ou **Cmd+K** no Mac) para focar rapidamente na busca
+- Os termos encontrados são destacados visualmente nos resultados
+- Combine busca com o filtro "apenas pendentes" para maior precisão
+- Pressione **Esc** para limpar a busca quando o campo estiver focado
 
 ## 🎨 Interface
 

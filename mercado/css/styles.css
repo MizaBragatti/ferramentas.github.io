@@ -236,8 +236,115 @@ button:hover {
 .section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 20px;
+    gap: 20px;
+}
+
+.controls-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 300px;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0 12px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-box:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-box i.fa-search {
+    color: #a0aec0;
+    margin-right: 8px;
+    font-size: 0.9rem;
+}
+
+.search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px 0;
+    font-size: 0.95rem;
+    background: transparent;
+}
+
+.search-box input::placeholder {
+    color: #a0aec0;
+}
+
+#clearSearch {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.3s ease, background-color 0.3s ease;
+    display: none;
+}
+
+#clearSearch:hover {
+    color: #e53e3e;
+    background: rgba(229, 62, 62, 0.1);
+}
+
+#clearSearch.show {
+    display: block;
+}
+
+/* Resultados de busca */
+.no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: #718096;
+    font-size: 1.1rem;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 2px dashed #e2e8f0;
+}
+
+.no-results i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    display: block;
+    color: #a0aec0;
+}
+
+.search-results-info {
+    background: linear-gradient(135deg, #e6fffa, #b2f5ea);
+    color: #234e52;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #38b2ac;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-results-info i {
+    color: #38b2ac;
+}
+
+/* Destaque em termos de busca */
+mark {
+    background: #fed7d7;
+    color: #2d3748;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
 }
 
     .filter-options label {
@@ -633,7 +740,20 @@ button:hover {
     .section-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
+        gap: 15px;
+    }
+    
+    .controls-group {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .search-box {
+        width: 100%;
+    }
+    
+    .search-box input {
+        font-size: 16px; /* Previne zoom no iOS */
     }
     
     .filter-options {

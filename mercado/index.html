@@ -66,11 +66,20 @@
             <section class="items-section">
                 <div class="section-header">
                     <h2>Lista de Itens</h2>
-                    <div class="filter-options">
-                        <label>
-                            <input type="checkbox" id="showOnlyPending">
-                            <span class="filter-text">Mostrar apenas pendentes</span>
-                        </label>
+                    <div class="controls-group">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por código, descrição ou valor... (Ctrl+K)">
+                            <button type="button" id="clearSearch" title="Limpar busca">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="filter-options">
+                            <label>
+                                <input type="checkbox" id="showOnlyPending">
+                                <span class="filter-text">Mostrar apenas pendentes</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 

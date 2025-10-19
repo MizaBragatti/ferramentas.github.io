@@ -187,12 +187,23 @@ class ShoppingListManager {
         const importItemsBtn = document.getElementById('importItemsBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const showOnlyPendingCheckbox = document.getElementById('showOnlyPending');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
 
         form.addEventListener('submit', (e) => this.handleSubmit(e));
         cancelBtn.addEventListener('click', () => this.resetForm());
         importItemsBtn.addEventListener('click', () => this.showImportModal());
         clearAllBtn.addEventListener('click', () => this.clearAllData());
         showOnlyPendingCheckbox.addEventListener('change', () => this.renderItems());
+        
+        // Eventos de busca
+        searchInput.addEventListener('input', () => this.handleSearch());
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+                this.clearSearch();
+            }
+        });
+        clearSearchBtn.addEventListener('click', () => this.clearSearch());
 
         // Calcula valor total automaticamente
         [quantidadeInput, valorUnitarioInput].forEach(input => {
@@ -300,17 +311,50 @@ class ShoppingListManager {
     renderItems() {
         const itemsList = document.getElementById('itemsList');
         const showOnlyPending = document.getElementById('showOnlyPending').checked;
+        const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
         
-        let filteredItems = showOnlyPending 
-            ? this.items.filter(item => !item.comprado)
-            : this.items;
+        let filteredItems = this.items;
+        
+        // Filtro por pendentes
+        if (showOnlyPending) {
+            filteredItems = filteredItems.filter(item => !item.comprado);
+        }
+        
+        // Filtro por busca
+        if (searchTerm) {
+            filteredItems = filteredItems.filter(item => 
+                item.codigo.toLowerCase().includes(searchTerm) ||
+                item.descricao.toLowerCase().includes(searchTerm) ||
+                item.valorUnitario.toString().includes(searchTerm) ||
+                item.valorTotal.toString().includes(searchTerm) ||
+                item.quantidade.toString().includes(searchTerm)
+            );
+        }
 
         itemsList.innerHTML = '';
+
+        // Mostra mensagem se não há resultados
+        if (filteredItems.length === 0) {
+            const noResultsMsg = document.createElement('div');
+            noResultsMsg.className = 'no-results';
+            noResultsMsg.innerHTML = searchTerm 
+                ? `<i class="fas fa-search"></i> Nenhum item encontrado para "${searchTerm}"`
+                : '<i class="fas fa-box-open"></i> Nenhum item na lista';
+            itemsList.appendChild(noResultsMsg);
+            return;
+        }
 
         filteredItems.forEach((item, index) => {
             const originalIndex = this.items.indexOf(item);
             const itemRow = document.createElement('div');
             itemRow.className = `item-row ${item.comprado ? 'completed' : ''}`;
+            
+            // Destaca termos de busca na descrição
+            let displayDescricao = item.descricao;
+            if (searchTerm && item.descricao.toLowerCase().includes(searchTerm)) {
+                const regex = new RegExp(`(${searchTerm})`, 'gi');
+                displayDescricao = item.descricao.replace(regex, '<mark>$1</mark>');
+            }
             
             itemRow.innerHTML = `
                 <div class="item-checkbox">
@@ -318,7 +362,7 @@ class ShoppingListManager {
                            onchange="shoppingManager.toggleItem(${originalIndex})">
                 </div>
                 <div class="item-codigo">${item.codigo}</div>
-                <div class="item-descricao">${item.descricao}</div>
+                <div class="item-descricao">${displayDescricao}</div>
                 <div class="item-quantidade">${item.quantidade}</div>
                 <div class="item-valor-unit">R$ ${item.valorUnitario.toFixed(2)}</div>
                 <div class="item-valor-total">R$ ${item.valorTotal.toFixed(2)}</div>
@@ -337,6 +381,8 @@ class ShoppingListManager {
             
             itemsList.appendChild(itemRow);
         });
+        
+        this.updateSearchResultsInfo(filteredItems.length, searchTerm);
     }
 
     // Alterna o status de comprado do item
@@ -619,6 +665,54 @@ Qtde.:2   UN: PCT9   Vl. Unit.:   18,8 	Vl. Total
         this.showModal('Deseja realmente limpar todos os dados? Esta ação não pode ser desfeita.');
         this.pendingClearAll = true;
     }
+
+    // Manipula a busca
+    handleSearch() {
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        const searchTerm = searchInput.value.trim();
+        
+        // Mostra/esconde botão de limpar busca
+        if (searchTerm) {
+            clearSearchBtn.classList.add('show');
+        } else {
+            clearSearchBtn.classList.remove('show');
+        }
+        
+        // Renderiza itens filtrados
+        this.renderItems();
+    }
+
+    // Limpa a busca
+    clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('clearSearch').classList.remove('show');
+        this.renderItems();
+        
+        // Foca no campo de busca após limpar
+        document.getElementById('searchInput').focus();
+    }
+
+    // Atualiza informações sobre resultados da busca
+    updateSearchResultsInfo(resultCount, searchTerm) {
+        const existingInfo = document.querySelector('.search-results-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+
+        if (searchTerm && resultCount > 0) {
+            const resultsInfo = document.createElement('div');
+            resultsInfo.className = 'search-results-info';
+            resultsInfo.innerHTML = `
+                <i class="fas fa-info-circle"></i>
+                Encontrados <strong>${resultCount}</strong> item${resultCount !== 1 ? 's' : ''} 
+                para "<strong>${searchTerm}</strong>"
+            `;
+            
+            const itemsList = document.getElementById('itemsList');
+            itemsList.parentNode.insertBefore(resultsInfo, itemsList);
+        }
+    }
 }
 
 // Inicializa a aplicação quando o DOM estiver carregado
@@ -630,6 +724,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Melhorias para mobile
     initializeMobileEnhancements();
+    
+    // Atalhos de teclado
+    initializeKeyboardShortcuts();
     
     // Fecha modal ao clicar fora dele
     window.addEventListener('click', (e) => {
@@ -717,5 +814,26 @@ function enhanceMobileInputs() {
         input.addEventListener('touchstart', function() {
             this.style.fontSize = '16px';
         });
+    });
+}
+
+// Inicializa atalhos de teclado
+function initializeKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd + K para focar na busca
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = document.getElementById('searchInput');
+            searchInput.focus();
+            searchInput.select();
+        }
+        
+        // Esc para limpar busca se estiver focada
+        if (e.key === 'Escape') {
+            const searchInput = document.getElementById('searchInput');
+            if (document.activeElement === searchInput && searchInput.value) {
+                window.shoppingManager.clearSearch();
+            }
+        }
     });
 }
