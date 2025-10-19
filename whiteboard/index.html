@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard - Estilo Miro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="whiteboard-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-section">
+                <button class="tool-btn active" data-tool="select" title="Selecionar">
+                    <i class="fas fa-mouse-pointer"></i>
+                </button>
+                <button class="tool-btn" data-tool="hand" title="Mover Whiteboard">
+                    <i class="fas fa-hand-paper"></i>
+                </button>
+                <button class="tool-btn" data-tool="pen" title="Caneta">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <button class="tool-btn" data-tool="eraser" title="Borracha">
+                    <i class="fas fa-eraser"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button class="tool-btn" data-tool="rectangle" title="Retângulo">
+                    <i class="fas fa-square"></i>
+                </button>
+                <button class="tool-btn" data-tool="rounded-rectangle" title="Retângulo Arredondado">
+                    <i class="fas fa-square" style="border-radius: 3px;"></i>
+                </button>
+                <button class="tool-btn" data-tool="circle" title="Círculo">
+                    <i class="fas fa-circle"></i>
+                </button>
+                <button class="tool-btn" data-tool="oval" title="Oval">
+                    <i class="fas fa-circle" style="transform: scaleX(0.7);"></i>
+                </button>
+                <button class="tool-btn" data-tool="triangle" title="Triângulo">
+                    <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                </button>
+                <button class="tool-btn" data-tool="diamond" title="Losango">
+                    <i class="fas fa-square" style="transform: rotate(45deg);"></i>
+                </button>
+                <button class="tool-btn" data-tool="line" title="Linha">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="tool-btn" data-tool="arrow" title="Seta">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button class="tool-btn" data-tool="parallelogram" title="Paralelogramo">
+                    <span style="font-family: monospace; font-weight: bold;">▱</span>
+                </button>
+                <button class="tool-btn" data-tool="trapezoid" title="Trapézio">
+                    <span style="font-family: monospace; font-weight: bold;">⏢</span>
+                </button>
+                <button class="tool-btn" data-tool="pentagon" title="Pentágono">
+                    <span style="font-family: monospace; font-weight: bold;">⬟</span>
+                </button>
+                <button class="tool-btn" data-tool="hexagon" title="Hexágono">
+                    <span style="font-family: monospace; font-weight: bold;">⬢</span>
+                </button>
+                <button class="tool-btn" data-tool="octagon" title="Octógono">
+                    <span style="font-family: monospace; font-weight: bold;">⯃</span>
+                </button>
+                <button class="tool-btn" data-tool="star" title="Estrela">
+                    <i class="fas fa-star"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-section">
+                <button class="tool-btn" data-tool="text" title="Texto">
+                    <i class="fas fa-font"></i>
+                </button>
+                <button class="tool-btn" data-tool="note" title="Nota Adesiva">
+                    <i class="fas fa-sticky-note"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-section">
+                <div class="color-picker">
+                    <input type="color" id="colorPicker" value="#000000" title="Cor">
+                    <div class="color-preview"></div>
+                </div>
+                <div class="stroke-width">
+                    <input type="range" id="strokeWidth" min="1" max="20" value="3" title="Espessura">
+                    <span class="stroke-value">3px</span>
+                </div>
+            </div>
+            
+            <div class="toolbar-section">
+                <button class="tool-btn" onclick="undo()" title="Desfazer (Ctrl+Z)">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button class="tool-btn" onclick="redo()" title="Refazer (Ctrl+Y)">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <button class="tool-btn" onclick="clearCanvas()" title="Limpar Tudo">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="tool-btn" onclick="saveCanvas()" title="Salvar">
+                    <i class="fas fa-save"></i>
+                </button>
+                <button class="tool-btn" onclick="loadCanvas()" title="Carregar">
+                    <i class="fas fa-folder-open"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-section zoom-controls">
+                <button class="tool-btn" onclick="zoomOut()" title="Diminuir Zoom">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <span class="zoom-level">100%</span>
+                <button class="tool-btn" onclick="zoomIn()" title="Aumentar Zoom">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="tool-btn" onclick="resetZoom()" title="Reset Zoom">
+                    <i class="fas fa-home"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Canvas Container -->
+        <div class="canvas-container">
+            <canvas id="whiteboard"></canvas>
+            <div class="grid-background"></div>
+        </div>
+        
+        <!-- Properties Panel -->
+        <div class="properties-panel" id="propertiesPanel">
+            <h3>Propriedades</h3>
+            <div class="property-group">
+                <label>Cor:</label>
+                <input type="color" id="propColor">
+            </div>
+            <div class="property-group">
+                <label>Espessura:</label>
+                <input type="range" id="propStroke" min="1" max="20">
+                <span id="propStrokeValue">3px</span>
+            </div>
+            <div class="property-group">
+                <label>Opacidade:</label>
+                <input type="range" id="propOpacity" min="0" max="1" step="0.1">
+                <span id="propOpacityValue">1.0</span>
+            </div>
+            <div class="property-group">
+                <label>Largura (px):</label>
+                <input type="number" id="propWidth" min="1" max="2000" placeholder="Auto">
+            </div>
+            <div class="property-group">
+                <label>Altura (px):</label>
+                <input type="number" id="propHeight" min="1" max="2000" placeholder="Auto">
+            </div>
+            <div class="property-group" id="fontSizeGroup" style="display: none;">
+                <label>Tamanho da Fonte:</label>
+                <input type="number" id="propFontSize" min="8" max="200" placeholder="16">
+                <span>px</span>
+            </div>
+            <button onclick="deleteSelected()">Excluir</button>
+        </div>
+    </div>
+    
+    <!-- Text Input Modal -->
+    <div class="modal" id="textModal">
+        <div class="modal-content">
+            <h3>Adicionar Texto</h3>
+            <textarea id="textInput" placeholder="Digite seu texto aqui..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="addText()">Adicionar</button>
+                <button onclick="closeTextModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Note Input Modal -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <h3>Criar Nota Adesiva</h3>
+            <textarea id="noteInput" placeholder="Digite o conteúdo da nota..."></textarea>
+            <div class="note-colors">
+                <div class="note-color" data-color="#ffeb3b" style="background: #ffeb3b;"></div>
+                <div class="note-color" data-color="#ff9800" style="background: #ff9800;"></div>
+                <div class="note-color" data-color="#f44336" style="background: #f44336;"></div>
+                <div class="note-color" data-color="#e91e63" style="background: #e91e63;"></div>
+                <div class="note-color" data-color="#9c27b0" style="background: #9c27b0;"></div>
+                <div class="note-color" data-color="#3f51b5" style="background: #3f51b5;"></div>
+                <div class="note-color" data-color="#2196f3" style="background: #2196f3;"></div>
+                <div class="note-color" data-color="#00bcd4" style="background: #00bcd4;"></div>
+                <div class="note-color" data-color="#4caf50" style="background: #4caf50;"></div>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="addNote()">Criar Nota</button>
+                <button onclick="closeNoteModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="whiteboard.js"></script>
+</body>
+</html>
