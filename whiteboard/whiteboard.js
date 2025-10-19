@@ -914,9 +914,15 @@ class Whiteboard {
             const normalizedX = (pos.x - centerX) / radiusX;
             const normalizedY = (pos.y - centerY) / radiusY;
             return (normalizedX * normalizedX + normalizedY * normalizedY) <= 1;
-        } else if (obj.type === 'triangle' || obj.type === 'diamond' || obj.type === 'parallelogram' || 
-                   obj.type === 'trapezoid' || obj.type === 'pentagon' || obj.type === 'hexagon' || 
-                   obj.type === 'octagon' || obj.type === 'star') {
+        } else if (obj.type === 'triangle') {
+            // For triangle, use bounding box for simplicity (could be improved with actual triangle detection)
+            const minX = Math.min(obj.startX, obj.endX);
+            const maxX = Math.max(obj.startX, obj.endX);
+            const minY = Math.min(obj.startY, obj.endY);
+            const maxY = Math.max(obj.startY, obj.endY);
+            return pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY;
+        } else if (obj.type === 'diamond' || obj.type === 'parallelogram' || obj.type === 'trapezoid' || 
+                   obj.type === 'pentagon' || obj.type === 'hexagon' || obj.type === 'octagon' || obj.type === 'star') {
             // For complex shapes, use bounding box approximation
             const minX = Math.min(obj.startX, obj.endX);
             const maxX = Math.max(obj.startX, obj.endX);
@@ -949,7 +955,7 @@ class Whiteboard {
             
             const dx = pos.x - xx;
             const dy = pos.y - yy;
-            return Math.sqrt(dx * dx + dy * dy) <= obj.width * 2;
+            return Math.sqrt(dx * dx + dy * dy) <= (obj.width || 3) * 2;
         } else if (obj.type === 'text') {
             // Approximate text bounds
             const textWidth = obj.text.length * obj.fontSize * 0.6;
@@ -966,7 +972,11 @@ class Whiteboard {
                 point.x += deltaX;
                 point.y += deltaY;
             });
-        } else if (obj.type === 'rectangle' || obj.type === 'circle' || obj.type === 'line' || obj.type === 'arrow') {
+        } else if (obj.type === 'rectangle' || obj.type === 'rounded-rectangle' || obj.type === 'circle' || 
+                   obj.type === 'oval' || obj.type === 'triangle' || obj.type === 'diamond' || 
+                   obj.type === 'parallelogram' || obj.type === 'trapezoid' || obj.type === 'pentagon' || 
+                   obj.type === 'hexagon' || obj.type === 'octagon' || obj.type === 'star' || 
+                   obj.type === 'line' || obj.type === 'arrow') {
             obj.startX += deltaX;
             obj.startY += deltaY;
             obj.endX += deltaX;
@@ -987,7 +997,10 @@ class Whiteboard {
                 minY: Math.min(...ys) - obj.width,
                 maxY: Math.max(...ys) + obj.width
             };
-        } else if (obj.type === 'rectangle') {
+        } else if (obj.type === 'rectangle' || obj.type === 'rounded-rectangle' || obj.type === 'oval' ||
+                   obj.type === 'triangle' || obj.type === 'diamond' || obj.type === 'parallelogram' ||
+                   obj.type === 'trapezoid' || obj.type === 'pentagon' || obj.type === 'hexagon' ||
+                   obj.type === 'octagon' || obj.type === 'star') {
             return {
                 minX: Math.min(obj.startX, obj.endX),
                 maxX: Math.max(obj.startX, obj.endX),
