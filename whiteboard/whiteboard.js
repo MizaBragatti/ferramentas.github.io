@@ -20,6 +20,11 @@ class Whiteboard {
         this.resizeHandle = null;
         this.resizeStartBounds = null;
         
+        // Rotation properties
+        this.isRotating = false;
+        this.rotationStart = null;
+        this.initialRotation = null;
+        
         // Selection handles
         this.selectionHandles = [];
         
@@ -91,6 +96,20 @@ class Whiteboard {
         this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
         this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this));
         this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
+        
+        // Click event listener for canvas container to clear note selections
+        document.querySelector('.canvas-container').addEventListener('click', (e) => {
+            if (e.target === this.canvas || e.target.classList.contains('canvas-container')) {
+                // Clear note selections when clicking on empty area
+                document.querySelectorAll('.sticky-note').forEach(note => {
+                    note.style.boxShadow = '';
+                });
+                if (this.selectedObject && this.selectedObject.type === 'sticky-note') {
+                    this.selectedObject = null;
+                    this.showPropertiesPanel(null);
+                }
+            }
+        });
         
         // Color and stroke events
         document.getElementById('colorPicker').addEventListener('change', (e) => {
@@ -187,9 +206,15 @@ class Whiteboard {
     
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
+        
+        // Simple coordinate conversion
+        const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+        
+        // Convert to logical coordinates based on current transform
         return {
-            x: (e.clientX - rect.left - this.offsetX) / this.scale,
-            y: (e.clientY - rect.top - this.offsetY) / this.scale
+            x: x / this.scale - this.offsetX / this.scale,
+            y: y / this.scale - this.offsetY / this.scale
         };
     }
     
@@ -208,13 +233,19 @@ class Whiteboard {
             return;
         }
         
-        // Check if clicking on a resize handle
+        // Check if clicking on a resize or rotation handle
         if (this.currentTool === 'select' && this.selectedObject) {
             const handle = this.getResizeHandleAt(pos);
             if (handle) {
-                this.isResizing = true;
-                this.resizeHandle = handle;
-                this.resizeStartBounds = JSON.parse(JSON.stringify(this.getObjectBounds(this.selectedObject)));
+                if (handle === 'rotate') {
+                    this.isRotating = true;
+                    this.rotationStart = this.calculateAngle(pos, this.getObjectCenter(this.selectedObject));
+                    this.initialRotation = this.selectedObject.rotation || 0;
+                } else {
+                    this.isResizing = true;
+                    this.resizeHandle = handle;
+                    this.resizeStartBounds = JSON.parse(JSON.stringify(this.getObjectBounds(this.selectedObject)));
+                }
                 return;
             }
         }
@@ -263,10 +294,14 @@ class Whiteboard {
         const pos = this.getMousePos(e);
         
         // Update cursor based on position
-        if (this.currentTool === 'select' && this.selectedObject && !this.isResizing && !this.isDragging) {
+        if (this.currentTool === 'select' && this.selectedObject && !this.isResizing && !this.isDragging && !this.isRotating) {
             const handle = this.getResizeHandleAt(pos);
             if (handle) {
-                this.canvas.style.cursor = this.getResizeCursor(handle);
+                if (handle === 'rotate') {
+                    this.canvas.style.cursor = 'grab';
+                } else {
+                    this.canvas.style.cursor = this.getResizeCursor(handle);
+                }
             } else if (this.isPointInObject(pos, this.selectedObject)) {
                 this.canvas.style.cursor = 'move';
             } else {
@@ -283,6 +318,13 @@ class Whiteboard {
         } else if (this.isSelectionBoxActive) {
             // Update selection box
             this.updateSelectionBox(pos);
+            this.redraw();
+        } else if (this.isRotating && this.selectedObject) {
+            // Handle rotation
+            const center = this.getObjectCenter(this.selectedObject);
+            const currentAngle = this.calculateAngle(pos, center);
+            const angleDelta = currentAngle - this.rotationStart;
+            this.selectedObject.rotation = this.initialRotation + angleDelta;
             this.redraw();
         } else if (this.isResizing && this.selectedObject && this.resizeHandle) {
             // Handle resizing
@@ -364,15 +406,25 @@ class Whiteboard {
             return;
         }
         
+        if (this.isRotating) {
+            this.isRotating = false;
+            this.rotationStart = null;
+            this.initialRotation = null;
+            this.saveState(); // Save state for undo/redo
+            return;
+        }
+        
         if (this.isResizing) {
             this.isResizing = false;
             this.resizeHandle = null;
             this.resizeStartBounds = null;
+            this.saveState(); // Save state for undo/redo
             return;
         }
         
         if (this.isDragging) {
             this.isDragging = false;
+            this.saveState(); // Save state for undo/redo
             return;
         }
         
@@ -572,6 +624,7 @@ class Whiteboard {
                 if (!path.width) path.width = this.strokeWidth;
                 if (!path.color) path.color = this.strokeColor;
                 if (!path.opacity) path.opacity = 1;
+                if (!path.rotation) path.rotation = 0;
             });
             this.objects.push(...this.currentPath);
             this.currentPath = null;
@@ -582,6 +635,7 @@ class Whiteboard {
             if (!this.currentShape.width) this.currentShape.width = this.strokeWidth;
             if (!this.currentShape.color) this.currentShape.color = this.strokeColor;
             if (!this.currentShape.opacity) this.currentShape.opacity = 1;
+            if (!this.currentShape.rotation) this.currentShape.rotation = 0;
             this.objects.push(this.currentShape);
             this.currentShape = null;
             this.saveState(); // Save state for undo/redo
@@ -889,7 +943,13 @@ class Whiteboard {
     }
     
     isPointInObject(pos, obj) {
-        if (obj.type === 'pen' && obj.points) {
+        if (obj.type === 'sticky-note') {
+            // For sticky notes, check if point is within the note bounds
+            const noteX = obj.x + (obj.offsetX || 0);
+            const noteY = obj.y + (obj.offsetY || 0);
+            return pos.x >= noteX && pos.x <= noteX + obj.width && 
+                   pos.y >= noteY && pos.y <= noteY + obj.height;
+        } else if (obj.type === 'pen' && obj.points) {
             return obj.points.some(point => 
                 Math.sqrt(Math.pow(point.x - pos.x, 2) + Math.pow(point.y - pos.y, 2)) < obj.width * 2
             );
@@ -988,7 +1048,16 @@ class Whiteboard {
     }
     
     getObjectBounds(obj) {
-        if (obj.type === 'pen' && obj.points) {
+        if (obj.type === 'sticky-note') {
+            const noteX = obj.x + (obj.offsetX || 0);
+            const noteY = obj.y + (obj.offsetY || 0);
+            return {
+                minX: noteX,
+                maxX: noteX + obj.width,
+                minY: noteY,
+                maxY: noteY + obj.height
+            };
+        } else if (obj.type === 'pen' && obj.points) {
             const xs = obj.points.map(p => p.x);
             const ys = obj.points.map(p => p.y);
             return {
@@ -1032,6 +1101,25 @@ class Whiteboard {
             };
         }
         return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    }
+    
+    calculateAngle(pos, center) {
+        return Math.atan2(pos.y - center.y, pos.x - center.x);
+    }
+    
+    getObjectCenter(obj) {
+        const bounds = this.getObjectBounds(obj);
+        return {
+            x: (bounds.minX + bounds.maxX) / 2,
+            y: (bounds.minY + bounds.maxY) / 2
+        };
+    }
+    
+    rotateObject(obj, angle) {
+        obj.rotation = (obj.rotation || 0) + angle;
+        // Normalize angle to 0-360 degrees
+        while (obj.rotation < 0) obj.rotation += Math.PI * 2;
+        while (obj.rotation >= Math.PI * 2) obj.rotation -= Math.PI * 2;
     }
     
     showPropertiesPanel(obj) {
@@ -1089,6 +1177,7 @@ class Whiteboard {
         const bounds = this.getObjectBounds(this.selectedObject);
         const handleSize = 15 / this.scale; // Increased handle detection area
         
+        // Resize handles
         const handles = [
             { direction: 'nw', x: bounds.minX, y: bounds.minY },
             { direction: 'n', x: (bounds.minX + bounds.maxX) / 2, y: bounds.minY },
@@ -1100,6 +1189,22 @@ class Whiteboard {
             { direction: 'w', x: bounds.minX, y: (bounds.minY + bounds.maxY) / 2 }
         ];
         
+        // Rotation handle (above the top center)
+        const rotationHandle = {
+            direction: 'rotate',
+            x: (bounds.minX + bounds.maxX) / 2,
+            y: bounds.minY - 30 / this.scale
+        };
+        
+        // Check rotation handle first
+        const rotationDistance = Math.sqrt(
+            Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)
+        );
+        if (rotationDistance <= handleSize) {
+            return 'rotate';
+        }
+        
+        // Check resize handles
         for (let handle of handles) {
             const distance = Math.sqrt(
                 Math.pow(pos.x - handle.x, 2) + Math.pow(pos.y - handle.y, 2)
@@ -1338,6 +1443,14 @@ class Whiteboard {
             this.ctx.lineWidth = obj.width || 3;
             this.ctx.globalAlpha = obj.opacity || 1;
             
+            // Apply rotation if the object has a rotation property
+            if (obj.rotation && obj.rotation !== 0) {
+                const center = this.getObjectCenter(obj);
+                this.ctx.translate(center.x, center.y);
+                this.ctx.rotate(obj.rotation);
+                this.ctx.translate(-center.x, -center.y);
+            }
+            
             if (obj.type === 'pen' && obj.points) {
                 if (obj.points.length > 1) {
                     this.ctx.beginPath();
@@ -1415,6 +1528,25 @@ class Whiteboard {
             this.ctx.fill();
             this.ctx.stroke();
         });
+        
+        // Draw rotation handle
+        const rotationHandlePos = {
+            x: (bounds.minX + bounds.maxX) / 2,
+            y: bounds.minY - 30 / this.scale
+        };
+        
+        // Draw line connecting to rotation handle
+        this.ctx.beginPath();
+        this.ctx.moveTo((bounds.minX + bounds.maxX) / 2, bounds.minY);
+        this.ctx.lineTo(rotationHandlePos.x, rotationHandlePos.y);
+        this.ctx.stroke();
+        
+        // Draw rotation handle (circular with arrow icon)
+        this.ctx.beginPath();
+        this.ctx.arc(rotationHandlePos.x, rotationHandlePos.y, handleSize / 2, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#4CAF50'; // Green color for rotation handle
+        this.ctx.fill();
+        this.ctx.stroke();
         
         this.ctx.restore();
     }
@@ -1517,10 +1649,33 @@ class Whiteboard {
         }
     }
     
+    selectNote(noteObject) {
+        // Clear previous selections
+        this.selectedObjects = [];
+        this.selectedObject = noteObject;
+        this.clearSelectionHandles();
+        
+        // Add visual indication for selected note
+        const noteElement = noteObject.element;
+        document.querySelectorAll('.sticky-note').forEach(note => {
+            note.style.boxShadow = '';
+        });
+        noteElement.style.boxShadow = '0 0 0 2px #007acc';
+        
+        this.showPropertiesPanel(noteObject);
+    }
+    
     deleteSelected() {
         if (this.selectedObject) {
             const index = this.objects.indexOf(this.selectedObject);
             if (index > -1) {
+                // If it's a sticky note, remove the DOM element
+                if (this.selectedObject.type === 'sticky-note') {
+                    const noteElement = this.selectedObject.element;
+                    if (noteElement && noteElement.parentNode) {
+                        noteElement.parentNode.removeChild(noteElement);
+                    }
+                }
                 this.objects.splice(index, 1);
                 this.selectedObject = null;
                 this.clearSelectionHandles();
@@ -1533,6 +1688,13 @@ class Whiteboard {
             this.selectedObjects.forEach(obj => {
                 const index = this.objects.indexOf(obj);
                 if (index > -1) {
+                    // If it's a sticky note, remove the DOM element
+                    if (obj.type === 'sticky-note') {
+                        const noteElement = obj.element;
+                        if (noteElement && noteElement.parentNode) {
+                            noteElement.parentNode.removeChild(noteElement);
+                        }
+                    }
                     this.objects.splice(index, 1);
                 }
             });
@@ -1777,6 +1939,21 @@ function addNote() {
         note.style.top = (whiteboard.canvas.height / 2 - 75) + 'px';
         note.contentEditable = true;
         note.textContent = text;
+        note.dataset.noteId = Date.now(); // Unique ID for the note
+        
+        // Add note to whiteboard objects array for selection/deletion
+        const noteObject = {
+            type: 'sticky-note',
+            id: note.dataset.noteId,
+            element: note,
+            x: whiteboard.canvas.width / 2 - 100,
+            y: whiteboard.canvas.height / 2 - 75,
+            width: 200,
+            height: 150,
+            text: text,
+            color: whiteboard.selectedNoteColor
+        };
+        whiteboard.objects.push(noteObject);
         
         // Make note draggable
         let isDragging = false;
@@ -1791,11 +1968,18 @@ function addNote() {
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', dragEnd);
         
+        // Add click handler for selection
+        note.addEventListener('click', function(e) {
+            e.stopPropagation();
+            whiteboard.selectNote(noteObject);
+        });
+        
         function dragStart(e) {
             if (e.target === note) {
                 initialX = e.clientX - xOffset;
                 initialY = e.clientY - yOffset;
                 isDragging = true;
+                whiteboard.selectNote(noteObject);
             }
         }
         
@@ -1807,6 +1991,12 @@ function addNote() {
                 xOffset = currentX;
                 yOffset = currentY;
                 note.style.transform = `translate(${currentX}px, ${currentY}px)`;
+                
+                // Update note object position
+                noteObject.x = noteObject.x + (currentX - (noteObject.offsetX || 0));
+                noteObject.y = noteObject.y + (currentY - (noteObject.offsetY || 0));
+                noteObject.offsetX = currentX;
+                noteObject.offsetY = currentY;
             }
         }
         
@@ -1815,6 +2005,7 @@ function addNote() {
         }
         
         document.querySelector('.canvas-container').appendChild(note);
+        whiteboard.saveState(); // Save state for undo/redo
     }
     closeNoteModal();
 }

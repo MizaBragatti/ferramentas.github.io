@@ -44,6 +44,8 @@ header h1 i {
     position: absolute;
     top: 0;
     right: 0;
+    display: flex;
+    gap: 10px;
 }
 
 .header-button {
@@ -655,11 +657,14 @@ mark {
     .header-actions {
         position: static;
         margin-top: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
     }
     
     .header-button {
         padding: 8px 16px;
         font-size: 0.9rem;
+        margin: 3px;
     }
     
     section {

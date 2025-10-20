@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=3.0">
+    <title>Scanner QR Code - Lista de Compras</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        #scanner-video {
+            width: 100%;
+            height: auto;
+            min-height: 300px;
+            background: #000;
+        }
+        
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+        
+        .scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.3);
+        }
+        
+        .scanner-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 4px solid #ffd700;
+        }
+        
+        .scanner-corner.top-left {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+        
+        .scanner-corner.top-right {
+            top: -2px;
+            right: -2px;
+            border-left: none;
+            border-bottom: none;
+        }
+        
+        .scanner-corner.bottom-left {
+            bottom: -2px;
+            left: -2px;
+            border-right: none;
+            border-top: none;
+        }
+        
+        .scanner-corner.bottom-right {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+        }
+        
+        .scanner-instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        .camera-controls {
+            padding: 20px;
+            text-align: center;
+            background: white;
+        }
+        
+        .camera-controls button {
+            margin: 5px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+        
+        .scan-result {
+            background: #f0fff4;
+            border: 2px solid #48bb78;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .scan-result.show {
+            display: block;
+        }
+        
+        .items-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .preview-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-item.duplicate {
+            background: #fef5e7;
+            border-color: #ed8936;
+        }
+        
+        .preview-item.new {
+            background: #f0fff4;
+            border-color: #48bb78;
+        }
+        
+        .duplicate-badge {
+            background: #ed8936;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .new-badge {
+            background: #48bb78;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            border: 2px solid #e53e3e;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .scanner-frame {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .scanner-instructions {
+                font-size: 0.8rem;
+                padding: 8px 16px;
+            }
+            
+            .camera-controls {
+                padding: 15px;
+            }
+            
+            .camera-controls button {
+                display: block;
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-qrcode"></i> Scanner QR Code NFCe</h1>
+            <div class="header-actions">
+                <a href="index.html" class="header-button">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </header>
+
+        <main>
+            <section>
+                <div class="scanner-container">
+                    <video id="scanner-video" autoplay playsinline></video>
+                    <div class="scanner-overlay">
+                        <div class="scanner-frame">
+                            <div class="scanner-corner top-left"></div>
+                            <div class="scanner-corner top-right"></div>
+                            <div class="scanner-corner bottom-left"></div>
+                            <div class="scanner-corner bottom-right"></div>
+                        </div>
+                        <div class="scanner-instructions">
+                            <i class="fas fa-camera"></i> Posicione o QR Code dentro do quadro
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="camera-controls">
+                    <button id="startCamera" class="btn-primary">
+                        <i class="fas fa-camera"></i> Iniciar Câmera
+                    </button>
+                    <button id="stopCamera" class="btn-secondary" style="display: none;">
+                        <i class="fas fa-stop"></i> Parar Câmera
+                    </button>
+                    <button id="switchCamera" class="btn-secondary" style="display: none;">
+                        <i class="fas fa-sync-alt"></i> Trocar Câmera
+                    </button>
+                </div>
+                
+                <div id="errorMessage" class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="errorText"></span>
+                </div>
+                
+                <div id="scanResult" class="scan-result">
+                    <h3><i class="fas fa-check-circle"></i> QR Code Detectado!</h3>
+                    <p><strong>URL:</strong> <span id="scannedUrl"></span></p>
+                    <div id="itemsPreview" class="items-preview"></div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button id="importItems" class="btn-success">
+                            <i class="fas fa-download"></i> Importar Itens para Lista
+                        </button>
+                        <button id="scanAgain" class="btn-primary">
+                            <i class="fas fa-qrcode"></i> Escanear Outro
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2><i class="fas fa-info-circle"></i> Como Usar</h2>
+                <div class="info-section">
+                    <p><strong>1.</strong> Clique em "Iniciar Câmera" para ativar o scanner</p>
+                    <p><strong>2.</strong> Aponte a câmera para o QR Code da nota fiscal</p>
+                    <p><strong>3.</strong> Mantenha o código dentro do quadro até ser detectado</p>
+                    <p><strong>4.</strong> Os itens serão extraídos automaticamente da nota</p>
+                    <p><strong>5.</strong> Revise os itens e clique em "Importar" para adicionar à lista</p>
+                    <p><strong>6.</strong> Itens duplicados serão identificados e destacados</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Biblioteca para leitura de QR Code -->
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+    <script src="js/scanner.js"></script>
+</body>
+</html>

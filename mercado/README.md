@@ -39,6 +39,14 @@ Uma aplicação web completa para gerenciar listas de compras de mercado com fun
 - Comparação de preços entre estabelecimentos
 - Atualização precisa da lista com valores de mercado
 
+### 📱 Scanner QR Code
+- Scanner integrado para ler QR Code de notas fiscais diretamente pela câmera
+- Extração automática de itens da nota fiscal
+- Verificação inteligente de duplicidade por código do produto
+- Importação seletiva apenas de itens novos
+- Atualização automática de preços no histórico
+- Interface touch-friendly com suporte a múltiplas câmeras
+
 ### 💾 Persistência de Dados
 - Armazenamento local no navegador (localStorage)
 - Dados preservados entre sessões
@@ -96,6 +104,15 @@ Uma aplicação web completa para gerenciar listas de compras de mercado com fun
 - Combine busca com o filtro "apenas pendentes" para maior precisão
 - Pressione **Esc** para limpar a busca quando o campo estiver focado
 
+### Escaneando QR Code
+- Clique no botão "Scanner QR" no cabeçalho da aplicação
+- Permita acesso à câmera quando solicitado pelo navegador
+- Aponte a câmera para o QR Code da nota fiscal (NFCe)
+- Aguarde a detecção automática e extração dos itens
+- Revise os itens encontrados e verifique duplicidades
+- Clique em "Importar" para adicionar apenas os itens novos à lista
+- Preços de itens existentes são atualizados automaticamente no histórico
+
 ## 🎨 Interface
 
 A aplicação possui uma interface moderna e responsiva com:
@@ -129,10 +146,12 @@ A aplicação possui uma interface moderna e responsiva com:
 mercado/
 ├── index.html          # Página principal
 ├── nfce.html           # Consulta de Nota Fiscal Eletrônica
+├── scanner.html        # Scanner QR Code para NFCe
 ├── css/
 │   └── styles.css      # Estilos da aplicação
 ├── js/
-│   └── app.js          # Lógica da aplicação
+│   ├── app.js          # Lógica da aplicação principal
+│   └── scanner.js      # Lógica do scanner QR Code
 ├── .github/
 │   └── copilot-instructions.md
 └── README.md           # Esta documentação
@@ -153,21 +172,25 @@ mercado/
 
 ### Para Verificação de Preços
 - Consulte notas fiscais eletrônicas (NFCe) para obter preços reais
+- Use o scanner QR Code para importação automática de compras realizadas
 - Compare preços entre diferentes mercados e estabelecimentos
 - Mantenha sua lista sempre atualizada com valores de mercado
-- Identifique oportunidades de economia
+- Identifique oportunidades de economia através do histórico
 
 ## 🔮 Funcionalidades Futuras
 
 - [ ] Categorias de produtos
 - [ ] Exportação de listas para PDF
 - [ ] Compartilhamento de listas
-- [ ] Integração com APIs de preços
+- [ ] Integração com APIs oficiais da Receita Federal
+- [ ] OCR para extrair dados de cupons físicos
 - [ ] Modo escuro
 - [ ] Backup na nuvem
 - [ ] Consulta NFCe para outros estados
-- [ ] Scanner de código de barras
+- [ ] Scanner de código de barras para produtos
 - [ ] Notificações de variação de preços
+- [ ] Geolocalização de melhores preços
+- [ ] Integração com supermercados online
 
 ## 🤝 Contribuições
 
