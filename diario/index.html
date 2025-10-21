@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Diário Online</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome para ícones -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- CSS personalizado -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-book-open me-2"></i>
+                Meu Diário
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div id="auth-section">
+                    <!-- Seção de login/logout será inserida aqui pelo JavaScript -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="d-flex justify-content-center align-items-center" style="height: 200px;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+    </div>
+
+    <!-- Login Section -->
+    <div id="login-section" class="container mt-5" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">
+                            <i class="fas fa-user-circle me-2"></i>
+                            Entre na sua conta
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Senha</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-sign-in-alt me-2"></i>
+                                Entrar
+                            </button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <div class="text-center">
+                            <p>Não tem conta?</p>
+                            <button id="show-register" class="btn btn-outline-primary">
+                                <i class="fas fa-user-plus me-2"></i>
+                                Criar conta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Section -->
+    <div id="register-section" class="container mt-5" style="display: none;">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Criar nova conta
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="register-form">
+                            <div class="mb-3">
+                                <label for="register-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="register-email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="register-password" class="form-label">Senha</label>
+                                <input type="password" class="form-control" id="register-password" required minlength="6">
+                                <div class="form-text">A senha deve ter pelo menos 6 caracteres.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-user-plus me-2"></i>
+                                Criar conta
+                            </button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <div class="text-center">
+                            <p>Já tem conta?</p>
+                            <button id="show-login" class="btn btn-outline-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>
+                                Fazer login
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Diary Section -->
+    <div id="diary-section" class="container mt-4" style="display: none;">
+        <!-- Welcome Message -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-primary">
+                    <h4>
+                        <i class="fas fa-heart me-2"></i>
+                        Bem-vindo ao seu diário pessoal!
+                    </h4>
+                    <p class="mb-0">Aqui você pode registrar seus pensamentos, memórias e experiências de forma segura.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Entry Form -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>
+                            <i class="fas fa-pen me-2"></i>
+                            Nova Entrada
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="entry-form">
+                            <div class="mb-3">
+                                <label for="entry-title" class="form-label">Título</label>
+                                <input type="text" class="form-control" id="entry-title" required placeholder="Digite um título para sua entrada...">
+                            </div>
+                            <div class="mb-3">
+                                <label for="entry-content" class="form-label">Conteúdo</label>
+                                <textarea class="form-control" id="entry-content" rows="5" required placeholder="Escreva aqui seus pensamentos..."></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>
+                                    Salvar Entrada
+                                </button>
+                                <button type="button" id="cancel-edit" class="btn btn-secondary" style="display: none;">
+                                    <i class="fas fa-times me-2"></i>
+                                    Cancelar Edição
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="search-entries" placeholder="Pesquisar nas suas entradas...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Entries List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-book me-2"></i>
+                            Suas Entradas
+                        </h5>
+                        <span id="entries-count" class="badge bg-primary">0 entradas</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="entries-list">
+                            <!-- Entradas serão carregadas aqui pelo JavaScript -->
+                            <div class="text-center text-muted">
+                                <i class="fas fa-book-open fa-3x mb-3"></i>
+                                <p>Nenhuma entrada ainda. Que tal escrever a primeira?</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- JavaScript modules -->
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/diary.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

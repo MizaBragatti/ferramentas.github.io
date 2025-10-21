@@ -1,0 +1,35 @@
+{
+  "name": "diario-online",
+  "version": "1.0.0",
+  "description": "Diário online conectado ao Firestore",
+  "main": "index.html",
+  "homepage": "https://mizabragatti.github.io/ferramentas.github.io/diario/",
+  "scripts": {
+    "start": "live-server --port=3000",
+    "dev": "live-server --port=3000 --open=/",
+    "preview": "live-server --port=8080 --no-browser"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "keywords": [
+    "diário", 
+    "firebase", 
+    "firestore", 
+    "javascript", 
+    "github-pages",
+    "spa"
+  ],
+  "author": {
+    "name": "Miza Bragatti",
+    "url": "https://github.com/MizaBragatti"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MizaBragatti/ferramentas.github.io.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MizaBragatti/ferramentas.github.io/issues"
+  }
+}
