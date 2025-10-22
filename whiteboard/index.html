@@ -2,21 +2,29 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2196f3">
     <title>Whiteboard - Estilo Miro</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="whiteboard-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        
         <!-- Toolbar -->
-        <div class="toolbar">
-            <div class="toolbar-section">
+        <div class="toolbar" id="toolbar">
+            <!-- Primary Tools (Always Visible) -->
+            <div class="toolbar-primary">
                 <button class="tool-btn active" data-tool="select" title="Selecionar">
                     <i class="fas fa-mouse-pointer"></i>
-                </button>
-                <button class="tool-btn" data-tool="hand" title="Mover Whiteboard">
-                    <i class="fas fa-hand-paper"></i>
                 </button>
                 <button class="tool-btn" data-tool="pen" title="Caneta">
                     <i class="fas fa-pen"></i>
@@ -24,105 +32,131 @@
                 <button class="tool-btn" data-tool="eraser" title="Borracha">
                     <i class="fas fa-eraser"></i>
                 </button>
-            </div>
-            
-            <div class="toolbar-section">
-                <button class="tool-btn" data-tool="rectangle" title="Retângulo">
-                    <i class="fas fa-square"></i>
-                </button>
-                <button class="tool-btn" data-tool="rounded-rectangle" title="Retângulo Arredondado">
-                    <i class="fas fa-square" style="border-radius: 3px;"></i>
-                </button>
-                <button class="tool-btn" data-tool="circle" title="Círculo">
-                    <i class="fas fa-circle"></i>
-                </button>
-                <button class="tool-btn" data-tool="oval" title="Oval">
-                    <i class="fas fa-circle" style="transform: scaleX(0.7);"></i>
-                </button>
-                <button class="tool-btn" data-tool="triangle" title="Triângulo">
-                    <i class="fas fa-play" style="transform: rotate(90deg);"></i>
-                </button>
-                <button class="tool-btn" data-tool="diamond" title="Losango">
-                    <i class="fas fa-square" style="transform: rotate(45deg);"></i>
-                </button>
-                <button class="tool-btn" data-tool="line" title="Linha">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <button class="tool-btn" data-tool="arrow" title="Seta">
-                    <i class="fas fa-arrow-right"></i>
+                <button class="tool-btn" data-tool="hand" title="Mover">
+                    <i class="fas fa-hand-paper"></i>
                 </button>
             </div>
             
-            <div class="toolbar-section">
-                <button class="tool-btn" data-tool="parallelogram" title="Paralelogramo">
-                    <span style="font-family: monospace; font-weight: bold;">▱</span>
-                </button>
-                <button class="tool-btn" data-tool="trapezoid" title="Trapézio">
-                    <span style="font-family: monospace; font-weight: bold;">⏢</span>
-                </button>
-                <button class="tool-btn" data-tool="pentagon" title="Pentágono">
-                    <span style="font-family: monospace; font-weight: bold;">⬟</span>
-                </button>
-                <button class="tool-btn" data-tool="hexagon" title="Hexágono">
-                    <span style="font-family: monospace; font-weight: bold;">⬢</span>
-                </button>
-                <button class="tool-btn" data-tool="octagon" title="Octógono">
-                    <span style="font-family: monospace; font-weight: bold;">⯃</span>
-                </button>
-                <button class="tool-btn" data-tool="star" title="Estrela">
-                    <i class="fas fa-star"></i>
-                </button>
-            </div>
-            
-            <div class="toolbar-section">
-                <button class="tool-btn" data-tool="text" title="Texto">
-                    <i class="fas fa-font"></i>
-                </button>
-                <button class="tool-btn" data-tool="note" title="Nota Adesiva">
-                    <i class="fas fa-sticky-note"></i>
-                </button>
-            </div>
-            
-            <div class="toolbar-section">
-                <div class="color-picker">
-                    <input type="color" id="colorPicker" value="#000000" title="Cor">
-                    <div class="color-preview"></div>
+            <!-- Secondary Tools (Collapsible) -->
+            <div class="toolbar-secondary">
+                <div class="toolbar-section shapes-basic">
+                    <h4 class="section-title">Formas Básicas</h4>
+                    <div class="tool-group">
+                        <button class="tool-btn" data-tool="rectangle" title="Retângulo">
+                            <i class="fas fa-square"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="rounded-rectangle" title="Retângulo Arredondado">
+                            <i class="fas fa-square" style="border-radius: 3px;"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="circle" title="Círculo">
+                            <i class="fas fa-circle"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="oval" title="Oval">
+                            <i class="fas fa-circle" style="transform: scaleX(0.7);"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="triangle" title="Triângulo">
+                            <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="diamond" title="Losango">
+                            <i class="fas fa-square" style="transform: rotate(45deg);"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="stroke-width">
-                    <input type="range" id="strokeWidth" min="1" max="20" value="3" title="Espessura">
-                    <span class="stroke-value">3px</span>
+                
+                <div class="toolbar-section shapes-advanced">
+                    <h4 class="section-title">Formas Avançadas</h4>
+                    <div class="tool-group">
+                        <button class="tool-btn" data-tool="parallelogram" title="Paralelogramo">
+                            <span style="font-family: monospace; font-weight: bold;">▱</span>
+                        </button>
+                        <button class="tool-btn" data-tool="trapezoid" title="Trapézio">
+                            <span style="font-family: monospace; font-weight: bold;">⏢</span>
+                        </button>
+                        <button class="tool-btn" data-tool="pentagon" title="Pentágono">
+                            <span style="font-family: monospace; font-weight: bold;">⬟</span>
+                        </button>
+                        <button class="tool-btn" data-tool="hexagon" title="Hexágono">
+                            <span style="font-family: monospace; font-weight: bold;">⬢</span>
+                        </button>
+                        <button class="tool-btn" data-tool="octagon" title="Octógono">
+                            <span style="font-family: monospace; font-weight: bold;">⯃</span>
+                        </button>
+                        <button class="tool-btn" data-tool="star" title="Estrela">
+                            <i class="fas fa-star"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="toolbar-section">
-                <button class="tool-btn" onclick="undo()" title="Desfazer (Ctrl+Z)">
-                    <i class="fas fa-undo"></i>
-                </button>
-                <button class="tool-btn" onclick="redo()" title="Refazer (Ctrl+Y)">
-                    <i class="fas fa-redo"></i>
-                </button>
-                <button class="tool-btn" onclick="clearCanvas()" title="Limpar Tudo">
-                    <i class="fas fa-trash"></i>
-                </button>
-                <button class="tool-btn" onclick="saveCanvas()" title="Salvar">
-                    <i class="fas fa-save"></i>
-                </button>
-                <button class="tool-btn" onclick="loadCanvas()" title="Carregar">
-                    <i class="fas fa-folder-open"></i>
-                </button>
-            </div>
-            
-            <div class="toolbar-section zoom-controls">
-                <button class="tool-btn" onclick="zoomOut()" title="Diminuir Zoom">
-                    <i class="fas fa-search-minus"></i>
-                </button>
-                <span class="zoom-level">100%</span>
-                <button class="tool-btn" onclick="zoomIn()" title="Aumentar Zoom">
-                    <i class="fas fa-search-plus"></i>
-                </button>
-                <button class="tool-btn" onclick="resetZoom()" title="Reset Zoom">
-                    <i class="fas fa-home"></i>
-                </button>
+                
+                <div class="toolbar-section lines-text">
+                    <h4 class="section-title">Linhas e Texto</h4>
+                    <div class="tool-group">
+                        <button class="tool-btn" data-tool="line" title="Linha">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="arrow" title="Seta">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="text" title="Texto">
+                            <i class="fas fa-font"></i>
+                        </button>
+                        <button class="tool-btn" data-tool="note" title="Nota Adesiva">
+                            <i class="fas fa-sticky-note"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="toolbar-section style-controls">
+                    <h4 class="section-title">Estilo</h4>
+                    <div class="tool-group vertical">
+                        <div class="color-picker">
+                            <label for="colorPicker">Cor:</label>
+                            <input type="color" id="colorPicker" value="#000000" title="Cor">
+                            <div class="color-preview"></div>
+                        </div>
+                        <div class="stroke-width">
+                            <label for="strokeWidth">Espessura:</label>
+                            <input type="range" id="strokeWidth" min="1" max="20" value="3" title="Espessura">
+                            <span class="stroke-value">3px</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="toolbar-section actions">
+                    <h4 class="section-title">Ações</h4>
+                    <div class="tool-group">
+                        <button class="tool-btn" onclick="undo()" title="Desfazer">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="tool-btn" onclick="redo()" title="Refazer">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                        <button class="tool-btn" onclick="clearCanvas()" title="Limpar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="tool-btn" onclick="saveCanvas()" title="Salvar">
+                            <i class="fas fa-save"></i>
+                        </button>
+                        <button class="tool-btn" onclick="loadCanvas()" title="Carregar">
+                            <i class="fas fa-folder-open"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="toolbar-section zoom-controls">
+                    <h4 class="section-title">Zoom</h4>
+                    <div class="tool-group">
+                        <button class="tool-btn" onclick="zoomOut()" title="Diminuir">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <span class="zoom-level">100%</span>
+                        <button class="tool-btn" onclick="zoomIn()" title="Aumentar">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                        <button class="tool-btn" onclick="resetZoom()" title="Reset">
+                            <i class="fas fa-home"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         

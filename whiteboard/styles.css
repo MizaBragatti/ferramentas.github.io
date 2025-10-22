@@ -17,6 +17,37 @@ body {
 }
 
 /* Toolbar Styles */
+.mobile-menu-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    background: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+    transition: all 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-menu-toggle:hover {
+    background: #1976d2;
+    transform: scale(1.05);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
 .toolbar {
     position: absolute;
     top: 20px;
@@ -35,6 +66,24 @@ body {
     overflow-x: auto;
 }
 
+.toolbar-primary {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 8px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 8px;
+    order: 1;
+}
+
+.toolbar-secondary {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    order: 2;
+}
+
 .toolbar-section {
     display: flex;
     gap: 6px;
@@ -46,6 +95,16 @@ body {
 
 .toolbar-section:last-child {
     border-right: none;
+}
+
+.section-title {
+    display: none; /* Hidden on desktop */
+}
+
+.tool-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
 }
 
 .tool-btn {
@@ -62,11 +121,18 @@ body {
     color: #666;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .tool-btn:hover {
     background: #f0f0f0;
     color: #333;
+}
+
+.tool-btn:active {
+    transform: scale(0.95);
+    background: #e0e0e0;
 }
 
 .tool-btn.active {
@@ -368,24 +434,253 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
     .toolbar {
         position: fixed;
-        bottom: 20px;
-        left: 50%;
-        top: auto;
-        transform: translateX(-50%);
-        max-width: 90vw;
-        overflow-x: auto;
+        top: 80px;
+        left: 20px;
+        right: 20px;
+        transform: none;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        gap: 16px;
+    }
+    
+    .toolbar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .toolbar-primary {
+        order: 1;
+        background: rgba(33, 150, 243, 0.15);
+        padding: 12px;
+        border-radius: 12px;
+        justify-content: space-around;
+    }
+    
+    .toolbar-secondary {
+        order: 2;
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+    }
+    
+    .toolbar-section {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+        border-right: none;
+        border-radius: 12px;
+        background: rgba(248, 249, 250, 0.8);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        gap: 12px;
+    }
+    
+    .section-title {
+        display: block;
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+    }
+    
+    .tool-group {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .tool-group.vertical {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .tool-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        background: white;
+        color: #666;
+    }
+    
+    .tool-btn:active {
+        transform: scale(0.95);
+        background: #e0e0e0;
+    }
+    
+    .tool-btn.active {
+        background: #2196f3;
+        color: white;
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
     }
     
     .properties-panel {
         right: 10px;
         width: 220px;
+        max-height: 50vh;
+        overflow-y: auto;
     }
     
-    .tool-btn {
-        width: 40px;
+    /* Larger touch targets for mobile */
+    .range-input {
         height: 40px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: #ddd;
+        border-radius: 20px;
+    }
+    
+    .range-input::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #2196f3;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    .range-input::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #2196f3;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Mobile-friendly modals */
+    .modal {
+        padding: 10px;
+    }
+    
+    .modal-content {
+        width: 90%;
+        max-width: 350px;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 15px;
+    }
+    
+    /* Touch-friendly buttons */
+    button {
+        min-height: 44px;
+        min-width: 44px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Prevent zoom on input focus */
+    input, textarea, select {
         font-size: 16px;
+        border-radius: 8px;
+        padding: 12px;
+    }
+    
+    /* Canvas gesture improvements */
+    .canvas-container {
+        touch-action: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+    }
+    
+    /* Sticky notes mobile optimization */
+    .sticky-note {
+        min-width: 150px;
+        min-height: 120px;
+        font-size: 16px;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Style controls in mobile */
+    .color-picker {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .color-picker label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .stroke-width {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .stroke-width label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .zoom-level {
+        background: rgba(33, 150, 243, 0.1);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        color: #2196f3;
+        min-width: 60px;
+        text-align: center;
+    }
+}
+
+/* Tool Selection Feedback Animation */
+@keyframes toolFeedbackShow {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Mobile Menu Animation */
+.toolbar.mobile-open {
+    animation: slideInFromLeft 0.3s ease-out;
+}
+
+@keyframes slideInFromLeft {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
     }
 }

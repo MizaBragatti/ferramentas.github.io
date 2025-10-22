@@ -61,6 +61,7 @@ class Whiteboard {
         
         this.initCanvas();
         this.bindEvents();
+        this.initMobileFeatures();
         this.updateCanvasSize();
     }
     
@@ -70,6 +71,14 @@ class Whiteboard {
         this.ctx.lineJoin = 'round';
         this.saveState(); // Save initial empty state
         this.redraw();
+        // Touch tracking properties
+        this.lastTouchDistance = 0;
+        this.lastTouchCenter = { x: 0, y: 0 };
+        this.touchStartTime = 0;
+        this.touchStartPos = { x: 0, y: 0 };
+        this.isMultiTouch = false;
+        this.lastTapTime = 0;
+        this.tapCount = 0;
     }
     
     updateCanvasSize() {
@@ -93,9 +102,10 @@ class Whiteboard {
         this.canvas.addEventListener('wheel', this.handleWheel.bind(this));
         
         // Touch events for mobile
-        this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
-        this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this));
-        this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
+        this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+        this.canvas.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+        this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
+        this.canvas.addEventListener('touchcancel', this.handleTouchEnd.bind(this), { passive: false });
         
         // Click event listener for canvas container to clear note selections
         document.querySelector('.canvas-container').addEventListener('click', (e) => {
@@ -196,12 +206,76 @@ class Whiteboard {
         const container = document.querySelector('.canvas-container');
         container.className = `canvas-container ${tool}-tool`;
         
+        // Provide haptic feedback on mobile
+        if (this.isMobile()) {
+            this.vibrate(20);
+            this.showToolSelectionFeedback(tool);
+        }
+        
         // Handle special tools
         if (tool === 'text') {
             document.getElementById('textModal').style.display = 'flex';
         } else if (tool === 'note') {
             document.getElementById('noteModal').style.display = 'flex';
         }
+    }
+    
+    showToolSelectionFeedback(tool) {
+        // Create temporary visual feedback for mobile
+        const feedback = document.createElement('div');
+        feedback.className = 'tool-feedback';
+        feedback.textContent = this.getToolDisplayName(tool);
+        feedback.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            z-index: 10000;
+            pointer-events: none;
+            font-size: 16px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            animation: toolFeedbackShow 0.8s ease-out forwards;
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 800);
+    }
+    
+    getToolDisplayName(tool) {
+        const names = {
+            'select': 'Selecionar',
+            'pen': 'Caneta',
+            'eraser': 'Borracha',
+            'hand': 'Mover',
+            'rectangle': 'Retângulo',
+            'rounded-rectangle': 'Retângulo Arredondado',
+            'circle': 'Círculo',
+            'oval': 'Oval',
+            'triangle': 'Triângulo',
+            'diamond': 'Losango',
+            'line': 'Linha',
+            'arrow': 'Seta',
+            'text': 'Texto',
+            'note': 'Nota',
+            'parallelogram': 'Paralelogramo',
+            'trapezoid': 'Trapézio',
+            'pentagon': 'Pentágono',
+            'hexagon': 'Hexágono',
+            'octagon': 'Octógono',
+            'star': 'Estrela'
+        };
+        return names[tool] || tool.charAt(0).toUpperCase() + tool.slice(1);
     }
     
     getMousePos(e) {
@@ -524,32 +598,324 @@ class Whiteboard {
     // Touch events
     handleTouchStart(e) {
         e.preventDefault();
-        if (e.touches.length === 1) {
-            const touch = e.touches[0];
+        const touches = e.touches;
+        this.touchStartTime = Date.now();
+        
+        if (touches.length === 1) {
+            // Single touch - drawing or selection
+            const touch = touches[0];
+            this.touchStartPos = { x: touch.clientX, y: touch.clientY };
+            this.isMultiTouch = false;
+            
+            // Convert to mouse event for existing logic
             this.handleMouseDown({
                 clientX: touch.clientX,
                 clientY: touch.clientY,
                 button: 0,
                 preventDefault: () => {}
             });
+        } else if (touches.length === 2) {
+            // Two-finger touch - start pinch/zoom or pan
+            this.isMultiTouch = true;
+            this.lastTouchDistance = this.getTouchDistance(touches[0], touches[1]);
+            this.lastTouchCenter = this.getTouchCenter(touches[0], touches[1]);
+            
+            // Show visual feedback for multi-touch
+            this.showMultiTouchFeedback(true);
+            
+            // Stop any current drawing
+            if (this.isDrawing) {
+                this.finishDrawing();
+                this.isDrawing = false;
+            }
         }
     }
     
     handleTouchMove(e) {
         e.preventDefault();
-        if (e.touches.length === 1) {
-            const touch = e.touches[0];
-            this.handleMouseMove({
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                preventDefault: () => {}
-            });
+        const touches = e.touches;
+        
+        if (touches.length === 1 && !this.isMultiTouch) {
+            // Single touch movement
+            const touch = touches[0];
+            
+            // Check if this is a long press (for right-click simulation)
+            const moveDistance = Math.sqrt(
+                Math.pow(touch.clientX - this.touchStartPos.x, 2) + 
+                Math.pow(touch.clientY - this.touchStartPos.y, 2)
+            );
+            
+            if (moveDistance > 10) {
+                // Movement detected, treat as normal mouse move
+                this.handleMouseMove({
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                });
+            }
+        } else if (touches.length === 2) {
+            // Two-finger gesture
+            this.isMultiTouch = true;
+            const currentDistance = this.getTouchDistance(touches[0], touches[1]);
+            const currentCenter = this.getTouchCenter(touches[0], touches[1]);
+            
+            // Pinch to zoom
+            if (this.lastTouchDistance > 0) {
+                const scaleFactor = currentDistance / this.lastTouchDistance;
+                const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * scaleFactor));
+                
+                if (newScale !== this.scale) {
+                    // Get canvas position for zoom center
+                    const rect = this.canvas.getBoundingClientRect();
+                    const zoomCenterX = (currentCenter.x - rect.left) * (this.canvas.width / rect.width);
+                    const zoomCenterY = (currentCenter.y - rect.top) * (this.canvas.height / rect.height);
+                    
+                    // Adjust offset to zoom around touch center
+                    this.offsetX = zoomCenterX - (zoomCenterX - this.offsetX) * (newScale / this.scale);
+                    this.offsetY = zoomCenterY - (zoomCenterY - this.offsetY) * (newScale / this.scale);
+                    
+                    this.scale = newScale;
+                    this.updateZoomDisplay();
+                    this.redraw();
+                }
+            }
+            
+            // Two-finger pan
+            if (this.lastTouchCenter.x !== 0 && this.lastTouchCenter.y !== 0) {
+                const deltaX = (currentCenter.x - this.lastTouchCenter.x) * this.scale;
+                const deltaY = (currentCenter.y - this.lastTouchCenter.y) * this.scale;
+                this.offsetX += deltaX;
+                this.offsetY += deltaY;
+                this.redraw();
+            }
+            
+            this.lastTouchDistance = currentDistance;
+            this.lastTouchCenter = currentCenter;
         }
     }
     
     handleTouchEnd(e) {
         e.preventDefault();
-        this.handleMouseUp({ preventDefault: () => {} });
+        const touches = e.touches;
+        const currentTime = Date.now();
+        
+        if (touches.length === 0) {
+            // All fingers lifted
+            const touchDuration = currentTime - this.touchStartTime;
+            
+            if (!this.isMultiTouch) {
+                const moveDistance = Math.sqrt(
+                    Math.pow(e.changedTouches[0].clientX - this.touchStartPos.x, 2) + 
+                    Math.pow(e.changedTouches[0].clientY - this.touchStartPos.y, 2)
+                );
+                
+                // Check for double tap
+                if (touchDuration < 300 && moveDistance < 10) {
+                    if (currentTime - this.lastTapTime < 300) {
+                        // Double tap detected
+                        this.handleDoubleTap(e.changedTouches[0]);
+                        this.tapCount = 0;
+                        this.lastTapTime = 0;
+                        return;
+                    } else {
+                        this.tapCount = 1;
+                        this.lastTapTime = currentTime;
+                        
+                        // Wait to see if there's a second tap
+                        setTimeout(() => {
+                            if (this.tapCount === 1) {
+                                // Single tap - check for long press
+                                if (touchDuration > 500) {
+                                    this.handleLongPress(e.changedTouches[0]);
+                                    return;
+                                }
+                            }
+                            this.tapCount = 0;
+                        }, 300);
+                    }
+                }
+                
+                // Check for long press (if not double tap)
+                if (touchDuration > 500 && moveDistance < 10 && this.tapCount === 0) {
+                    this.handleLongPress(e.changedTouches[0]);
+                    return;
+                }
+            }
+            
+            this.handleMouseUp({ preventDefault: () => {} });
+            this.isMultiTouch = false;
+            this.lastTouchDistance = 0;
+            this.lastTouchCenter = { x: 0, y: 0 };
+            this.showMultiTouchFeedback(false);
+        } else if (touches.length === 1 && this.isMultiTouch) {
+            // One finger still down after multi-touch
+            this.isMultiTouch = false;
+            this.lastTouchDistance = 0;
+            this.lastTouchCenter = { x: 0, y: 0 };
+            this.showMultiTouchFeedback(false);
+        }
+    }
+    
+    handleDoubleTap(touch) {
+        // Provide haptic feedback
+        this.vibrate(30);
+        
+        // Double tap to zoom
+        const pos = this.getMousePos({
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        
+        // Toggle between 100% and 200% zoom
+        const targetScale = this.scale === 1 ? 2 : 1;
+        const scaleFactor = targetScale / this.scale;
+        
+        // Get canvas position for zoom center
+        const rect = this.canvas.getBoundingClientRect();
+        const zoomCenterX = (touch.clientX - rect.left) * (this.canvas.width / rect.width);
+        const zoomCenterY = (touch.clientY - rect.top) * (this.canvas.height / rect.height);
+        
+        // Adjust offset to zoom around touch center
+        this.offsetX = zoomCenterX - (zoomCenterX - this.offsetX) * scaleFactor;
+        this.offsetY = zoomCenterY - (zoomCenterY - this.offsetY) * scaleFactor;
+        
+        this.scale = targetScale;
+        this.updateZoomDisplay();
+        this.redraw();
+    }
+    
+    getTouchDistance(touch1, touch2) {
+        return Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) + 
+            Math.pow(touch2.clientY - touch1.clientY, 2)
+        );
+    }
+    
+    getTouchCenter(touch1, touch2) {
+        return {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+        };
+    }
+    
+    handleLongPress(touch) {
+        // Provide haptic feedback if available
+        this.vibrate(50);
+        
+        // Long press functionality - could be used for selection or context menu
+        const pos = this.getMousePos({
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        
+        // If there's an object at this position, select it
+        const objectAtPos = this.findObjectAt(pos);
+        if (objectAtPos && this.currentTool === 'select') {
+            this.selectedObject = objectAtPos;
+            this.selectedObjects = [objectAtPos];
+            this.clearSelectionHandles();
+            this.createSelectionHandles(objectAtPos);
+            this.showPropertiesPanel(objectAtPos);
+            this.redraw();
+        }
+    }
+    
+    vibrate(duration = 50) {
+        // Haptic feedback for mobile devices
+        if (navigator.vibrate) {
+            navigator.vibrate(duration);
+        }
+    }
+    
+    // Detect if device is mobile
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+    }
+    
+    showMultiTouchFeedback(show) {
+        // Add visual feedback for multi-touch gestures
+        if (show) {
+            this.canvas.style.filter = 'brightness(1.1)';
+            // Add haptic feedback
+            this.vibrate(20);
+        } else {
+            this.canvas.style.filter = '';
+        }
+    }
+    
+    // Initialize mobile-specific features
+    initMobileFeatures() {
+        if (this.isMobile()) {
+            // Disable context menu on long press
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+            
+            // Prevent default touch behaviors
+            document.addEventListener('touchstart', (e) => {
+                if (e.target === this.canvas) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (e.target === this.canvas) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            document.addEventListener('touchend', (e) => {
+                if (e.target === this.canvas) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Setup mobile menu toggle
+            this.setupMobileMenu();
+        }
+    }
+    
+    setupMobileMenu() {
+        const menuToggle = document.getElementById('mobileMenuToggle');
+        const toolbar = document.getElementById('toolbar');
+        
+        if (menuToggle && toolbar) {
+            menuToggle.addEventListener('click', () => {
+                const isOpen = toolbar.classList.contains('mobile-open');
+                
+                if (isOpen) {
+                    toolbar.classList.remove('mobile-open');
+                    menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                } else {
+                    toolbar.classList.add('mobile-open');
+                    menuToggle.innerHTML = '<i class="fas fa-times"></i>';
+                }
+                
+                // Haptic feedback
+                this.vibrate(30);
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!toolbar.contains(e.target) && !menuToggle.contains(e.target)) {
+                    toolbar.classList.remove('mobile-open');
+                    menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            });
+            
+            // Close menu when tool is selected
+            document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (this.isMobile()) {
+                        setTimeout(() => {
+                            toolbar.classList.remove('mobile-open');
+                            menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                        }, 300);
+                    }
+                });
+            });
+        }
     }
     
     // Drawing methods
@@ -1175,7 +1541,7 @@ class Whiteboard {
         if (!this.selectedObject) return null;
         
         const bounds = this.getObjectBounds(this.selectedObject);
-        const handleSize = 15 / this.scale; // Increased handle detection area
+        const handleSize = this.isMobile() ? 25 / this.scale : 15 / this.scale; // Larger touch targets on mobile
         
         // Resize handles
         const handles = [
@@ -1193,7 +1559,7 @@ class Whiteboard {
         const rotationHandle = {
             direction: 'rotate',
             x: (bounds.minX + bounds.maxX) / 2,
-            y: bounds.minY - 30 / this.scale
+            y: bounds.minY - (this.isMobile() ? 40 / this.scale : 30 / this.scale)
         };
         
         // Check rotation handle first
@@ -1510,7 +1876,7 @@ class Whiteboard {
         this.ctx.strokeStyle = 'white';
         this.ctx.lineWidth = 2 / this.scale;
         
-        const handleSize = 8 / this.scale;
+        const handleSize = this.isMobile() ? 12 / this.scale : 8 / this.scale; // Larger handles on mobile
         const handlePositions = [
             { x: bounds.minX, y: bounds.minY }, // nw
             { x: (bounds.minX + bounds.maxX) / 2, y: bounds.minY }, // n
@@ -1530,9 +1896,10 @@ class Whiteboard {
         });
         
         // Draw rotation handle
+        const rotationHandleDistance = this.isMobile() ? 40 / this.scale : 30 / this.scale;
         const rotationHandlePos = {
             x: (bounds.minX + bounds.maxX) / 2,
-            y: bounds.minY - 30 / this.scale
+            y: bounds.minY - rotationHandleDistance
         };
         
         // Draw line connecting to rotation handle
