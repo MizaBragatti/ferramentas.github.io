@@ -96,6 +96,12 @@ class DiaryManager {
         const content = document.getElementById('entry-content').value.trim();
         const userId = window.authManager.getCurrentUserId();
 
+        console.log('SaveEntry chamado:', { 
+            title: title ? 'Preenchido' : 'Vazio', 
+            content: content ? 'Preenchido' : 'Vazio',
+            editingEntryId: this.editingEntryId 
+        });
+
         if (!title || !content) {
             this.showError('Por favor, preencha o título e o conteúdo.');
             return;
@@ -109,9 +115,11 @@ class DiaryManager {
         try {
             if (this.editingEntryId) {
                 // Atualizar entrada existente
+                console.log('Atualizando entrada:', this.editingEntryId);
                 await this.updateEntry(this.editingEntryId, title, content);
             } else {
                 // Criar nova entrada
+                console.log('Criando nova entrada');
                 await this.createEntry(userId, title, content);
             }
 
@@ -138,7 +146,7 @@ class DiaryManager {
 
         await addDoc(entriesRef, newEntry);
         console.log('Nova entrada criada');
-        this.showSuccess('Entrada salva com sucesso!');
+        this.showSuccess('✅ Nova entrada criada com sucesso!');
     }
 
     // Atualizar entrada existente
@@ -152,8 +160,8 @@ class DiaryManager {
         });
 
         console.log('Entrada atualizada:', entryId);
-        this.showSuccess('Entrada atualizada com sucesso!');
-        this.cancelEdit();
+        this.showSuccess('✅ Entrada atualizada com sucesso!');
+        this.resetEditMode();
     }
 
     // Editar entrada
@@ -184,8 +192,8 @@ class DiaryManager {
         this.showSuccess('Modo de edição ativado. Faça suas alterações e clique em "Atualizar Entrada".');
     }
 
-    // Cancelar edição
-    cancelEdit() {
+    // Resetar modo de edição (sem mensagem)
+    resetEditMode() {
         this.editingEntryId = null;
         this.clearForm();
         
@@ -195,7 +203,11 @@ class DiaryManager {
         // Restaurar texto do botão de salvar
         const submitButton = document.querySelector('#entry-form button[type="submit"]');
         submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Entrada';
-        
+    }
+
+    // Cancelar edição
+    cancelEdit() {
+        this.resetEditMode();
         this.showSuccess('Edição cancelada.');
     }
 
