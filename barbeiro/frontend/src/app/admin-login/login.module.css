@@ -1,53 +1,73 @@
-/* Estilos para login administrativo */
+/* Estilos para login administrativo - Tema Barbearia */
 .loginPage {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--primary-brown) 100%);
   padding: 20px;
 }
 
 .loginCard {
-  background: white;
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-  max-width: 400px;
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--black-soft) 100%);
+  border: 2px solid var(--primary-brown);
+  padding: 48px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  max-width: 420px;
   width: 100%;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.loginCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-brown), var(--accent-gold), var(--primary-brown));
 }
 
 .loginCard h1 {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 8px;
-  color: #1f2937;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  font-family: 'Playfair Display', serif;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .loginCard p {
-  color: #6b7280;
-  margin-bottom: 32px;
+  color: var(--text-secondary);
+  margin-bottom: 36px;
   font-size: 1rem;
+  line-height: 1.5;
 }
 
 .loginForm {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .passwordInput {
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  padding: 16px 20px;
+  border: 2px solid var(--gray-medium);
+  border-radius: 12px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  background: var(--black-light);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .passwordInput:focus {
   outline: none;
-  border-color: #a855f7;
+  border-color: var(--primary-brown);
+  background: var(--black-soft);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
 }
 
 .loginButton {

@@ -294,6 +294,12 @@ class Whiteboard {
     
     handleMouseDown(e) {
         e.preventDefault();
+        
+        // Check if we clicked on a sticky note element
+        if (e.target.classList.contains('sticky-note')) {
+            return; // Let the sticky note handle its own events
+        }
+        
         const pos = this.getMousePos(e);
         this.startX = pos.x;
         this.startY = pos.y;
@@ -2018,7 +2024,7 @@ class Whiteboard {
     
     selectNote(noteObject) {
         // Clear previous selections
-        this.selectedObjects = [];
+        this.selectedObjects = [noteObject];
         this.selectedObject = noteObject;
         this.clearSelectionHandles();
         
@@ -2030,17 +2036,26 @@ class Whiteboard {
         noteElement.style.boxShadow = '0 0 0 2px #007acc';
         
         this.showPropertiesPanel(noteObject);
+        this.redraw();
     }
     
     deleteSelected() {
+        console.log('Delete selected called. Selected object:', this.selectedObject);
+        console.log('Selected objects:', this.selectedObjects);
+        
         if (this.selectedObject) {
             const index = this.objects.indexOf(this.selectedObject);
             if (index > -1) {
                 // If it's a sticky note, remove the DOM element
                 if (this.selectedObject.type === 'sticky-note') {
                     const noteElement = this.selectedObject.element;
-                    if (noteElement && noteElement.parentNode) {
-                        noteElement.parentNode.removeChild(noteElement);
+                    if (noteElement) {
+                        // Remove from DOM
+                        if (noteElement.parentNode) {
+                            noteElement.parentNode.removeChild(noteElement);
+                        }
+                        // Clear visual selection
+                        noteElement.style.boxShadow = '';
                     }
                 }
                 this.objects.splice(index, 1);
@@ -2058,8 +2073,13 @@ class Whiteboard {
                     // If it's a sticky note, remove the DOM element
                     if (obj.type === 'sticky-note') {
                         const noteElement = obj.element;
-                        if (noteElement && noteElement.parentNode) {
-                            noteElement.parentNode.removeChild(noteElement);
+                        if (noteElement) {
+                            // Remove from DOM
+                            if (noteElement.parentNode) {
+                                noteElement.parentNode.removeChild(noteElement);
+                            }
+                            // Clear visual selection
+                            noteElement.style.boxShadow = '';
                         }
                     }
                     this.objects.splice(index, 1);
@@ -2338,6 +2358,7 @@ function addNote() {
         // Add click handler for selection
         note.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             whiteboard.selectNote(noteObject);
         });
         

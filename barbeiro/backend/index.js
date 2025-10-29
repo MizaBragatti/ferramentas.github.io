@@ -11,18 +11,52 @@ app.use(bodyParser.json());
 
 // Endpoint para receber agendamentos
 app.post('/agendamentos', (req, res) => {
-  const { nome, telefone, servico, data, hora } = req.body;
+  console.log('=== NOVO AGENDAMENTO ===');
+  console.log('Dados recebidos:', JSON.stringify(req.body, null, 2));
+  console.log('Data atual do servidor:', new Date().toISOString());
+  console.log('CURRENT_TIMESTAMP do SQLite seria:', new Date().toISOString().replace('T', ' ').substring(0, 19));
+  
+  const { nome, telefone, servico, data, hora, duracao } = req.body;
   if (!nome || !telefone || !servico || !data || !hora) {
     return res.status(400).json({ mensagem: 'Dados incompletos.' });
   }
+  
+  // Se duracao não foi fornecida, usar duração padrão baseada no serviço
+  let servicoDuracao = duracao || 30;
+  if (!duracao) {
+    const servicosDuracao = {
+      'Corte Simples': 30,
+      'Corte + Barba': 45,
+      'Barba': 20,
+      'Corte + Barba + Sobrancelha': 60,
+      'Coloração': 90,
+      'Relaxamento': 120,
+      'Outros': 30
+    };
+    servicoDuracao = servicosDuracao[servico] || 30;
+  }
+  
+  console.log('Dados que serão inseridos no banco:');
+  console.log('- nome:', nome);
+  console.log('- telefone:', telefone);
+  console.log('- servico:', servico);
+  console.log('- data:', data, '(tipo:', typeof data, ')');
+  console.log('- hora:', hora, '(tipo:', typeof hora, ')');
+  console.log('- duracao:', servicoDuracao);
+  
   db.run(
-    `INSERT INTO agendamentos (nome, telefone, servico, data, hora) VALUES (?, ?, ?, ?, ?)`,
-    [nome, telefone, servico, data, hora],
+    `INSERT INTO agendamentos (nome, telefone, servico, data, hora, duracao, criado_em) VALUES (?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))`,
+    [nome, telefone, servico, data, hora, servicoDuracao],
     function (err) {
       if (err) {
         console.error('Erro ao salvar agendamento:', err);
         return res.status(500).json({ mensagem: 'Erro ao salvar agendamento.' });
       }
+      
+      console.log('✅ Agendamento salvo com ID:', this.lastID);
+      console.log('Timestamp do servidor no momento da inserção:', new Date().toLocaleString('pt-BR'));
+      console.log('=== FIM NOVO AGENDAMENTO ===\n');
+      
       res.status(201).json({ mensagem: 'Agendamento recebido com sucesso!', id: this.lastID });
     }
   );
@@ -64,6 +98,15 @@ app.get('/agendamentos', (req, res) => {
       });
     }
     console.log('Resultados encontrados:', rows ? rows.length : 0);
+    
+    // Debug: mostrar formato das datas
+    if (rows && rows.length > 0) {
+      console.log('Exemplo de agendamento do banco:');
+      console.log('criado_em:', rows[0].criado_em, 'Tipo:', typeof rows[0].criado_em);
+      console.log('data:', rows[0].data, 'Tipo:', typeof rows[0].data);
+      console.log('hora:', rows[0].hora, 'Tipo:', typeof rows[0].hora);
+    }
+    
     // Garantir que sempre retorna um array
     res.json(Array.isArray(rows) ? rows : []);
   });
@@ -107,6 +150,104 @@ app.delete('/agendamentos/:id', (req, res) => {
     }
     res.json({ mensagem: 'Agendamento deletado com sucesso!' });
   });
+});
+
+// Endpoint para verificar horários disponíveis considerando horário atual
+app.get('/horarios-disponiveis', (req, res) => {
+  const { data, duracao } = req.query;
+  
+  if (!data) {
+    return res.status(400).json({ error: 'Data é obrigatória' });
+  }
+  
+  const duracaoMinutos = parseInt(duracao) || 30;
+  const hoje = new Date();
+  const dataConsulta = new Date(data + 'T00:00:00');
+  const isHoje = dataConsulta.toDateString() === hoje.toDateString();
+  
+  console.log('📅 Verificando horários disponíveis para:', data);
+  console.log('⏰ Horário atual:', hoje.toLocaleString('pt-BR'));
+  console.log('🎯 É hoje?', isHoje);
+  
+  // Horários padrão de funcionamento (10h às 20h)
+  const horariosBase = [];
+  for (let hora = 10; hora < 20; hora++) {
+    for (let minuto = 0; minuto < 60; minuto += 30) {
+      const horarioString = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
+      
+      // Se for hoje, verificar se o horário já passou
+      if (isHoje) {
+        const horarioCompleto = new Date(data + 'T' + horarioString + ':00');
+        const agora = new Date();
+        
+        // Adicionar margem de segurança de 30 minutos
+        agora.setMinutes(agora.getMinutes() + 30);
+        
+        if (horarioCompleto <= agora) {
+          console.log(`⏭️ Horário ${horarioString} já passou ou está muito próximo`);
+          continue;
+        }
+      }
+      
+      horariosBase.push(horarioString);
+    }
+  }
+  
+  // Buscar agendamentos existentes para a data
+  db.all(
+    'SELECT hora, duracao FROM agendamentos WHERE data = ? AND status != "cancelado"',
+    [data],
+    (err, agendamentos) => {
+      if (err) {
+        console.error('Erro ao buscar agendamentos:', err);
+        return res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+      
+      // Buscar indisponibilidades para a data
+      db.all(
+        'SELECT hora_inicio, hora_fim FROM dias_indisponiveis WHERE data = ?',
+        [data],
+        (err2, indisponibilidades) => {
+          if (err2) {
+            console.error('Erro ao buscar indisponibilidades:', err2);
+            return res.status(500).json({ error: 'Erro interno do servidor' });
+          }
+          
+          // Filtrar horários disponíveis
+          const horariosDisponiveis = horariosBase.filter(horario => {
+            // Verificar conflito com agendamentos existentes
+            const hasConflito = agendamentos.some(agendamento => {
+              const inicioExistente = new Date(`2000-01-01T${agendamento.hora}:00`);
+              const fimExistente = new Date(inicioExistente.getTime() + (agendamento.duracao * 60000));
+              const inicioNovo = new Date(`2000-01-01T${horario}:00`);
+              const fimNovo = new Date(inicioNovo.getTime() + (duracaoMinutos * 60000));
+              
+              return (inicioNovo < fimExistente && fimNovo > inicioExistente);
+            });
+            
+            // Verificar conflito com indisponibilidades
+            const hasIndisponibilidade = indisponibilidades.some(indisponivel => {
+              if (!indisponivel.hora_inicio || !indisponivel.hora_fim) {
+                return true; // Dia inteiro indisponível
+              }
+              
+              const inicioIndisponivel = new Date(`2000-01-01T${indisponivel.hora_inicio}:00`);
+              const fimIndisponivel = new Date(`2000-01-01T${indisponivel.hora_fim}:00`);
+              const inicioNovo = new Date(`2000-01-01T${horario}:00`);
+              const fimNovo = new Date(inicioNovo.getTime() + (duracaoMinutos * 60000));
+              
+              return (inicioNovo < fimIndisponivel && fimNovo > inicioIndisponivel);
+            });
+            
+            return !hasConflito && !hasIndisponibilidade;
+          });
+          
+          console.log(`✅ ${horariosDisponiveis.length} horários disponíveis encontrados`);
+          res.json({ horariosDisponiveis, isHoje });
+        }
+      );
+    }
+  );
 });
 
 // Endpoints para dias indisponíveis

@@ -3,8 +3,14 @@ import styles from "./page.module.css";
 import { useState } from "react";
 import Calendar from "../components/Calendar";
 
+interface Servico {
+  nome: string;
+  duracao: number; // em minutos
+  preco?: number;
+}
+
 export default function Home() {
-  const [showCalendar, setShowCalendar] = useState(true);
+  const [currentStep, setCurrentStep] = useState<'servico' | 'calendario' | 'dados'>('servico');
   const [form, setForm] = useState({
     nome: "",
     telefone: "",
@@ -13,6 +19,18 @@ export default function Home() {
     hora: ""
   });
   const [mensagem, setMensagem] = useState("");
+  
+  const servicos: Servico[] = [
+    { nome: "Cabelo", duracao: 30 },
+    { nome: "Barba", duracao: 40 },
+    { nome: "Barba e cabelo", duracao: 75 },
+    { nome: "Barba, cabelo e sobrancelha", duracao: 80 },
+    { nome: "Cabelo e sobrancelha", duracao: 40 },
+    { nome: "Pezinho e barba", duracao: 45 },
+    { nome: "Barba e sobrancelha", duracao: 45 },
+    { nome: "Barba e hidratação de barba", duracao: 60 },
+    { nome: "Barba, cabelo, sobrancelha e hidratação de barba", duracao: 105 }
+  ];
 
   function formatarTelefone(valor: string) {
     // Remove tudo que não é número
@@ -42,9 +60,37 @@ export default function Home() {
     }
   }
 
+  function handleServiceSelect(serviceName: string) {
+    setForm({ ...form, servico: serviceName });
+    setCurrentStep('calendario');
+  }
+
   function handleDateTimeSelect(date: string, time: string) {
     setForm({ ...form, data: date, hora: time });
-    setShowCalendar(false);
+    setCurrentStep('dados');
+  }
+
+  function getSelectedServiceDuration(): number {
+    const selectedService = servicos.find(s => s.nome === form.servico);
+    return selectedService ? selectedService.duracao : 30;
+  }
+
+  function formatarDataParaExibicao(dataString: string): string {
+    if (!dataString) return '';
+    
+    // Split da string no formato YYYY-MM-DD
+    const [ano, mes, dia] = dataString.split('-');
+    
+    // Criar data local sem problemas de fuso horário
+    const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    
+    // Formatar para pt-BR com dia da semana
+    return data.toLocaleDateString('pt-BR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -59,15 +105,20 @@ export default function Home() {
     }
     
     try {
+      const agendamentoData = {
+        ...form,
+        duracao: getSelectedServiceDuration()
+      };
+      
       const res = await fetch("http://localhost:4000/agendamentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify(agendamentoData)
       });
       if (res.ok) {
         setMensagem("Agendamento enviado! Em breve entraremos em contato pelo WhatsApp.");
         setForm({ nome: "", telefone: "", servico: "", data: "", hora: "" });
-        setShowCalendar(true);
+        setCurrentStep('servico');
       } else {
         setMensagem("Erro ao enviar agendamento. Tente novamente.");
       }
@@ -81,19 +132,59 @@ export default function Home() {
       <main className={styles.main}>
         <h1 className={styles.title}>Agende seu horário</h1>
         
-        {showCalendar ? (
+        {/* Etapa 1: Seleção do Serviço */}
+        {currentStep === 'servico' && (
           <div>
-            <p className={styles.subtitle}>Selecione uma data e horário disponível:</p>
-            <Calendar onSelectDateTime={handleDateTimeSelect} />
+            <p className={styles.subtitle}>Primeiro, escolha o serviço desejado:</p>
+            <div className={styles.servicesGrid}>
+              {servicos.map((servico, index) => (
+                <div 
+                  key={index} 
+                  className={styles.serviceCard}
+                  onClick={() => handleServiceSelect(servico.nome)}
+                >
+                  <h3>{servico.nome}</h3>
+                  <p className={styles.serviceDuration}>
+                    Duração: {servico.duracao} minutos
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
+        )}
+
+        {/* Etapa 2: Seleção de Data e Horário */}
+        {currentStep === 'calendario' && (
           <div>
-            <div className={styles.selectedDateTime}>
-              <p><strong>Data selecionada:</strong> {new Date(form.data).toLocaleDateString('pt-BR')}</p>
-              <p><strong>Horário:</strong> {form.hora}</p>
+            <div className={styles.selectedService}>
+              <p><strong>Serviço selecionado:</strong> {form.servico}</p>
+              <p><strong>Duração:</strong> {getSelectedServiceDuration()} minutos</p>
               <button 
                 className={styles.changeButton}
-                onClick={() => setShowCalendar(true)}
+                onClick={() => setCurrentStep('servico')}
+              >
+                Alterar serviço
+              </button>
+            </div>
+            <p className={styles.subtitle}>Selecione uma data e horário disponível:</p>
+            <Calendar 
+              onSelectDateTime={handleDateTimeSelect} 
+              serviceDuration={getSelectedServiceDuration()}
+            />
+          </div>
+        )}
+
+        {/* Etapa 3: Dados do Cliente */}
+        {currentStep === 'dados' && (
+          <div>
+            <div className={styles.selectedInfo}>
+              <p><strong>Serviço:</strong> {form.servico}</p>
+              <p><strong>Data:</strong> {formatarDataParaExibicao(form.data)}</p>
+              <p><strong>Horário:</strong> {form.hora}</p>
+              <p><strong>Duração:</strong> {getSelectedServiceDuration()} minutos</p>
+              <button 
+                className={styles.changeButton}
+                onClick={() => setCurrentStep('calendario')}
               >
                 Alterar data/horário
               </button>
@@ -122,17 +213,6 @@ export default function Home() {
                   placeholder="(11) 99999-9999"
                   maxLength={15}
                 />
-              </label>
-              <label>
-                Serviço
-                <select name="servico" value={form.servico} onChange={handleChange} required>
-                  <option value="">Selecione</option>
-                  <option value="Corte">Corte</option>
-                  <option value="Coloração">Coloração</option>
-                  <option value="Escova">Escova</option>
-                  <option value="Manicure">Manicure</option>
-                  <option value="Outro">Outro</option>
-                </select>
               </label>
               <button className={styles.primary} type="submit">Confirmar Agendamento</button>
             </form>

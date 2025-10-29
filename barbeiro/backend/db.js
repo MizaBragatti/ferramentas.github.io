@@ -13,7 +13,7 @@ db.serialize(() => {
     servico TEXT NOT NULL,
     data TEXT NOT NULL,
     hora TEXT NOT NULL,
-    criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+    criado_em DATETIME DEFAULT (datetime('now', 'localtime'))
   )`);
   
   // Criar tabela de dias indisponíveis
@@ -44,6 +44,19 @@ db.serialize(() => {
           console.log('Coluna status adicionada com sucesso');
           // Atualizar registros existentes
           db.run(`UPDATE agendamentos SET status = 'pendente' WHERE status IS NULL`);
+        }
+      });
+    }
+    
+    // Adicionar coluna duracao se não existir
+    if (!columnNames.includes('duracao')) {
+      db.run(`ALTER TABLE agendamentos ADD COLUMN duracao INTEGER DEFAULT 30`, (err) => {
+        if (err) {
+          console.error('Erro ao adicionar coluna duracao:', err);
+        } else {
+          console.log('Coluna duracao adicionada com sucesso');
+          // Atualizar registros existentes com duração padrão
+          db.run(`UPDATE agendamentos SET duracao = 30 WHERE duracao IS NULL`);
         }
       });
     }

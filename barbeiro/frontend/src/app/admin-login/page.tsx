@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
     <div className={styles.loginPage}>
       <div className={styles.loginCard}>
         <h1>Acesso Administrativo</h1>
-        <p>Entre com a senha para acessar o painel do cabeleireiro</p>
+        <p>Entre com a senha para acessar o painel do barbeiro</p>
         
         <form onSubmit={handleLogin} className={styles.loginForm}>
           <input

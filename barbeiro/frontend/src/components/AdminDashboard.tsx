@@ -39,6 +39,110 @@ export default function AdminDashboard() {
   const [horaFimIndisponivel, setHoraFimIndisponivel] = useState("");
   const [editandoIndisponibilidade, setEditandoIndisponibilidade] = useState<number | null>(null);
 
+  // Função para formatar data sem problemas de fuso horário
+  const formatarDataParaExibicao = (dataString: string): string => {
+    if (!dataString) return '';
+    
+    // Split da string no formato YYYY-MM-DD
+    const [ano, mes, dia] = dataString.split('-');
+    
+    // Criar data local sem problemas de fuso horário
+    const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+    
+    // Formatar para pt-BR
+    return data.toLocaleDateString('pt-BR');
+  };
+
+  // Função para formatar data e hora corretamente
+  const formatarDataHoraParaExibicao = (dataHoraString: string): string => {
+    if (!dataHoraString) return '';
+    
+    try {
+      console.log('Formatando data/hora:', dataHoraString, 'Tipo:', typeof dataHoraString);
+      
+      // Se for um timestamp Unix (número)
+      if (typeof dataHoraString === 'number' || !isNaN(Number(dataHoraString))) {
+        const data = new Date(Number(dataHoraString));
+        return data.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      
+      // Se vier no formato ISO (com T), usar diretamente
+      if (dataHoraString.includes('T')) {
+        const data = new Date(dataHoraString);
+        return data.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      
+      // Se vier no formato SQLite (YYYY-MM-DD HH:mm:ss)
+      const [datePart, timePart] = dataHoraString.split(' ');
+      if (datePart && timePart) {
+        const [ano, mes, dia] = datePart.split('-');
+        const [hora, minuto, segundo] = timePart.split(':');
+        
+        // Criar a data diretamente como horário local (sem conversão de timezone)
+        const data = new Date(
+          parseInt(ano), 
+          parseInt(mes) - 1, 
+          parseInt(dia), 
+          parseInt(hora), 
+          parseInt(minuto), 
+          parseInt(segundo) || 0
+        );
+        
+        console.log('Data formatada SQLite:', {
+          original: dataHoraString,
+          parsed: data.toString(),
+          formatted: data.toLocaleString('pt-BR')
+        });
+        
+        return data.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      
+      // Se vier apenas no formato de data (YYYY-MM-DD), tratar como SQLite sem hora
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dataHoraString)) {
+        const [ano, mes, dia] = dataHoraString.split('-');
+        const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+        return data.toLocaleDateString('pt-BR');
+      }
+      
+      // Fallback para formato padrão
+      const data = new Date(dataHoraString);
+      if (isNaN(data.getTime())) {
+        console.error('Data inválida:', dataHoraString);
+        return dataHoraString;
+      }
+      
+      return data.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+    } catch (error) {
+      console.error('Erro ao formatar data/hora:', error, 'String original:', dataHoraString);
+      return dataHoraString; // Retorna o valor original se houver erro
+    }
+  };
+
   // Função para verificar se uma data é um dia válido para agendamentos
   const isDiaValido = (dataStr: string) => {
     // Dividir a data em partes (formato YYYY-MM-DD)
@@ -223,6 +327,14 @@ export default function AdminDashboard() {
       const res = await fetch(url + params.toString());
       if (res.ok) {
         const data = await res.json();
+        
+        // Debug: verificar formato das datas
+        if (data.length > 0) {
+          console.log('Exemplo de agendamento:', data[0]);
+          console.log('Campo criado_em:', data[0].criado_em);
+          console.log('Tipo do criado_em:', typeof data[0].criado_em);
+        }
+        
         // Garantir que sempre seja um array
         setAgendamentos(Array.isArray(data) ? data : []);
       } else {
@@ -323,7 +435,7 @@ export default function AdminDashboard() {
   return (
     <div className={styles.dashboard}>
       <div className={styles.header}>
-        <h1>Painel do Cabeleireiro</h1>
+        <h1>Painel do Barbeiro</h1>
         <div className={styles.stats}>
           <div className={styles.statCard}>
             <span className={styles.statNumber}>{agendamentosHoje.length}</span>
@@ -427,7 +539,7 @@ export default function AdminDashboard() {
               console.log(`📋 Modo TODOS: ${agendamentosFiltrados.length} agendamentos`);
             }
             
-            console.log('🎯 Agendamentos para exibir:', agendamentosParaExibir.map(a => `${a.data} (${new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR', {weekday: 'short'})})`));
+            console.log('🎯 Agendamentos para exibir:', agendamentosParaExibir.map(a => `${a.data} (${formatarDataParaExibicao(a.data)})`));
             
             return !Array.isArray(agendamentosParaExibir) || agendamentosParaExibir.length === 0 ? (
               <div className={styles.empty}>Nenhum agendamento encontrado.</div>
@@ -459,13 +571,13 @@ export default function AdminDashboard() {
                   <strong>Serviço:</strong> {agendamento.servico}
                 </div>
                 <div className={styles.detail}>
-                  <strong>Data:</strong> {new Date(agendamento.data).toLocaleDateString('pt-BR')}
+                  <strong>Data:</strong> {formatarDataParaExibicao(agendamento.data)}
                 </div>
                 <div className={styles.detail}>
                   <strong>Horário:</strong> {agendamento.hora}
                 </div>
                 <div className={styles.detail}>
-                  <strong>Agendado em:</strong> {new Date(agendamento.criado_em).toLocaleString('pt-BR')}
+                  <strong>Agendado em:</strong> {formatarDataHoraParaExibicao(agendamento.criado_em)}
                 </div>
               </div>
 
@@ -617,7 +729,11 @@ export default function AdminDashboard() {
             ) : (
               <div className={styles.diasGrid}>
                 {diasIndisponiveis.map((dia) => {
-                  const dataFormatada = new Date(dia.data + 'T00:00:00').toLocaleDateString('pt-BR', {
+                  // Split da string no formato YYYY-MM-DD
+                  const [ano, mes, diaNum] = dia.data.split('-');
+                  // Criar data local sem problemas de fuso horário
+                  const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(diaNum));
+                  const dataFormatada = data.toLocaleDateString('pt-BR', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
