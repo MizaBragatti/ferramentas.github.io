@@ -8,3 +8,4 @@ presenciais/.env.local
 presenciais/firebase-config-local.js
 ytlinks
 cortes
+prompts

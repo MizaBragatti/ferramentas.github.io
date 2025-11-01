@@ -26,18 +26,53 @@ header {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: white;
     padding: 40px 30px;
-    text-align: center;
 }
 
-header h1 {
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-title h1 {
     font-size: 2.5rem;
     margin-bottom: 10px;
     font-weight: 300;
 }
 
-header p {
+.header-title p {
     opacity: 0.9;
     font-size: 1.1rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-name {
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.95;
+}
+
+.logout-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 /* Main content */
@@ -555,12 +590,22 @@ main {
         padding: 25px 15px;
     }
     
-    header h1 {
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    
+    .header-title h1 {
         font-size: 1.8rem;
     }
     
-    header p {
+    .header-title p {
         font-size: 1rem;
+    }
+    
+    .user-info {
+        justify-content: center;
     }
     
     main {

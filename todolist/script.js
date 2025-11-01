@@ -2,23 +2,67 @@
 let tasks = [];
 let currentFilter = 'all';
 let editingTaskId = null;
+let currentUser = null;
+let unsubscribeTasks = null;
 
-// Inicializar aplicação quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+// CONFIGURAÇÃO: Emails autorizados a acessar as tarefas compartilhadas
+const AUTHORIZED_EMAILS = [
+    'mizabgt@gmail.com',
+    'nicolasdesenvolvedor123@gmail.com'
+];
+
+// Verificar autenticação
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        console.log('✅ Usuário autenticado:', user.email);
+        
+        // Atualizar nome do usuário na interface
+        const userNameEl = document.getElementById('userName');
+        if (userNameEl) {
+            userNameEl.textContent = user.displayName || user.email;
+        }
+        
+        // Inicializar aplicação
+        initializeApp();
+    } else {
+        console.log('❌ Usuário não autenticado');
+        // Não está logado, redirecionar para login
+        window.location.href = 'login.html';
+    }
 });
 
+// Fazer logout
+function handleLogout() {
+    if (confirm('Tem certeza que deseja sair?')) {
+        // Cancelar listener de tarefas
+        if (unsubscribeTasks) {
+            unsubscribeTasks();
+        }
+        
+        auth.signOut().then(() => {
+            showToast('Logout realizado com sucesso!', 'success');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 500);
+        }).catch((error) => {
+            console.error('Erro ao fazer logout:', error);
+            showToast('Erro ao sair', 'error');
+        });
+    }
+}
+
 // Inicializar aplicação
-async function initializeApp() {
+function initializeApp() {
+    console.log('🚀 Inicializando aplicação...');
+    
     try {
         showLoading(true);
         setupEventListeners();
-        await loadTasks();
-        showToast('Aplicação carregada com sucesso!', 'success');
+        loadTasks();
     } catch (error) {
-        console.error('Erro ao inicializar aplicação:', error);
-        showToast('Erro ao carregar aplicação. Verifique sua conexão.', 'error');
-    } finally {
+        console.error('❌ Erro ao inicializar aplicação:', error);
+        showToast('Erro ao carregar aplicação', 'error');
         showLoading(false);
     }
 }
@@ -55,23 +99,72 @@ function setupEventListeners() {
 }
 
 // Carregar tarefas do Firestore
-async function loadTasks() {
+function loadTasks() {
+    if (!currentUser) {
+        console.error('❌ Erro: Usuário não autenticado');
+        showToast('Usuário não autenticado', 'error');
+        return;
+    }
+
+    console.log('📥 Carregando tarefas compartilhadas...');
+
     try {
-        // Escutar mudanças em tempo real
-        db.collection('tasks').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-            tasks = [];
-            snapshot.forEach((doc) => {
-                tasks.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
-            renderTasks();
-            updateCounters();
-        });
+        // Cancelar listener anterior se existir
+        if (unsubscribeTasks) {
+            unsubscribeTasks();
+        }
+
+        // Buscar todas as tarefas que pertencem aos emails autorizados
+        // Como Firestore não permite 'where in' com arrays grandes de forma eficiente,
+        // vamos buscar tarefas onde userEmail está na lista de autorizados
+        const baseQuery = db.collection('tasks')
+            .orderBy('createdAt', 'desc');
+
+        // Filtrar por emails autorizados
+        const queryBy = baseQuery.where('userEmail', 'in', AUTHORIZED_EMAILS);
+        console.log('🔎 Buscando tarefas dos emails autorizados:', AUTHORIZED_EMAILS);
+
+        unsubscribeTasks = queryBy.onSnapshot(
+                (snapshot) => {
+                    console.log('📦 Tarefas recebidas:', snapshot.size);
+                    
+                    tasks = [];
+                    snapshot.forEach((doc) => {
+                        tasks.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+
+                    console.log('✅ Total de tarefas:', tasks.length);
+                    renderTasks();
+                    updateCounters();
+                    showLoading(false);
+                    
+                    if (tasks.length === 0) {
+                        console.log('ℹ️ Nenhuma tarefa encontrada');
+                    }
+                },
+                (error) => {
+                    console.error('❌ Erro ao carregar tarefas:', error);
+                    showLoading(false);
+                    
+                    // Verificar se é erro de índice
+                    if (error.code === 'failed-precondition') {
+                        showToast('⚠️ É necessário criar um índice no Firestore. Verifique o console.', 'error');
+                        console.error('🔧 ÍNDICE NECESSÁRIO. Acesse:', error.message);
+                    } else if (error.code === 'permission-denied') {
+                        showToast('❌ Permissão negada. Verifique as regras do Firestore.', 'error');
+                        console.error('🔒 Verifique as regras de segurança do Firestore');
+                    } else {
+                        showToast('Erro ao carregar tarefas: ' + error.message, 'error');
+                    }
+                }
+            );
     } catch (error) {
-        console.error('Erro ao carregar tarefas:', error);
-        showToast('Erro ao carregar tarefas do servidor', 'error');
+        console.error('❌ Erro ao configurar listener:', error);
+        showToast('Erro ao configurar carregamento de tarefas', 'error');
+        showLoading(false);
     }
 }
 
@@ -102,6 +195,8 @@ async function addTask() {
             text: taskText,
             completed: false,
             priority: prioritySelect.value,
+            userId: currentUser.uid,
+            userEmail: currentUser.email,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -253,8 +348,15 @@ function filterTasks(filter) {
 
 // Renderizar tarefas na tela
 function renderTasks() {
+    console.log('🎨 Renderizando tarefas... Total:', tasks.length, 'Filtro:', currentFilter);
+    
     const tasksList = document.getElementById('tasksList');
     const emptyState = document.getElementById('emptyState');
+    
+    if (!tasksList || !emptyState) {
+        console.error('❌ Elementos da DOM não encontrados');
+        return;
+    }
     
     // Filtrar tarefas baseado no filtro atual
     let filteredTasks = tasks;
@@ -264,10 +366,13 @@ function renderTasks() {
         filteredTasks = tasks.filter(task => task.completed);
     }
 
+    console.log('📊 Tarefas filtradas:', filteredTasks.length);
+
     // Mostrar estado vazio se não houver tarefas
     if (filteredTasks.length === 0) {
         tasksList.style.display = 'none';
         emptyState.style.display = 'block';
+        console.log('ℹ️ Mostrando estado vazio');
         return;
     }
 
@@ -298,6 +403,8 @@ function renderTasks() {
             </div>
         </li>
     `).join('');
+    
+    console.log('✅ Tarefas renderizadas com sucesso');
 }
 
 // Atualizar contadores

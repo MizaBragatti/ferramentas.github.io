@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Todo List</title>
+    <link rel="stylesheet" href="auth.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <i class="fas fa-tasks"></i>
+                <h1>Todo List</h1>
+                <p>Organize suas tarefas com segurança</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form">
+                <h2>Entrar</h2>
+                <form onsubmit="handleLogin(event)">
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="loginEmail" placeholder="Email" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="loginPassword" placeholder="Senha" required>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Entrar
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    <p>Não tem uma conta? <a href="#" onclick="showRegister()">Criar conta</a></p>
+                    <a href="#" onclick="showPasswordReset()">Esqueceu a senha?</a>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <h2>Criar Conta</h2>
+                <form onsubmit="handleRegister(event)">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="registerName" placeholder="Nome" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="registerEmail" placeholder="Email" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="registerPassword" placeholder="Senha (mínimo 6 caracteres)" required minlength="6">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="registerPasswordConfirm" placeholder="Confirmar senha" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-user-plus"></i> Criar Conta
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    <p>Já tem uma conta? <a href="#" onclick="showLogin()">Entrar</a></p>
+                </div>
+            </div>
+
+            <!-- Password Reset Form -->
+            <div id="resetForm" class="auth-form" style="display: none;">
+                <h2>Recuperar Senha</h2>
+                <p class="reset-info">Digite seu email para receber instruções de recuperação</p>
+                <form onsubmit="handlePasswordReset(event)">
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="resetEmail" placeholder="Email" required>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                </form>
+                <div class="auth-footer">
+                    <p><a href="#" onclick="showLogin()">Voltar para login</a></p>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="authLoading" class="auth-loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Processando...</p>
+            </div>
+        </div>
+
+        <!-- Toast notifications -->
+        <div id="authToast" class="toast"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Configure Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAZsdJZGHPSqHaI7RSJwXh6OzoKOwYbIFo",
+            authDomain: "mercado-630f9.firebaseapp.com",
+            projectId: "mercado-630f9",
+            storageBucket: "mercado-630f9.firebasestorage.app",
+            messagingSenderId: "497966054785",
+            appId: "1:497966054785:web:9e932451cbe3496fcb3c80"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+    </script>
+    <script src="auth.js"></script>
+</body>
+</html>

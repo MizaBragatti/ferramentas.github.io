@@ -12,8 +12,18 @@
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-tasks"></i> Todo List</h1>
-            <p>Organize suas tarefas de forma simples e eficiente</p>
+            <div class="header-content">
+                <div class="header-title">
+                    <h1><i class="fas fa-tasks"></i> Todo List</h1>
+                    <p>Organize suas tarefas de forma simples e eficiente</p>
+                </div>
+                <div class="user-info">
+                    <span id="userName" class="user-name"></span>
+                    <button onclick="handleLogout()" class="logout-btn" title="Sair">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
         </header>
 
         <main>
@@ -98,6 +108,7 @@
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script>
         // Configure Firebase
@@ -112,6 +123,7 @@
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.firestore();
     </script>
     <script src="script.js"></script>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migração de Tarefas - Adicionar userId e userEmail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .warning {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff9800;
+        }
+        .success {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        .log {
+            font-family: monospace;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log div {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Migração de Tarefas</h1>
+        
+        <div class="info">
+            <strong>ℹ️ O que este script faz:</strong>
+            <p>Adiciona os campos <code>userId</code> e <code>userEmail</code> em todas as suas tarefas existentes no Firestore.</p>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Importante:</strong>
+            <ul>
+                <li>Faça login primeiro</li>
+                <li>Todas as suas tarefas serão atualizadas</li>
+                <li>Este processo é irreversível</li>
+                <li>Execute apenas UMA vez</li>
+            </ul>
+        </div>
+
+        <div id="userInfo" style="display: none;" class="success">
+            <strong>✅ Usuário logado:</strong>
+            <p id="userEmail"></p>
+        </div>
+
+        <button id="btnMigrar" onclick="migrarTarefas()" disabled>
+            Aguardando login...
+        </button>
+
+        <div id="resultado"></div>
+        <div id="log" class="log" style="display: none;"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script>
+        // Configure Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAZsdJZGHPSqHaI7RSJwXh6OzoKOwYbIFo",
+            authDomain: "mercado-630f9.firebaseapp.com",
+            projectId: "mercado-630f9",
+            storageBucket: "mercado-630f9.firebasestorage.app",
+            messagingSenderId: "497966054785",
+            appId: "1:497966054785:web:9e932451cbe3496fcb3c80"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+
+        // Verificar autenticação
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('btnMigrar').textContent = 'Migrar Tarefas Agora';
+                document.getElementById('btnMigrar').disabled = false;
+                addLog('✅ Usuário autenticado: ' + user.email);
+            } else {
+                // Redirecionar para login
+                window.location.href = 'login.html';
+            }
+        });
+
+        function addLog(mensagem) {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            const linha = document.createElement('div');
+            linha.textContent = new Date().toLocaleTimeString() + ' - ' + mensagem;
+            logDiv.appendChild(linha);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function migrarTarefas() {
+            if (!currentUser) {
+                alert('Você precisa estar logado!');
+                return;
+            }
+
+            if (!confirm('Tem certeza que deseja migrar TODAS as tarefas? Este processo não pode ser desfeito.')) {
+                return;
+            }
+
+            const btn = document.getElementById('btnMigrar');
+            btn.disabled = true;
+            btn.textContent = 'Migrando...';
+
+            const resultado = document.getElementById('resultado');
+            resultado.style.display = 'block';
+            resultado.className = 'info';
+            resultado.innerHTML = '<strong>🔄 Processando...</strong>';
+
+            addLog('🚀 Iniciando migração...');
+
+            try {
+                // Buscar TODAS as tarefas (sem filtro, pois elas não têm userId ainda)
+                addLog('📥 Buscando tarefas...');
+                const snapshot = await db.collection('tasks').get();
+                
+                addLog(`📦 Encontradas ${snapshot.size} tarefas`);
+
+                if (snapshot.empty) {
+                    resultado.className = 'warning';
+                    resultado.innerHTML = '<strong>⚠️ Nenhuma tarefa encontrada</strong>';
+                    addLog('⚠️ Nenhuma tarefa para migrar');
+                    btn.disabled = false;
+                    btn.textContent = 'Migrar Tarefas Agora';
+                    return;
+                }
+
+                // Atualizar cada tarefa em lote
+                const batch = db.batch();
+                let contador = 0;
+
+                snapshot.forEach((doc) => {
+                    const taskRef = db.collection('tasks').doc(doc.id);
+                    batch.update(taskRef, {
+                        userId: currentUser.uid,
+                        userEmail: currentUser.email,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    contador++;
+                    addLog(`📝 Preparando migração da tarefa ${contador}: "${doc.data().text}"`);
+                });
+
+                addLog('💾 Salvando alterações no Firestore...');
+                await batch.commit();
+
+                resultado.className = 'success';
+                resultado.innerHTML = `
+                    <strong>✅ Migração Concluída!</strong>
+                    <p>${contador} tarefa(s) atualizada(s) com sucesso.</p>
+                    <p>Campos adicionados:</p>
+                    <ul>
+                        <li><code>userId: ${currentUser.uid}</code></li>
+                        <li><code>userEmail: ${currentUser.email}</code></li>
+                    </ul>
+                `;
+
+                addLog(`✅ Migração concluída! ${contador} tarefas atualizadas`);
+                addLog('🎉 Agora você pode voltar para index.html e ver suas tarefas!');
+
+                btn.textContent = 'Migração Concluída ✓';
+                
+                // Redirecionar após 3 segundos
+                setTimeout(() => {
+                    if (confirm('Migração concluída! Deseja ir para a página principal?')) {
+                        window.location.href = 'index.html';
+                    }
+                }, 2000);
+
+            } catch (error) {
+                console.error('Erro na migração:', error);
+                resultado.className = 'warning';
+                resultado.innerHTML = `
+                    <strong>❌ Erro na migração</strong>
+                    <p>${error.message}</p>
+                `;
+                addLog('❌ Erro: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Tentar Novamente';
+            }
+        }
+    </script>
+</body>
+</html>
