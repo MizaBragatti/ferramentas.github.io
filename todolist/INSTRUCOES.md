@@ -27,20 +27,16 @@ service cloud.firestore {
     
     // Regras para a coleção de tarefas (compartilhadas entre usuários autorizados)
     match /tasks/{taskId} {
-      // Permitir leitura se for usuário autorizado
-      // OU se for tarefa sem userId (para migração)
-      allow read: if isAuthorizedUser() || 
-                     (request.auth != null && !("userId" in resource.data));
+      // Permitir leitura APENAS se for usuário autorizado
+      allow read: if isAuthorizedUser();
       
-      // Permitir criar tarefas apenas se for usuário autorizado
+      // Permitir criar tarefas APENAS se for usuário autorizado
       allow create: if isAuthorizedUser();
       
-      // Permitir atualizar se for usuário autorizado
-      // OU se for migração (tarefa sem userId)
-      allow update: if isAuthorizedUser() || 
-                       (request.auth != null && !("userId" in resource.data));
+      // Permitir atualizar APENAS se for usuário autorizado
+      allow update: if isAuthorizedUser();
       
-      // Permitir deletar se for usuário autorizado
+      // Permitir deletar APENAS se for usuário autorizado
       allow delete: if isAuthorizedUser();
     }
     

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Gastos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Controle de Gastos Mensais</h1>
+        </header>
+
+        <main>
+            <!-- Formulário para adicionar/editar gastos -->
+            <section class="form-section">
+                <h2>Adicionar Novo Gasto</h2>
+                <form id="expense-form">
+                    <div class="form-group">
+                        <label for="description">Descrição:</label>
+                        <input type="text" id="description" name="description" required placeholder="Ex: Cartão NuBank">
+                    </div>
+                    <div class="form-group">
+                        <label for="value">Valor (R$):</label>
+                        <input type="number" id="value" name="value" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">Data de Vencimento:</label>
+                        <input type="date" id="dueDate" name="dueDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="isPaid" name="isPaid">
+                            <span class="checkmark"></span>
+                            Já foi pago
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="submit-btn">Adicionar Gasto</button>
+                        <button type="button" id="cancel-btn" style="display: none;">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Resumo dos gastos -->
+            <section class="summary-section">
+                <div class="summary-card">
+                    <h3>Total de Gastos</h3>
+                    <p class="total-amount" id="total-amount">R$ 0,00</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Pago</h3>
+                    <p class="total-paid" id="total-paid">R$ 0,00</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Pendente</h3>
+                    <p class="total-pending" id="total-pending">R$ 0,00</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Quantidade de Itens</h3>
+                    <p class="total-items" id="total-items">0</p>
+                </div>
+            </section>
+
+            <!-- Lista de gastos -->
+            <section class="expenses-section">
+                <div class="expenses-header">
+                    <h2>Lista de Gastos</h2>
+                    <button id="clear-all-btn" class="danger-btn">Limpar Tudo</button>
+                </div>
+                
+                <!-- Filtro e pesquisa -->
+                <div class="filters">
+                    <input type="text" id="search-input" placeholder="Pesquisar gastos...">
+                    <select id="sort-select">
+                        <option value="desc-date">Mais recentes</option>
+                        <option value="asc-date">Mais antigos</option>
+                        <option value="desc-value">Maior valor</option>
+                        <option value="asc-value">Menor valor</option>
+                        <option value="asc-name">A-Z</option>
+                        <option value="desc-name">Z-A</option>
+                        <option value="due-date-asc">Vencimento próximo</option>
+                        <option value="due-date-desc">Vencimento distante</option>
+                    </select>
+                    <select id="filter-status">
+                        <option value="all">Todos</option>
+                        <option value="paid">Pagos</option>
+                        <option value="pending">Pendentes</option>
+                        <option value="overdue">Vencidos</option>
+                    </select>
+                </div>
+
+                <div id="expenses-list" class="expenses-list">
+                    <p class="no-expenses">Nenhum gasto cadastrado ainda.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de confirmação -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3>Confirmar Exclusão</h3>
+            <p>Tem certeza que deseja excluir este gasto?</p>
+            <div class="modal-actions">
+                <button id="confirm-delete" class="danger-btn">Excluir</button>
+                <button id="cancel-delete">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
