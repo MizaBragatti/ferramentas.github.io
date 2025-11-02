@@ -13,34 +13,9 @@
         </header>
 
         <main>
-            <!-- Formulário para adicionar/editar gastos -->
+            <!-- Link para tela de inserção -->
             <section class="form-section">
-                <h2>Adicionar Novo Gasto</h2>
-                <form id="expense-form">
-                    <div class="form-group">
-                        <label for="description">Descrição:</label>
-                        <input type="text" id="description" name="description" required placeholder="Ex: Cartão NuBank">
-                    </div>
-                    <div class="form-group">
-                        <label for="value">Valor (R$):</label>
-                        <input type="number" id="value" name="value" step="0.01" min="0" required placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label for="dueDate">Data de Vencimento:</label>
-                        <input type="date" id="dueDate" name="dueDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="isPaid" name="isPaid">
-                            <span class="checkmark"></span>
-                            Já foi pago
-                        </label>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" id="submit-btn">Adicionar Gasto</button>
-                        <button type="button" id="cancel-btn" style="display: none;">Cancelar</button>
-                    </div>
-                </form>
+                <a href="inserir.html" class="add-expense-link">➕ Adicionar Novo Gasto</a>
             </section>
 
             <!-- Resumo dos gastos -->
@@ -65,24 +40,8 @@
 
             <!-- Lista de gastos -->
             <section class="expenses-section">
-                <div class="expenses-header">
-                    <h2>Lista de Gastos</h2>
-                    <button id="clear-all-btn" class="danger-btn">Limpar Tudo</button>
-                </div>
-                
-                <!-- Filtro e pesquisa -->
+                <!-- Filtro de status -->
                 <div class="filters">
-                    <input type="text" id="search-input" placeholder="Pesquisar gastos...">
-                    <select id="sort-select">
-                        <option value="desc-date">Mais recentes</option>
-                        <option value="asc-date">Mais antigos</option>
-                        <option value="desc-value">Maior valor</option>
-                        <option value="asc-value">Menor valor</option>
-                        <option value="asc-name">A-Z</option>
-                        <option value="desc-name">Z-A</option>
-                        <option value="due-date-asc">Vencimento próximo</option>
-                        <option value="due-date-desc">Vencimento distante</option>
-                    </select>
                     <select id="filter-status">
                         <option value="all">Todos</option>
                         <option value="paid">Pagos</option>

@@ -43,12 +43,12 @@ class ExpenseManager {
         const filterStatus = document.getElementById('filter-status');
         const cancelBtn = document.getElementById('cancel-btn');
 
-        form.addEventListener('submit', (e) => this.handleSubmit(e));
-        clearAllBtn.addEventListener('click', () => this.clearAll());
-        searchInput.addEventListener('input', (e) => this.applyFilters());
-        sortSelect.addEventListener('change', (e) => this.applyFilters());
-        filterStatus.addEventListener('change', (e) => this.applyFilters());
-        cancelBtn.addEventListener('click', () => this.cancelEdit());
+        if (form) form.addEventListener('submit', (e) => this.handleSubmit(e));
+        if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAll());
+        if (searchInput) searchInput.addEventListener('input', (e) => this.applyFilters());
+        if (sortSelect) sortSelect.addEventListener('change', (e) => this.applyFilters());
+        if (filterStatus) filterStatus.addEventListener('change', (e) => this.applyFilters());
+        if (cancelBtn) cancelBtn.addEventListener('click', () => this.cancelEdit());
 
         // Modal de confirmação
         this.setupModal();
@@ -60,32 +60,40 @@ class ExpenseManager {
         const confirmBtn = document.getElementById('confirm-delete');
         const cancelBtn = document.getElementById('cancel-delete');
 
-        confirmBtn.addEventListener('click', () => {
-            if (this.deleteId) {
-                this.deleteExpense(this.deleteId);
-                this.hideModal();
-            }
-        });
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                if (this.deleteId) {
+                    this.deleteExpense(this.deleteId);
+                    this.hideModal();
+                }
+            });
+        }
 
-        cancelBtn.addEventListener('click', () => this.hideModal());
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.hideModal());
+        }
 
-        // Fechar modal clicando fora
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.hideModal();
-            }
-        });
+        if (modal) {
+            // Fechar modal clicando fora
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideModal();
+                }
+            });
+        }
     }
 
     // Manipula envio do formulário
     handleSubmit(e) {
         e.preventDefault();
-        
         const formData = new FormData(e.target);
         const description = formData.get('description').trim();
         const value = parseFloat(formData.get('value')) || 0;
         const dueDate = formData.get('dueDate');
-        const isPaid = formData.get('isPaid') === 'on';
+        let isPaid = false;
+        if (formData.has('isPaid')) {
+            isPaid = formData.get('isPaid') === 'on';
+        }
 
         if (!description) {
             alert('Por favor, insira uma descrição válida.');
@@ -106,6 +114,11 @@ class ExpenseManager {
         this.resetForm();
         this.applyFilters();
         this.updateSummary();
+
+        // Se estiver na página de inserção, redireciona para a listagem
+        if (window.location.pathname.includes('inserir.html')) {
+            window.location.href = 'index.html';
+        }
     }
 
     // Adiciona novo gasto
@@ -156,26 +169,43 @@ class ExpenseManager {
     editExpense(id) {
         const expense = this.expenses.find(expense => expense.id === id);
         if (expense) {
+            // Se não há formulário na página (listagem), salva dados para edição e redireciona
+            if (!document.getElementById('expense-form')) {
+                localStorage.setItem('editingExpense', JSON.stringify(expense));
+                window.location.href = 'inserir.html?edit=' + id;
+                return;
+            }
+            
+            // Se há formulário (página de inserção), preenche os campos
             this.editingId = id;
             
             // Preenche o formulário
-            document.getElementById('description').value = expense.description;
-            document.getElementById('value').value = expense.value;
-            document.getElementById('dueDate').value = expense.dueDate;
-            document.getElementById('isPaid').checked = expense.isPaid;
+            const descField = document.getElementById('description');
+            const valueField = document.getElementById('value');
+            const dueDateField = document.getElementById('dueDate');
+            const isPaidField = document.getElementById('isPaid');
+            
+            if (descField) descField.value = expense.description;
+            if (valueField) valueField.value = expense.value;
+            if (dueDateField) dueDateField.value = expense.dueDate;
+            if (isPaidField) isPaidField.checked = expense.isPaid;
             
             // Atualiza UI
-            document.getElementById('submit-btn').textContent = 'Atualizar Gasto';
-            document.getElementById('cancel-btn').style.display = 'inline-block';
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) submitBtn.textContent = 'Atualizar Gasto';
+            const cancelBtn = document.getElementById('cancel-btn');
+            if (cancelBtn) cancelBtn.style.display = 'inline-block';
             
             // Destaca o item sendo editado
             document.querySelectorAll('.expense-item').forEach(item => {
                 item.classList.remove('editing');
             });
-            document.querySelector(`[data-id="${id}"]`).classList.add('editing');
+            const itemToEdit = document.querySelector(`[data-id="${id}"]`);
+            if (itemToEdit) itemToEdit.classList.add('editing');
             
             // Scroll para o formulário
-            document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
+            const formSection = document.querySelector('.form-section');
+            if (formSection) formSection.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -192,26 +222,34 @@ class ExpenseManager {
 
     // Reseta formulário
     resetForm() {
-        document.getElementById('expense-form').reset();
-        document.getElementById('submit-btn').textContent = 'Adicionar Gasto';
-        document.getElementById('cancel-btn').style.display = 'none';
+        const form = document.getElementById('expense-form');
+        if (form) form.reset();
+        const submitBtn = document.getElementById('submit-btn');
+        if (submitBtn) submitBtn.textContent = 'Adicionar Gasto';
+        const cancelBtn = document.getElementById('cancel-btn');
+        if (cancelBtn) cancelBtn.style.display = 'none';
         this.editingId = null;
-    }
-
-    // Renderiza lista de gastos
+    }    // Renderiza lista de gastos
     renderExpenses(expensesToRender = null) {
         const expensesList = document.getElementById('expenses-list');
         const expenses = expensesToRender || this.expenses;
+
+        if (!expensesList) return;
 
         if (expenses.length === 0) {
             expensesList.innerHTML = '<p class="no-expenses">Nenhum gasto cadastrado ainda.</p>';
             return;
         }
 
+        // Atualiza contador
+        const countElement = document.getElementById('expenses-count');
+        if (countElement) {
+            countElement.textContent = `${expenses.length} ${expenses.length === 1 ? 'item' : 'itens'}`;
+        }
+
         expensesList.innerHTML = expenses.map(expense => {
             const status = this.getExpenseStatus(expense);
             const dueDateClass = this.getDueDateClass(expense);
-            
             return `
             <div class="expense-item ${expense.isPaid ? 'paid' : ''} ${status === 'overdue' ? 'overdue' : ''}" data-id="${expense.id}">
                 <div class="expense-checkbox">
@@ -221,21 +259,23 @@ class ExpenseManager {
                     </label>
                 </div>
                 <div class="expense-info">
-                    <div class="expense-description ${expense.isPaid ? 'paid-text' : ''}">${this.escapeHtml(expense.description)}</div>
-                    <div class="expense-value ${expense.value === 0 ? 'zero' : ''} ${expense.isPaid ? 'paid-text' : ''}">${this.formatCurrency(expense.value)}</div>
-                    <div class="expense-due-date ${dueDateClass} ${expense.isPaid ? 'paid-text' : ''}">
-                        📅 Vencimento: ${this.formatDateOnly(expense.dueDate)}
+                    <div class="expense-main-info">
+                        <div class="expense-description ${expense.isPaid ? 'paid-text' : ''}" title="${this.escapeHtml(expense.description)}">${this.escapeHtml(expense.description)}</div>
+                        <div class="expense-meta">
+                            <span class="expense-due-date ${dueDateClass} ${expense.isPaid ? 'paid-text' : ''}">
+                                📅 ${this.formatDateOnly(expense.dueDate)}
+                            </span>
+                            <div class="expense-status ${status}">${this.getStatusText(status)}</div>
+                        </div>
                     </div>
-                    <div class="expense-status ${status}">${this.getStatusText(status)}</div>
-                    <div class="expense-date">Criado em: ${this.formatDate(expense.createdAt)}</div>
-                    ${expense.updatedAt ? `<div class="expense-date">Atualizado em: ${this.formatDate(expense.updatedAt)}</div>` : ''}
+                    <div class="expense-value ${expense.value === 0 ? 'zero' : ''} ${expense.isPaid ? 'paid-text' : ''}">${this.formatCurrency(expense.value)}</div>
                 </div>
                 <div class="expense-actions">
-                    <button class="btn-edit" onclick="expenseManager.editExpense('${expense.id}')">
-                        ✏️ Editar
+                    <button class="btn-edit" onclick="expenseManager.editExpense('${expense.id}')" title="Editar">
+                        ✏️
                     </button>
-                    <button class="btn-delete" onclick="expenseManager.confirmDelete('${expense.id}')">
-                        🗑️ Excluir
+                    <button class="btn-delete" onclick="expenseManager.confirmDelete('${expense.id}')" title="Excluir">
+                        🗑️
                     </button>
                 </div>
             </div>
@@ -263,43 +303,16 @@ class ExpenseManager {
 
     // Aplica filtros e ordenação
     applyFilters() {
-        const searchQuery = document.getElementById('search-input').value.toLowerCase();
-        const sortType = document.getElementById('sort-select').value;
-        const statusFilter = document.getElementById('filter-status').value;
+        const filterStatus = document.getElementById('filter-status');
+        const statusFilter = filterStatus ? filterStatus.value : 'all';
 
         let filteredExpenses = this.expenses.filter(expense => {
-            const matchesSearch = expense.description.toLowerCase().includes(searchQuery);
             const matchesStatus = this.matchesStatusFilter(expense, statusFilter);
-            return matchesSearch && matchesStatus;
+            return matchesStatus;
         });
 
-        // Ordenação
-        switch (sortType) {
-            case 'desc-date':
-                filteredExpenses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                break;
-            case 'asc-date':
-                filteredExpenses.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                break;
-            case 'desc-value':
-                filteredExpenses.sort((a, b) => b.value - a.value);
-                break;
-            case 'asc-value':
-                filteredExpenses.sort((a, b) => a.value - b.value);
-                break;
-            case 'asc-name':
-                filteredExpenses.sort((a, b) => a.description.localeCompare(b.description));
-                break;
-            case 'desc-name':
-                filteredExpenses.sort((a, b) => b.description.localeCompare(a.description));
-                break;
-            case 'due-date-asc':
-                filteredExpenses.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-                break;
-            case 'due-date-desc':
-                filteredExpenses.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
-                break;
-        }
+        // Ordenação automática: por data de vencimento (mais próximo primeiro)
+        filteredExpenses.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
         this.renderExpenses(filteredExpenses);
     }
@@ -397,10 +410,14 @@ class ExpenseManager {
         const totalPending = total - totalPaid;
         const count = this.expenses.length;
 
-        document.getElementById('total-amount').textContent = this.formatCurrency(total);
-        document.getElementById('total-paid').textContent = this.formatCurrency(totalPaid);
-        document.getElementById('total-pending').textContent = this.formatCurrency(totalPending);
-        document.getElementById('total-items').textContent = count;
+    const totalAmountEl = document.getElementById('total-amount');
+    if (totalAmountEl) totalAmountEl.textContent = this.formatCurrency(total);
+    const totalPaidEl = document.getElementById('total-paid');
+    if (totalPaidEl) totalPaidEl.textContent = this.formatCurrency(totalPaid);
+    const totalPendingEl = document.getElementById('total-pending');
+    if (totalPendingEl) totalPendingEl.textContent = this.formatCurrency(totalPending);
+    const totalItemsEl = document.getElementById('total-items');
+    if (totalItemsEl) totalItemsEl.textContent = count;
     }
 
     // Formata moeda
@@ -428,18 +445,22 @@ class ExpenseManager {
     }
 
     // Formata apenas a data (sem hora)
-    formatDateOnly(dateString) {
-        if (!dateString) return 'Data não definida';
-        
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'Data inválida';
-        
-        return new Intl.DateTimeFormat('pt-BR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(date);
-    }
+        formatDateOnly(dateString) {
+            if (!dateString) return 'Data não definida';
+            // Se for formato YYYY-MM-DD, exibe como DD/MM/YYYY sem converter para Date
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+                const [year, month, day] = dateString.split('-');
+                return `${day}/${month}/${year}`;
+            }
+            // Fallback para datas com hora
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Data inválida';
+            return new Intl.DateTimeFormat('pt-BR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date);
+        }
 
     // Escapa HTML para prevenir XSS
     escapeHtml(text) {
@@ -452,32 +473,20 @@ class ExpenseManager {
     showSuccessMessage(message) {
         // Cria elemento de notificação
         const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #27ae60;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 6px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            z-index: 1001;
-            font-weight: 600;
-            animation: slideIn 0.3s ease-out;
-        `;
+        notification.className = 'notification';
         notification.textContent = message;
 
         document.body.appendChild(notification);
 
-        // Remove após 3 segundos
+        // Remove após 4 segundos
         setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease-out forwards';
+            notification.style.animation = 'slideOutRight 0.3s ease-out forwards';
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
             }, 300);
-        }, 3000);
+        }, 4000);
     }
 
     // Adiciona gastos de exemplo (para demonstração)
@@ -516,38 +525,35 @@ class ExpenseManager {
     }
 }
 
-// Adiciona CSS para animação de notificação
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
+// CSS já incluído no arquivo styles.css
 
 // Inicializa o sistema quando a página carrega
 let expenseManager;
 
 document.addEventListener('DOMContentLoaded', () => {
     expenseManager = new ExpenseManager();
+    
+    // Verifica se há dados de edição na página de inserção
+    const editingData = localStorage.getItem('editingExpense');
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+    
+    if (editingData && editId && document.getElementById('expense-form')) {
+        const expense = JSON.parse(editingData);
+        expenseManager.editingId = editId;
+        
+        // Preenche formulário com dados para edição
+        document.getElementById('description').value = expense.description;
+        document.getElementById('value').value = expense.value;
+        document.getElementById('dueDate').value = expense.dueDate;
+        
+        // Atualiza botões
+        document.getElementById('submit-btn').textContent = 'Atualizar Gasto';
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+        
+        // Remove dados temporários
+        localStorage.removeItem('editingExpense');
+    }
     
     // Adiciona dados de exemplo se não houver gastos salvos
     if (expenseManager.expenses.length === 0) {

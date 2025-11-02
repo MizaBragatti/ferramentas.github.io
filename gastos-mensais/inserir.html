@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inserir Gasto</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Inserir Gasto</h1>
+            <!-- Link removido do header para evitar duplicidade -->
+        </header>
+        <main>
+            <section class="form-section">
+                <a href="index.html" class="add-expense-link" style="display:inline-block;padding:12px 24px;background:#6366f1;color:white;border-radius:8px;font-weight:600;text-decoration:none;font-size:1rem;box-shadow:0 2px 8px rgba(99,102,241,0.12);">📋 Listar Gastos</a>
+                <h2 style="margin-top:24px;">Adicionar Novo Gasto</h2>
+                <form id="expense-form">
+                    <div class="form-group">
+                        <label for="description">Descrição:</label>
+                        <input type="text" id="description" name="description" required placeholder="Ex: Cartão NuBank">
+                    </div>
+                    <div class="form-group">
+                        <label for="value">Valor (R$):</label>
+                        <input type="number" id="value" name="value" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">Data de Vencimento:</label>
+                        <input type="date" id="dueDate" name="dueDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="submit-btn">Adicionar Gasto</button>
+                        <button type="button" id="cancel-btn" style="display: none;">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
