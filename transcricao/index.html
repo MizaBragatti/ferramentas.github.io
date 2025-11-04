@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcritor de Áudio Web</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-microphone"></i> Transcritor de Áudio</h1>
+            <p>Transcrição em tempo real usando seu microfone</p>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-indicator" id="statusIndicator">
+                <i class="fas fa-microphone-slash"></i>
+                <span id="statusText">Parado</span>
+            </div>
+            <div class="browser-support" id="browserSupport">
+                <i class="fas fa-info-circle"></i>
+                <span>Verificando suporte do navegador...</span>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <button id="startBtn" class="btn btn-primary">
+                <i class="fas fa-play"></i>
+                Iniciar Transcrição
+            </button>
+            <button id="stopBtn" class="btn btn-secondary" disabled>
+                <i class="fas fa-stop"></i>
+                Parar
+            </button>
+            <button id="clearBtn" class="btn btn-warning">
+                <i class="fas fa-trash"></i>
+                Limpar
+            </button>
+            <button id="downloadBtn" class="btn btn-success">
+                <i class="fas fa-download"></i>
+                Baixar
+            </button>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel">
+            <div class="setting-group">
+                <label for="languageSelect">
+                    <i class="fas fa-language"></i>
+                    Idioma:
+                </label>
+                <select id="languageSelect">
+                    <option value="pt-BR">Português (Brasil)</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="es-ES">Español</option>
+                    <option value="fr-FR">Français</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label for="continuousMode">
+                    <input type="checkbox" id="continuousMode" checked>
+                    <i class="fas fa-repeat"></i>
+                    Modo Contínuo
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label for="interimResults">
+                    <input type="checkbox" id="interimResults" checked>
+                    <i class="fas fa-eye"></i>
+                    Resultados Provisórios
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label for="translationMode">
+                    <input type="checkbox" id="translationMode">
+                    <i class="fas fa-language"></i>
+                    Tradução Automática
+                </label>
+            </div>
+
+            <div class="setting-group" id="targetLanguageGroup" style="display: none;">
+                <label for="targetLanguageSelect">
+                    <i class="fas fa-globe"></i>
+                    Traduzir para:
+                </label>
+                <select id="targetLanguageSelect">
+                    <option value="pt">Português</option>
+                    <option value="es">Espanhol</option>
+                    <option value="fr">Francês</option>
+                    <option value="de">Alemão</option>
+                    <option value="it">Italiano</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Transcription Area -->
+        <div class="transcription-container">
+            <div class="transcription-header">
+                <h2><i class="fas fa-file-text"></i> Transcrição</h2>
+                <div class="transcription-stats">
+                    <span id="wordCount">0 palavras</span>
+                    <span id="charCount">0 caracteres</span>
+                    <span id="timestamp"></span>
+                </div>
+            </div>
+            
+            <div class="transcription-content">
+                <!-- Área de transcrição original -->
+                <div class="transcription-column" id="originalColumn">
+                    <h3><i class="fas fa-microphone"></i> <span id="originalLanguageLabel">Original</span></h3>
+                    <div class="transcription-area" id="transcriptionArea">
+                        <p class="placeholder">
+                            <i class="fas fa-microphone-alt"></i>
+                            Clique em "Iniciar Transcrição" e comece a falar...
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Área de tradução -->
+                <div class="transcription-column" id="translationColumn" style="display: none;">
+                    <h3><i class="fas fa-globe"></i> <span id="translationLanguageLabel">Tradução</span></h3>
+                    <div class="transcription-area" id="translationArea">
+                        <p class="placeholder">
+                            <i class="fas fa-language"></i>
+                            Ative a tradução automática para ver as traduções aqui...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="history-container">
+            <div class="history-header">
+                <h3><i class="fas fa-history"></i> Histórico de Sessões</h3>
+                <button id="clearHistoryBtn" class="btn btn-sm btn-danger">
+                    <i class="fas fa-trash-alt"></i>
+                    Limpar Histórico
+                </button>
+            </div>
+            <div class="history-list" id="historyList">
+                <p class="no-history">Nenhuma sessão anterior encontrada</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                <i class="fas fa-info-circle"></i>
+                Desenvolvido por Miza • 
+                <span id="currentYear"></span> • 
+                Usa Web Speech API
+            </p>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Inicializando reconhecimento de voz...</p>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal" id="errorModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Erro</h3>
+                <button class="modal-close" id="closeErrorModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="errorMessage">Ocorreu um erro desconhecido.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="dismissError">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
