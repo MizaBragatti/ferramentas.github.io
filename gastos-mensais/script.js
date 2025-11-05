@@ -15,11 +15,12 @@ class ExpenseManager {
         
         try {
             const expenses = JSON.parse(stored);
-            // Migra dados antigos que não têm dueDate ou isPaid
+            // Migra dados antigos que não têm dueDate, isPaid ou type
             return expenses.map(expense => ({
                 ...expense,
                 dueDate: expense.dueDate || new Date().toISOString().split('T')[0],
-                isPaid: expense.isPaid !== undefined ? expense.isPaid : false
+                isPaid: expense.isPaid !== undefined ? expense.isPaid : false,
+                type: expense.type || 'expense' // Assume gasto por padrão
             }));
         } catch (error) {
             console.error('Erro ao carregar gastos do localStorage:', error);
@@ -90,6 +91,7 @@ class ExpenseManager {
         const description = formData.get('description').trim();
         const value = parseFloat(formData.get('value')) || 0;
         const dueDate = formData.get('dueDate');
+        const type = formData.get('type') || 'expense'; // Para fluxo de caixa
         let isPaid = false;
         if (formData.has('isPaid')) {
             isPaid = formData.get('isPaid') === 'on';
@@ -106,29 +108,32 @@ class ExpenseManager {
         }
 
         if (this.editingId) {
-            this.updateExpense(this.editingId, description, value, dueDate, isPaid);
+            this.updateExpense(this.editingId, description, value, dueDate, isPaid, type);
         } else {
-            this.addExpense(description, value, dueDate, isPaid);
+            this.addExpense(description, value, dueDate, isPaid, type);
         }
 
         this.resetForm();
         this.applyFilters();
         this.updateSummary();
 
-        // Se estiver na página de inserção, redireciona para a listagem
+        // Redirecionamento baseado na página atual
         if (window.location.pathname.includes('inserir.html')) {
             window.location.href = 'index.html';
+        } else if (window.location.pathname.includes('inserir-fluxo.html')) {
+            window.location.href = 'fluxo.html';
         }
     }
 
     // Adiciona novo gasto
-    addExpense(description, value, dueDate, isPaid) {
+    addExpense(description, value, dueDate, isPaid, type = 'expense') {
         const expense = {
             id: Date.now().toString(),
             description: description,
             value: value,
             dueDate: dueDate,
             isPaid: isPaid,
+            type: type,
             createdAt: new Date().toISOString()
         };
 
@@ -136,11 +141,12 @@ class ExpenseManager {
         this.saveExpenses();
         
         // Animação de sucesso
-        this.showSuccessMessage('Gasto adicionado com sucesso!');
+        const message = type === 'income' ? 'Entrada adicionada com sucesso!' : 'Gasto adicionado com sucesso!';
+        this.showSuccessMessage(message);
     }
 
     // Atualiza gasto existente
-    updateExpense(id, description, value, dueDate, isPaid) {
+    updateExpense(id, description, value, dueDate, isPaid, type = 'expense') {
         const index = this.expenses.findIndex(expense => expense.id === id);
         if (index !== -1) {
             this.expenses[index] = {
@@ -149,10 +155,12 @@ class ExpenseManager {
                 value: value,
                 dueDate: dueDate,
                 isPaid: isPaid,
+                type: type,
                 updatedAt: new Date().toISOString()
             };
             this.saveExpenses();
-            this.showSuccessMessage('Gasto atualizado com sucesso!');
+            const message = type === 'income' ? 'Entrada atualizada com sucesso!' : 'Gasto atualizado com sucesso!';
+            this.showSuccessMessage(message);
         }
     }
 
@@ -184,11 +192,13 @@ class ExpenseManager {
             const valueField = document.getElementById('value');
             const dueDateField = document.getElementById('dueDate');
             const isPaidField = document.getElementById('isPaid');
+            const typeRadio = document.querySelector(`input[name="type"][value="${expense.type || 'expense'}"]`);
             
             if (descField) descField.value = expense.description;
             if (valueField) valueField.value = expense.value;
             if (dueDateField) dueDateField.value = expense.dueDate;
             if (isPaidField) isPaidField.checked = expense.isPaid;
+            if (typeRadio) typeRadio.checked = true;
             
             // Atualiza UI
             const submitBtn = document.getElementById('submit-btn');
@@ -250,8 +260,13 @@ class ExpenseManager {
         expensesList.innerHTML = expenses.map(expense => {
             const status = this.getExpenseStatus(expense);
             const dueDateClass = this.getDueDateClass(expense);
+            const isIncome = expense.type === 'income';
+            const typeIcon = isIncome ? '💰' : '💸';
+            const typeClass = isIncome ? 'income' : 'expense';
+            const valuePrefix = isIncome ? '+' : '';
+            
             return `
-            <div class="expense-item ${expense.isPaid ? 'paid' : ''} ${status === 'overdue' ? 'overdue' : ''}" data-id="${expense.id}">
+            <div class="expense-item ${typeClass} ${expense.isPaid ? 'paid' : ''} ${status === 'overdue' ? 'overdue' : ''}" data-id="${expense.id}">
                 <div class="expense-checkbox">
                     <label class="checkbox-container">
                         <input type="checkbox" ${expense.isPaid ? 'checked' : ''} onchange="expenseManager.togglePayment('${expense.id}')">
@@ -260,7 +275,9 @@ class ExpenseManager {
                 </div>
                 <div class="expense-info">
                     <div class="expense-main-info">
-                        <div class="expense-description ${expense.isPaid ? 'paid-text' : ''}" title="${this.escapeHtml(expense.description)}">${this.escapeHtml(expense.description)}</div>
+                        <div class="expense-description ${expense.isPaid ? 'paid-text' : ''}" title="${this.escapeHtml(expense.description)}">
+                            ${typeIcon} ${this.escapeHtml(expense.description)}
+                        </div>
                         <div class="expense-meta">
                             <span class="expense-due-date ${dueDateClass} ${expense.isPaid ? 'paid-text' : ''}">
                                 📅 ${this.formatDateOnly(expense.dueDate)}
@@ -268,7 +285,7 @@ class ExpenseManager {
                             <div class="expense-status ${status}">${this.getStatusText(status)}</div>
                         </div>
                     </div>
-                    <div class="expense-value ${expense.value === 0 ? 'zero' : ''} ${expense.isPaid ? 'paid-text' : ''}">${this.formatCurrency(expense.value)}</div>
+                    <div class="expense-value ${typeClass} ${expense.value === 0 ? 'zero' : ''} ${expense.isPaid ? 'paid-text' : ''}">${valuePrefix}${this.formatCurrency(expense.value)}</div>
                 </div>
                 <div class="expense-actions">
                     <button class="btn-edit" onclick="expenseManager.editExpense('${expense.id}')" title="Editar">
@@ -405,22 +422,37 @@ class ExpenseManager {
 
     // Atualiza resumo
     updateSummary() {
+        // Para página de gastos (index.html)
         const total = this.expenses.reduce((sum, expense) => sum + expense.value, 0);
         const totalPaid = this.expenses.filter(expense => expense.isPaid).reduce((sum, expense) => sum + expense.value, 0);
         const totalPending = total - totalPaid;
         const count = this.expenses.length;
 
-    const totalAmountEl = document.getElementById('total-amount');
-    if (totalAmountEl) totalAmountEl.textContent = this.formatCurrency(total);
-    const totalPaidEl = document.getElementById('total-paid');
-    if (totalPaidEl) totalPaidEl.textContent = this.formatCurrency(totalPaid);
-    const totalPendingEl = document.getElementById('total-pending');
-    if (totalPendingEl) totalPendingEl.textContent = this.formatCurrency(totalPending);
-    const totalItemsEl = document.getElementById('total-items');
-    if (totalItemsEl) totalItemsEl.textContent = count;
-    }
+        const totalAmountEl = document.getElementById('total-amount');
+        if (totalAmountEl) totalAmountEl.textContent = this.formatCurrency(total);
+        const totalPaidEl = document.getElementById('total-paid');
+        if (totalPaidEl) totalPaidEl.textContent = this.formatCurrency(totalPaid);
+        const totalPendingEl = document.getElementById('total-pending');
+        if (totalPendingEl) totalPendingEl.textContent = this.formatCurrency(totalPending);
+        const totalItemsEl = document.getElementById('total-items');
+        if (totalItemsEl) totalItemsEl.textContent = count;
 
-    // Formata moeda
+        // Para página de fluxo de caixa (fluxo.html)
+        const totalIncome = this.expenses.filter(e => e.type === 'income').reduce((sum, e) => sum + e.value, 0);
+        const totalExpenses = this.expenses.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.value, 0);
+        const totalIncomePaid = this.expenses.filter(e => e.type === 'income' && e.isPaid).reduce((sum, e) => sum + e.value, 0);
+        const totalExpensesPaid = this.expenses.filter(e => e.type === 'expense' && e.isPaid).reduce((sum, e) => sum + e.value, 0);
+        const balance = totalIncomePaid - totalExpensesPaid;
+
+        const totalIncomeEl = document.getElementById('total-income');
+        if (totalIncomeEl) totalIncomeEl.textContent = this.formatCurrency(totalIncome);
+        
+        const totalBalanceEl = document.getElementById('total-balance');
+        if (totalBalanceEl) {
+            totalBalanceEl.textContent = this.formatCurrency(balance);
+            totalBalanceEl.style.color = balance >= 0 ? '#10b981' : '#ef4444';
+        }
+    }    // Formata moeda
     formatCurrency(value) {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -547,8 +579,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('value').value = expense.value;
         document.getElementById('dueDate').value = expense.dueDate;
         
+        // Se há campo de tipo (fluxo de caixa), preenche
+        const typeRadio = document.querySelector(`input[name="type"][value="${expense.type || 'expense'}"]`);
+        if (typeRadio) typeRadio.checked = true;
+        
         // Atualiza botões
-        document.getElementById('submit-btn').textContent = 'Atualizar Gasto';
+        const isFluxo = window.location.pathname.includes('inserir-fluxo.html');
+        document.getElementById('submit-btn').textContent = isFluxo ? 'Atualizar Movimentação' : 'Atualizar Gasto';
         document.getElementById('cancel-btn').style.display = 'inline-block';
         
         // Remove dados temporários

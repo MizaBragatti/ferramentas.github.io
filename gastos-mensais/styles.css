@@ -1010,3 +1010,47 @@ input,
 select {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Estilos específicos para fluxo de caixa */
+.expense-item.income {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.expense-item.expense {
+    border-left: 4px solid #ef4444;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.expense-value.income {
+    color: #10b981;
+    font-weight: 700;
+}
+
+.expense-value.expense {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.expense-status.income {
+    background: #10b981;
+    color: white;
+}
+
+.expense-status.expense {
+    background: #ef4444;
+    color: white;
+}
+
+/* Radio buttons styling */
+input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #6366f1;
+}
+
+/* Navigation links */
+header nav a:hover {
+    background: #4f46e5 !important;
+    transform: translateY(-1px);
+}

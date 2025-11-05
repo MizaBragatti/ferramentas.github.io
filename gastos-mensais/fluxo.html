@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Gastos</title>
+    <title>Fluxo de Caixa</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>💰 Controle de Gastos Mensais</h1>
+            <h1>💰 Fluxo de Caixa</h1>
             <nav style="margin-top:16px;text-align:center;">
                 <a href="inserir.html" style="display:inline-block;padding:8px 16px;background:#6366f1;color:white;border-radius:6px;font-weight:500;text-decoration:none;font-size:0.9rem;margin:0 4px;">📝 Inserir Gasto</a>
-                <a href="fluxo.html" style="display:inline-block;padding:8px 16px;background:#6366f1;color:white;border-radius:6px;font-weight:500;text-decoration:none;font-size:0.9rem;margin:0 4px;">💼 Fluxo de Caixa</a>
+                <a href="index.html" style="display:inline-block;padding:8px 16px;background:#6366f1;color:white;border-radius:6px;font-weight:500;text-decoration:none;font-size:0.9rem;margin:0 4px;">📋 Listar Gastos</a>
             </nav>
         </header>
 
         <main>
             <!-- Link para tela de inserção -->
             <section class="form-section">
-                <a href="inserir.html" class="add-expense-link">➕ Adicionar Novo Gasto</a>
+                <a href="inserir-fluxo.html" class="add-expense-link">➕ Adicionar Nova Movimentação</a>
             </section>
 
-            <!-- Resumo dos gastos -->
+            <!-- Resumo do fluxo de caixa -->
             <section class="summary-section">
                 <div class="summary-card">
-                    <h3>Total de Gastos</h3>
-                    <p class="total-amount" id="total-amount">R$ 0,00</p>
+                    <h3>Total de Entradas</h3>
+                    <p class="total-income" id="total-income">R$ 0,00</p>
                 </div>
                 <div class="summary-card">
                     <h3>Total Pago</h3>
@@ -37,12 +37,12 @@
                     <p class="total-pending" id="total-pending">R$ 0,00</p>
                 </div>
                 <div class="summary-card">
-                    <h3>Quantidade de Itens</h3>
-                    <p class="total-items" id="total-items">0</p>
+                    <h3>Saldo Total</h3>
+                    <p class="total-balance" id="total-balance">R$ 0,00</p>
                 </div>
             </section>
 
-            <!-- Lista de gastos -->
+            <!-- Lista do fluxo de caixa -->
             <section class="expenses-section">
                 <!-- Filtro de status -->
                 <div class="filters">
@@ -55,20 +55,20 @@
                 </div>
 
                 <div id="expenses-list" class="expenses-list">
-                    <p class="no-expenses">Nenhum gasto cadastrado ainda.</p>
+                    <p class="no-expenses">Nenhuma movimentação cadastrada ainda.</p>
                 </div>
             </section>
         </main>
     </div>
 
     <!-- Modal de confirmação -->
-    <div id="confirm-modal" class="modal">
+    <div id="cf-confirm-modal" class="modal">
         <div class="modal-content">
             <h3>Confirmar Exclusão</h3>
-            <p>Tem certeza que deseja excluir este gasto?</p>
+            <p>Tem certeza que deseja excluir esta movimentação?</p>
             <div class="modal-actions">
-                <button id="confirm-delete" class="danger-btn">Excluir</button>
-                <button id="cancel-delete">Cancelar</button>
+                <button id="cf-confirm-delete" class="danger-btn">Excluir</button>
+                <button id="cf-cancel-delete">Cancelar</button>
             </div>
         </div>
     </div>

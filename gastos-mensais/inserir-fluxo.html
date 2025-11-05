@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inserir Movimentação</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Inserir Movimentação</h1>
+            <nav style="margin-top:16px;text-align:center;">
+                <a href="fluxo.html" style="display:inline-block;padding:8px 16px;background:#6366f1;color:white;border-radius:6px;font-weight:500;text-decoration:none;font-size:0.9rem;margin:0 4px;">📋 Listar Movimentações</a>
+                <a href="index.html" style="display:inline-block;padding:8px 16px;background:#6366f1;color:white;border-radius:6px;font-weight:500;text-decoration:none;font-size:0.9rem;margin:0 4px;">📝 Gastos</a>
+            </nav>
+        </header>
+        <main>
+            <section class="form-section">
+                <a href="fluxo.html" class="add-expense-link" style="display:inline-block;padding:12px 24px;background:#6366f1;color:white;border-radius:8px;font-weight:600;text-decoration:none;font-size:1rem;box-shadow:0 2px 8px rgba(99,102,241,0.12);">📋 Listar Movimentações</a>
+                <h2 style="margin-top:24px;">Adicionar Nova Movimentação</h2>
+                <form id="expense-form">
+                    <div class="form-group">
+                        <label>Tipo de Movimentação:</label>
+                        <div style="display:flex;gap:20px;margin-top:8px;">
+                            <label style="display:flex;align-items:center;font-weight:normal;">
+                                <input type="radio" name="type" value="income" required style="margin-right:8px;">
+                                💰 Entrada (Ganho)
+                            </label>
+                            <label style="display:flex;align-items:center;font-weight:normal;">
+                                <input type="radio" name="type" value="expense" required style="margin-right:8px;">
+                                💸 Saída (Gasto)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Descrição:</label>
+                        <input type="text" id="description" name="description" required placeholder="Ex: Salário, Freelance, Cartão...">
+                    </div>
+                    <div class="form-group">
+                        <label for="value">Valor (R$):</label>
+                        <input type="number" id="value" name="value" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">Data de Vencimento:</label>
+                        <input type="date" id="dueDate" name="dueDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="submit-btn">Adicionar Movimentação</button>
+                        <button type="button" id="cancel-btn" style="display: none;">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
