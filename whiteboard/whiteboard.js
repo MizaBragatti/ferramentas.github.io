@@ -19,8 +19,15 @@ class Whiteboard {
         this.isResizing = false;
         this.resizeHandle = null;
         this.resizeStartBounds = null;
+        // Last resize position (for smoothing/clamping move deltas)
+        this.lastResizePos = null;
+        // Resize sensitivity setting (0.1 = very smooth, 1.0 = very responsive)
+        this.resizeSensitivity = this.isMobile() ? 0.35 : 0.6;
         
-        // Rotation properties
+        // Performance optimization properties
+        this.animationFrameId = null;
+        this.needsRedraw = false;
+        this.lastMoveTime = 0;        // Rotation properties
         this.isRotating = false;
         this.rotationStart = null;
         this.initialRotation = null;
@@ -41,6 +48,11 @@ class Whiteboard {
         
         // Canvas properties
         this.scale = 1;
+        
+        // Persistência de dados
+        this.autoSaveEnabled = true;
+        this.saveKey = 'whiteboard_data';
+        this.lastSaveTime = 0;
         this.offsetX = 0;
         this.offsetY = 0;
         this.minScale = 0.1;
@@ -59,10 +71,18 @@ class Whiteboard {
         // Note properties
         this.selectedNoteColor = '#ffeb3b';
         
+        // Mobile menu properties
+        this.menuToggleTimeout = null;
+        
         this.initCanvas();
         this.bindEvents();
         this.initMobileFeatures();
         this.updateCanvasSize();
+        
+        // Carregar dados salvos automaticamente
+        setTimeout(() => {
+            this.loadFromLocalStorage();
+        }, 100);
     }
     
     initCanvas() {
@@ -91,7 +111,12 @@ class Whiteboard {
         // Toolbar events
         document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.setTool(e.target.closest('.tool-btn').dataset.tool);
+                if (e.target && e.target.closest) {
+                    const toolBtn = e.target.closest('.tool-btn');
+                    if (toolBtn && toolBtn.dataset && toolBtn.dataset.tool) {
+                        this.setTool(toolBtn.dataset.tool);
+                    }
+                }
             });
         });
         
@@ -109,7 +134,7 @@ class Whiteboard {
         
         // Click event listener for canvas container to clear note selections
         document.querySelector('.canvas-container').addEventListener('click', (e) => {
-            if (e.target === this.canvas || e.target.classList.contains('canvas-container')) {
+            if (e.target === this.canvas || (e.target && e.target.classList && e.target.classList.contains('canvas-container'))) {
                 // Clear note selections when clicking on empty area
                 document.querySelectorAll('.sticky-note').forEach(note => {
                     note.style.boxShadow = '';
@@ -123,21 +148,33 @@ class Whiteboard {
         
         // Color and stroke events
         document.getElementById('colorPicker').addEventListener('change', (e) => {
-            this.strokeColor = e.target.value;
-            document.querySelector('.color-preview').style.background = e.target.value;
+            if (e.target && e.target.value !== undefined) {
+                this.strokeColor = e.target.value;
+                const colorPreview = document.querySelector('.color-preview');
+                if (colorPreview) {
+                    colorPreview.style.background = e.target.value;
+                }
+            }
         });
         
         document.getElementById('strokeWidth').addEventListener('input', (e) => {
-            this.strokeWidth = parseInt(e.target.value);
-            document.querySelector('.stroke-value').textContent = e.target.value + 'px';
+            if (e.target && e.target.value !== undefined) {
+                this.strokeWidth = parseInt(e.target.value);
+                const strokeValue = document.querySelector('.stroke-value');
+                if (strokeValue) {
+                    strokeValue.textContent = e.target.value + 'px';
+                }
+            }
         });
         
         // Note color selection
         document.querySelectorAll('.note-color').forEach(color => {
             color.addEventListener('click', (e) => {
                 document.querySelectorAll('.note-color').forEach(c => c.classList.remove('selected'));
-                e.target.classList.add('selected');
-                this.selectedNoteColor = e.target.dataset.color;
+                if (e.target && e.target.classList) {
+                    e.target.classList.add('selected');
+                    this.selectedNoteColor = e.target.dataset.color;
+                }
             });
         });
         
@@ -147,46 +184,87 @@ class Whiteboard {
         
         // Properties panel events
         document.getElementById('propColor').addEventListener('change', (e) => {
-            if (this.selectedObject) {
+            if (this.selectedObject && e.target && e.target.value !== undefined) {
                 this.selectedObject.color = e.target.value;
                 this.redraw();
             }
         });
         
         document.getElementById('propStroke').addEventListener('input', (e) => {
-            if (this.selectedObject) {
+            if (this.selectedObject && e.target && e.target.value !== undefined) {
                 this.selectedObject.width = parseInt(e.target.value);
-                document.getElementById('propStrokeValue').textContent = e.target.value + 'px';
+                const propStrokeValue = document.getElementById('propStrokeValue');
+                if (propStrokeValue) {
+                    propStrokeValue.textContent = e.target.value + 'px';
+                }
                 this.redraw();
             }
         });
         
         document.getElementById('propOpacity').addEventListener('input', (e) => {
-            if (this.selectedObject) {
+            if (this.selectedObject && e.target && e.target.value !== undefined) {
                 this.selectedObject.opacity = parseFloat(e.target.value);
-                document.getElementById('propOpacityValue').textContent = e.target.value;
+                const propOpacityValue = document.getElementById('propOpacityValue');
+                if (propOpacityValue) {
+                    propOpacityValue.textContent = e.target.value;
+                }
                 this.redraw();
             }
         });
         
         document.getElementById('propWidth').addEventListener('input', (e) => {
-            if (this.selectedObject && e.target.value) {
+            if (this.selectedObject && e.target && e.target.value) {
                 this.resizeObjectToPixels(this.selectedObject, parseInt(e.target.value), null);
                 this.redraw();
             }
         });
         
         document.getElementById('propHeight').addEventListener('input', (e) => {
-            if (this.selectedObject && e.target.value) {
+            if (this.selectedObject && e.target && e.target.value) {
                 this.resizeObjectToPixels(this.selectedObject, null, parseInt(e.target.value));
                 this.redraw();
             }
         });
         
         document.getElementById('propFontSize').addEventListener('input', (e) => {
-            if (this.selectedObject && this.selectedObject.type === 'text' && e.target.value) {
+            if (this.selectedObject && this.selectedObject.type === 'text' && e.target && e.target.value) {
                 this.selectedObject.fontSize = parseInt(e.target.value);
                 this.redraw();
+            }
+        });
+        
+        // Font size increment/decrement buttons
+        document.getElementById('fontSizeUp').addEventListener('click', () => {
+            if (this.selectedObject && this.selectedObject.type === 'text') {
+                const currentSize = this.selectedObject.fontSize || 16;
+                const step = this.isMobile() ? 4 : 2; // Larger steps on mobile for easier control
+                const newSize = Math.min(200, currentSize + step);
+                this.selectedObject.fontSize = newSize;
+                document.getElementById('propFontSize').value = newSize;
+                this.redraw();
+            }
+        });
+        
+        document.getElementById('fontSizeDown').addEventListener('click', () => {
+            if (this.selectedObject && this.selectedObject.type === 'text') {
+                const currentSize = this.selectedObject.fontSize || 16;
+                const step = this.isMobile() ? 4 : 2; // Larger steps on mobile for easier control
+                const newSize = Math.max(8, currentSize - step);
+                this.selectedObject.fontSize = newSize;
+                document.getElementById('propFontSize').value = newSize;
+                this.redraw();
+            }
+        });
+        
+        // Resize sensitivity control
+        document.getElementById('resizeSensitivity').addEventListener('input', (e) => {
+            if (e.target && e.target.value !== undefined) {
+                this.resizeSensitivity = parseFloat(e.target.value);
+                const percentage = Math.round(this.resizeSensitivity * 100);
+                const sensitivityValue = document.getElementById('sensitivityValue');
+                if (sensitivityValue) {
+                    sensitivityValue.textContent = percentage + '%';
+                }
             }
         });
         
@@ -194,6 +272,40 @@ class Whiteboard {
         window.addEventListener('resize', () => {
             this.updateCanvasSize();
             this.redraw();
+        });
+        
+        // Text input specific events
+        const textInput = document.getElementById('textInput');
+        if (textInput) {
+            // Allow Enter to submit text
+            textInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    addText(); // Call the global addText function
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeTextModal();
+                }
+            });
+        }
+        
+        // Note input specific events  
+        const noteInput = document.getElementById('noteInput');
+        if (noteInput) {
+            noteInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();
+                    addNote(); // Call the global addNote function
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeNoteModal();
+                }
+            });
+        }
+        
+        // Auto-save antes de fechar a página
+        window.addEventListener('beforeunload', () => {
+            this.saveToLocalStorage();
         });
     }
     
@@ -215,8 +327,22 @@ class Whiteboard {
         // Handle special tools
         if (tool === 'text') {
             document.getElementById('textModal').style.display = 'flex';
+            // Focus on text input for immediate typing
+            setTimeout(() => {
+                const textInput = document.getElementById('textInput');
+                if (textInput) {
+                    textInput.focus();
+                }
+            }, 100);
         } else if (tool === 'note') {
             document.getElementById('noteModal').style.display = 'flex';
+            // Focus on note input for immediate typing
+            setTimeout(() => {
+                const noteInput = document.getElementById('noteInput');
+                if (noteInput) {
+                    noteInput.focus();
+                }
+            }, 100);
         }
     }
     
@@ -296,7 +422,7 @@ class Whiteboard {
         e.preventDefault();
         
         // Check if we clicked on a sticky note element
-        if (e.target.classList.contains('sticky-note')) {
+        if (e.target && e.target.classList && e.target.classList.contains('sticky-note')) {
             return; // Let the sticky note handle its own events
         }
         
@@ -325,6 +451,8 @@ class Whiteboard {
                     this.isResizing = true;
                     this.resizeHandle = handle;
                     this.resizeStartBounds = JSON.parse(JSON.stringify(this.getObjectBounds(this.selectedObject)));
+                    // Initialize lastResizePos for smoothing/clamping
+                    this.lastResizePos = { x: pos.x, y: pos.y };
                 }
                 return;
             }
@@ -394,39 +522,32 @@ class Whiteboard {
             const deltaY = (pos.y - this.lastY) * this.scale;
             this.offsetX += deltaX;
             this.offsetY += deltaY;
-            this.redraw();
+            this.requestRedraw();
         } else if (this.isSelectionBoxActive) {
             // Update selection box
             this.updateSelectionBox(pos);
-            this.redraw();
+            this.requestRedraw();
         } else if (this.isRotating && this.selectedObject) {
             // Handle rotation
             const center = this.getObjectCenter(this.selectedObject);
             const currentAngle = this.calculateAngle(pos, center);
             const angleDelta = currentAngle - this.rotationStart;
             this.selectedObject.rotation = this.initialRotation + angleDelta;
-            this.redraw();
+            this.requestRedraw();
         } else if (this.isResizing && this.selectedObject && this.resizeHandle) {
             // Handle resizing
             this.resizeObject(this.selectedObject, this.resizeHandle, pos);
-            this.redraw();
+            this.requestRedraw();
         } else if (this.isDragging && this.currentTool === 'select') {
-            // Move selected object(s)
+            // Move selected object(s) with smooth movement
             const deltaX = pos.x - this.dragStartX;
             const deltaY = pos.y - this.dragStartY;
             
-            if (this.selectedObject) {
-                this.moveObject(this.selectedObject, deltaX, deltaY);
-            } else if (this.selectedObjects.length > 0) {
-                // Move all selected objects
-                this.selectedObjects.forEach(obj => {
-                    this.moveObject(obj, deltaX, deltaY);
-                });
-            }
+            // Use smooth movement for better performance
+            this.smoothMove(deltaX, deltaY);
             
             this.dragStartX = pos.x;
             this.dragStartY = pos.y;
-            this.redraw();
         } else if (this.isDrawing) {
             switch (this.currentTool) {
                 case 'pen':
@@ -498,12 +619,14 @@ class Whiteboard {
             this.isResizing = false;
             this.resizeHandle = null;
             this.resizeStartBounds = null;
+            this.lastResizePos = null;
             this.saveState(); // Save state for undo/redo
             return;
         }
         
         if (this.isDragging) {
             this.isDragging = false;
+            this.canvas.style.cursor = 'default';
             this.saveState(); // Save state for undo/redo
             return;
         }
@@ -550,6 +673,37 @@ class Whiteboard {
     handleKeyDown(e) {
         // Track Ctrl key state
         this.ctrlKey = e.ctrlKey || e.metaKey;
+        
+        // Check if an input field is focused or a modal is open - if so, let it handle the keyboard events
+        const focusedElement = document.activeElement;
+        if (focusedElement && (
+            focusedElement.tagName === 'INPUT' || 
+            focusedElement.tagName === 'TEXTAREA' || 
+            focusedElement.tagName === 'SELECT' ||
+            focusedElement.contentEditable === 'true' ||
+            focusedElement.isContentEditable
+        )) {
+            return; // Let the input field handle keyboard events
+        }
+        
+        // Check if text modal or note modal is open
+        const textModal = document.getElementById('textModal');
+        const noteModal = document.getElementById('noteModal');
+        if ((textModal && textModal.style.display === 'flex') || 
+            (noteModal && noteModal.style.display === 'flex')) {
+            return; // Let modal handle keyboard events
+        }
+        
+        // Additional check: if target is inside a modal or input
+        if (e.target && (
+            e.target.tagName === 'INPUT' || 
+            e.target.tagName === 'TEXTAREA' ||
+            e.target.closest('.modal') ||
+            e.target.closest('input') ||
+            e.target.closest('textarea')
+        )) {
+            return;
+        }
         
         if (e.ctrlKey || e.metaKey) {
             switch (e.key) {
@@ -682,7 +836,7 @@ class Whiteboard {
                     
                     this.scale = newScale;
                     this.updateZoomDisplay();
-                    this.redraw();
+                    this.requestRedraw();
                 }
             }
             
@@ -692,7 +846,7 @@ class Whiteboard {
                 const deltaY = (currentCenter.y - this.lastTouchCenter.y) * this.scale;
                 this.offsetX += deltaX;
                 this.offsetY += deltaY;
-                this.redraw();
+                this.requestRedraw();
             }
             
             this.lastTouchDistance = currentDistance;
@@ -879,6 +1033,40 @@ class Whiteboard {
             
             // Setup mobile menu toggle
             this.setupMobileMenu();
+            
+            // Configure font size input for mobile
+            const fontSizeInput = document.getElementById('propFontSize');
+            if (fontSizeInput) {
+                fontSizeInput.step = '4'; // Larger steps on mobile for easier control
+            }
+            
+            // Set mobile-friendly resize sensitivity default
+            this.resizeSensitivity = 0.35;
+            const resizeSensitivitySlider = document.getElementById('resizeSensitivity');
+            if (resizeSensitivitySlider) {
+                resizeSensitivitySlider.value = this.resizeSensitivity;
+                const sensitivityValue = document.getElementById('sensitivityValue');
+                if (sensitivityValue) {
+                    sensitivityValue.textContent = Math.round(this.resizeSensitivity * 100) + '%';
+                }
+            }
+        } else {
+            // Configure for desktop
+            const fontSizeInput = document.getElementById('propFontSize');
+            if (fontSizeInput) {
+                fontSizeInput.step = '1'; // Fine control on desktop
+            }
+            
+            // Set desktop resize sensitivity default
+            this.resizeSensitivity = 0.6;
+            const resizeSensitivitySlider = document.getElementById('resizeSensitivity');
+            if (resizeSensitivitySlider) {
+                resizeSensitivitySlider.value = this.resizeSensitivity;
+                const sensitivityValue = document.getElementById('sensitivityValue');
+                if (sensitivityValue) {
+                    sensitivityValue.textContent = Math.round(this.resizeSensitivity * 100) + '%';
+                }
+            }
         }
     }
     
@@ -886,8 +1074,31 @@ class Whiteboard {
         const menuToggle = document.getElementById('mobileMenuToggle');
         const toolbar = document.getElementById('toolbar');
         
+        if (!menuToggle) {
+            console.warn('Mobile menu toggle button not found');
+            return;
+        }
+        
+        if (!toolbar) {
+            console.warn('Toolbar element not found');
+            return;
+        }
+        
         if (menuToggle && toolbar) {
-            menuToggle.addEventListener('click', () => {
+            // Function to toggle menu
+            const toggleMenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Prevent rapid toggling
+                if (this.menuToggleTimeout) {
+                    return;
+                }
+                
+                this.menuToggleTimeout = setTimeout(() => {
+                    this.menuToggleTimeout = null;
+                }, 300);
+                
                 const isOpen = toolbar.classList.contains('mobile-open');
                 
                 if (isOpen) {
@@ -900,15 +1111,67 @@ class Whiteboard {
                 
                 // Haptic feedback
                 this.vibrate(30);
-            });
+                
+                // Visual feedback
+                menuToggle.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    menuToggle.style.transform = '';
+                }, 150);
+            };
             
-            // Close menu when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!toolbar.contains(e.target) && !menuToggle.contains(e.target)) {
+            // Add both click and touchend events for better mobile support
+            menuToggle.addEventListener('click', toggleMenu);
+            
+            // Special handling for touch events on mobile
+            if (this.isMobile()) {
+                let touchStartTime = 0;
+                
+                menuToggle.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                    touchStartTime = Date.now();
+                    // Visual feedback on touch start
+                    menuToggle.style.transform = 'scale(0.9)';
+                });
+                
+                menuToggle.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    // Only trigger if it's a quick tap (not a long press)
+                    const touchDuration = Date.now() - touchStartTime;
+                    if (touchDuration < 500) {
+                        toggleMenu(e);
+                    }
+                    
+                    // Reset visual feedback
+                    setTimeout(() => {
+                        menuToggle.style.transform = '';
+                    }, 150);
+                });
+                
+                menuToggle.addEventListener('touchmove', (e) => {
+                    e.stopPropagation();
+                    // Reset visual feedback if user moves finger
+                    menuToggle.style.transform = '';
+                });
+            } else {
+                // Desktop: prevent interference with canvas
+                menuToggle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                });
+            }
+            
+            // Function to close menu
+            const closeMenu = (e) => {
+                if (e.target && !toolbar.contains(e.target) && !menuToggle.contains(e.target)) {
                     toolbar.classList.remove('mobile-open');
                     menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
                 }
-            });
+            };
+            
+            // Close menu when clicking/touching outside
+            document.addEventListener('click', closeMenu);
+            document.addEventListener('touchend', closeMenu);
             
             // Close menu when tool is selected
             document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
@@ -1293,12 +1556,13 @@ class Whiteboard {
                 this.clearSelectionHandles();
                 this.createSelectionHandles(selected);
                 this.showPropertiesPanel(selected);
-                this.redraw();
+                this.requestRedraw();
                 
                 // Start dragging
                 this.isDragging = true;
                 this.dragStartX = pos.x;
                 this.dragStartY = pos.y;
+                this.canvas.style.cursor = 'grabbing';
             }
         }
     }
@@ -1389,11 +1653,13 @@ class Whiteboard {
             const dy = pos.y - yy;
             return Math.sqrt(dx * dx + dy * dy) <= (obj.width || 3) * 2;
         } else if (obj.type === 'text') {
-            // Approximate text bounds
+            // Melhorar área de detecção para texto
             const textWidth = obj.text.length * obj.fontSize * 0.6;
             const textHeight = obj.fontSize;
-            return pos.x >= obj.x && pos.x <= obj.x + textWidth && 
-                   pos.y >= obj.y - textHeight && pos.y <= obj.y;
+            const padding = 5; // Adicionar padding para facilitar seleção
+            
+            return pos.x >= obj.x - padding && pos.x <= obj.x + textWidth + padding && 
+                   pos.y >= obj.y - textHeight - padding && pos.y <= obj.y + padding;
         }
         return false;
     }
@@ -1499,6 +1765,9 @@ class Whiteboard {
         if (obj) {
             panel.style.display = 'block';
             
+            // Position panel intelligently to avoid covering the selected object
+            this.positionPropertiesPanel(obj, panel);
+            
             // Set current values
             document.getElementById('propColor').value = obj.color || '#000000';
             document.getElementById('propStroke').value = obj.width || 3;
@@ -1521,7 +1790,79 @@ class Whiteboard {
             }
         } else {
             panel.style.display = 'none';
+            panel.classList.remove('positioned');
         }
+    }
+    
+    positionPropertiesPanel(obj, panel) {
+        // Skip intelligent positioning on mobile - use fixed bottom position
+        if (this.isMobile()) {
+            panel.classList.remove('positioned');
+            return;
+        }
+        
+        // Add positioned class for dynamic positioning
+        panel.classList.add('positioned');
+        
+        // Get object bounds in screen coordinates
+        const bounds = this.getObjectBounds(obj);
+        if (!bounds) return;
+        
+        // Convert to screen coordinates
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const screenBounds = {
+            left: canvasRect.left + (bounds.minX + this.offsetX) * this.scale,
+            right: canvasRect.left + (bounds.maxX + this.offsetX) * this.scale,
+            top: canvasRect.top + (bounds.minY + this.offsetY) * this.scale,
+            bottom: canvasRect.top + (bounds.maxY + this.offsetY) * this.scale
+        };
+        
+        // Panel dimensions
+        const panelWidth = 250;
+        const panelHeight = 300; // Approximate height
+        const margin = 20;
+        
+        // Viewport dimensions
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate best position
+        let left, top;
+        
+        // Try right side first (default)
+        if (screenBounds.right + panelWidth + margin < viewportWidth) {
+            left = screenBounds.right + margin;
+            top = Math.max(margin, screenBounds.top);
+        }
+        // Try left side
+        else if (screenBounds.left - panelWidth - margin > 0) {
+            left = screenBounds.left - panelWidth - margin;
+            top = Math.max(margin, screenBounds.top);
+        }
+        // Try bottom
+        else if (screenBounds.bottom + panelHeight + margin < viewportHeight) {
+            left = Math.max(margin, Math.min(viewportWidth - panelWidth - margin, screenBounds.left));
+            top = screenBounds.bottom + margin;
+        }
+        // Try top
+        else if (screenBounds.top - panelHeight - margin > 0) {
+            left = Math.max(margin, Math.min(viewportWidth - panelWidth - margin, screenBounds.left));
+            top = screenBounds.top - panelHeight - margin;
+        }
+        // Fallback to default position
+        else {
+            left = viewportWidth - panelWidth - margin;
+            top = 100;
+        }
+        
+        // Ensure panel stays within viewport
+        left = Math.max(margin, Math.min(viewportWidth - panelWidth - margin, left));
+        top = Math.max(margin, Math.min(viewportHeight - panelHeight - margin, top));
+        
+        // Apply position
+        panel.style.left = left + 'px';
+        panel.style.top = top + 'px';
+        panel.style.right = 'auto';
     }
     
     createSelectionHandles(obj) {
@@ -1593,37 +1934,60 @@ class Whiteboard {
         if (!this.resizeStartBounds) return;
         
         const startBounds = this.resizeStartBounds;
+        // Smooth and clamp resize input to reduce sensitivity (especially on touch)
+        let targetPos = { x: currentPos.x, y: currentPos.y };
+        if (this.lastResizePos) {
+            // Use user-configurable sensitivity (with mobile-friendly default)
+            const alpha = this.resizeSensitivity;
+            targetPos.x = this.lastResizePos.x + (currentPos.x - this.lastResizePos.x) * alpha;
+            targetPos.y = this.lastResizePos.y + (currentPos.y - this.lastResizePos.y) * alpha;
+
+            // Clamp maximum per-event movement to avoid large jumps
+            const maxDelta = this.isMobile() ? (30 / this.scale) : (120 / this.scale);
+            const dx = targetPos.x - this.lastResizePos.x;
+            const dy = targetPos.y - this.lastResizePos.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > maxDelta) {
+                const ratio = maxDelta / dist;
+                targetPos.x = this.lastResizePos.x + dx * ratio;
+                targetPos.y = this.lastResizePos.y + dy * ratio;
+            }
+        }
+
+        // Update lastResizePos for next event
+        this.lastResizePos = { x: targetPos.x, y: targetPos.y };
+
         let newBounds = { ...startBounds };
         
         // Calculate new bounds based on resize direction
         switch (direction) {
             case 'nw':
-                newBounds.minX = Math.min(currentPos.x, startBounds.maxX - 20);
-                newBounds.minY = Math.min(currentPos.y, startBounds.maxY - 20);
+                newBounds.minX = Math.min(targetPos.x, startBounds.maxX - 20);
+                newBounds.minY = Math.min(targetPos.y, startBounds.maxY - 20);
                 break;
             case 'n':
-                newBounds.minY = Math.min(currentPos.y, startBounds.maxY - 20);
+                newBounds.minY = Math.min(targetPos.y, startBounds.maxY - 20);
                 break;
             case 'ne':
-                newBounds.maxX = Math.max(currentPos.x, startBounds.minX + 20);
-                newBounds.minY = Math.min(currentPos.y, startBounds.maxY - 20);
+                newBounds.maxX = Math.max(targetPos.x, startBounds.minX + 20);
+                newBounds.minY = Math.min(targetPos.y, startBounds.maxY - 20);
                 break;
             case 'e':
-                newBounds.maxX = Math.max(currentPos.x, startBounds.minX + 20);
+                newBounds.maxX = Math.max(targetPos.x, startBounds.minX + 20);
                 break;
             case 'se':
-                newBounds.maxX = Math.max(currentPos.x, startBounds.minX + 20);
-                newBounds.maxY = Math.max(currentPos.y, startBounds.minY + 20);
+                newBounds.maxX = Math.max(targetPos.x, startBounds.minX + 20);
+                newBounds.maxY = Math.max(targetPos.y, startBounds.minY + 20);
                 break;
             case 's':
-                newBounds.maxY = Math.max(currentPos.y, startBounds.minY + 20);
+                newBounds.maxY = Math.max(targetPos.y, startBounds.minY + 20);
                 break;
             case 'sw':
-                newBounds.minX = Math.min(currentPos.x, startBounds.maxX - 20);
-                newBounds.maxY = Math.max(currentPos.y, startBounds.minY + 20);
+                newBounds.minX = Math.min(targetPos.x, startBounds.maxX - 20);
+                newBounds.maxY = Math.max(targetPos.y, startBounds.minY + 20);
                 break;
             case 'w':
-                newBounds.minX = Math.min(currentPos.x, startBounds.maxX - 20);
+                newBounds.minX = Math.min(targetPos.x, startBounds.maxX - 20);
                 break;
         }
         
@@ -1663,7 +2027,16 @@ class Whiteboard {
             const originalHeight = this.resizeStartBounds.maxY - this.resizeStartBounds.minY;
             const newHeight = bounds.maxY - bounds.minY;
             if (originalHeight > 0) {
-                const heightRatio = newHeight / originalHeight;
+                let heightRatio = newHeight / originalHeight;
+                
+                // Make font scaling less sensitive on mobile
+                if (this.isMobile()) {
+                    // Reduce sensitivity by using square root - makes large changes smaller
+                    heightRatio = heightRatio > 1 ? 
+                        1 + Math.sqrt(heightRatio - 1) * 0.5 : // Slower growth
+                        1 - (1 - heightRatio) * 0.5; // Slower shrinking
+                }
+                
                 obj.fontSize = Math.max(8, Math.min(200, obj.fontSize * heightRatio));
             }
         } else if (obj.type === 'pen' && obj.points && obj.points.length > 0) {
@@ -2040,8 +2413,10 @@ class Whiteboard {
     }
     
     deleteSelected() {
-        console.log('Delete selected called. Selected object:', this.selectedObject);
-        console.log('Selected objects:', this.selectedObjects);
+        // Early return if nothing is selected
+        if (!this.selectedObject && (!this.selectedObjects || this.selectedObjects.length === 0)) {
+            return;
+        }
         
         if (this.selectedObject) {
             const index = this.objects.indexOf(this.selectedObject);
@@ -2122,6 +2497,9 @@ class Whiteboard {
         }
         
         this.updateUndoRedoButtons();
+        
+        // Auto-save após mudanças
+        this.autoSave();
     }
     
     updateUndoRedoButtons() {
@@ -2208,6 +2586,461 @@ class Whiteboard {
             height: Math.round(bounds.maxY - bounds.minY)
         };
     }
+    
+    // Método para capturar o canvas limpo (sem seleções, handles, etc.)
+    getCleanCanvasImage() {
+        try {
+            // Salvar estado atual
+            const currentSelectedObject = this.selectedObject;
+            const currentSelectedObjects = [...this.selectedObjects];
+            
+            // Temporariamente limpar seleções para a captura
+            this.selectedObject = null;
+            this.selectedObjects = [];
+            this.clearSelectionHandles();
+            
+            // Forçar um redraw limpo
+            this.redrawForExport();
+            
+            // Aguardar um frame para garantir que o canvas foi atualizado
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    try {
+                        // Capturar imagem
+                        const dataURL = this.canvas.toDataURL('image/png', 1.0);
+                        
+                        // Restaurar estado
+                        this.selectedObject = currentSelectedObject;
+                        this.selectedObjects = currentSelectedObjects;
+                        if (currentSelectedObject) {
+                            this.showPropertiesPanel(currentSelectedObject);
+                        }
+                        
+                        // Redesenhar com seleções restauradas
+                        this.redraw();
+                        
+                        resolve(dataURL);
+                    } catch (error) {
+                        console.error('Erro ao capturar canvas:', error);
+                        resolve(null);
+                    }
+                }, 50);
+            });
+        } catch (error) {
+            console.error('Erro no getCleanCanvasImage:', error);
+            return Promise.resolve(null);
+        }
+    }
+    
+    // Método especial para redesenhar incluindo notas adesivas no canvas
+    redrawForExport() {
+        // Salvar o contexto atual
+        this.ctx.save();
+        
+        // Limpar canvas completamente
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Definir fundo branco
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Aplicar as mesmas transformações que o redraw normal
+        this.ctx.scale(this.scale, this.scale);
+        this.ctx.translate(this.offsetX, this.offsetY);
+        
+        // Desenhar todos os objetos do canvas (exceto sticky notes)
+        for (let obj of this.objects) {
+            if (obj.type !== 'sticky-note') {
+                this.ctx.save();
+                this.ctx.strokeStyle = obj.color || '#000000';
+                this.ctx.lineWidth = obj.width || 3;
+                this.ctx.globalAlpha = obj.opacity || 1;
+                
+                // Apply rotation if the object has a rotation property
+                if (obj.rotation && obj.rotation !== 0) {
+                    const center = this.getObjectCenter(obj);
+                    this.ctx.translate(center.x, center.y);
+                    this.ctx.rotate(obj.rotation);
+                    this.ctx.translate(-center.x, -center.y);
+                }
+                
+                if (obj.type === 'pen' && obj.points) {
+                    if (obj.points.length > 1) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(obj.points[0].x, obj.points[0].y);
+                        for (let i = 1; i < obj.points.length; i++) {
+                            this.ctx.lineTo(obj.points[i].x, obj.points[i].y);
+                        }
+                        this.ctx.stroke();
+                    }
+                } else if (obj.type === 'text') {
+                    this.ctx.fillStyle = obj.color || '#000000';
+                    this.ctx.font = `${obj.fontSize}px Arial`;
+                    this.ctx.fillText(obj.text, obj.x, obj.y);
+                } else {
+                    this.drawShape(obj);
+                }
+                
+                this.ctx.restore();
+            }
+        }
+        
+        this.ctx.restore();
+        
+        // Renderizar notas adesivas separadamente (sem transformações)
+        this.ctx.save();
+        const stickyNotes = document.querySelectorAll('.sticky-note');
+        stickyNotes.forEach(note => {
+            if (note.style.display !== 'none') {
+                const rect = note.getBoundingClientRect();
+                const canvasRect = this.canvas.getBoundingClientRect();
+                
+                // Calcular posição no canvas considerando o zoom e offset
+                const canvasX = (rect.left - canvasRect.left) * (this.canvas.width / canvasRect.width);
+                const canvasY = (rect.top - canvasRect.top) * (this.canvas.height / canvasRect.height);
+                const canvasWidth = rect.width * (this.canvas.width / canvasRect.width);
+                const canvasHeight = rect.height * (this.canvas.height / canvasRect.height);
+                
+                // Desenhar a nota adesiva
+                this.ctx.fillStyle = note.style.backgroundColor || '#ffeb3b';
+                this.ctx.fillRect(canvasX, canvasY, canvasWidth, canvasHeight);
+                
+                // Desenhar borda
+                this.ctx.strokeStyle = '#ddd';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(canvasX, canvasY, canvasWidth, canvasHeight);
+                
+                // Desenhar texto
+                this.ctx.fillStyle = '#333';
+                this.ctx.font = '16px Arial';
+                this.ctx.textAlign = 'left';
+                this.ctx.textBaseline = 'top';
+                
+                const text = note.textContent || note.innerText || '';
+                if (text.trim()) {
+                    const lines = this.wrapText(text.trim(), canvasWidth - 20);
+                    lines.forEach((line, index) => {
+                        this.ctx.fillText(line, canvasX + 10, canvasY + 10 + (index * 20));
+                    });
+                }
+            }
+        });
+        
+        this.ctx.restore();
+    }
+    
+    // Método auxiliar para quebrar texto em linhas
+    wrapText(text, maxWidth) {
+        const words = text.split(' ');
+        const lines = [];
+        let currentLine = '';
+        
+        for (let word of words) {
+            const testLine = currentLine + (currentLine ? ' ' : '') + word;
+            const metrics = this.ctx.measureText(testLine);
+            
+            if (metrics.width > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines;
+    }
+    
+    // Método de fallback simples para capturar canvas
+    getSimpleCanvasImage() {
+        // Salvar estado atual
+        const currentSelectedObject = this.selectedObject;
+        const currentSelectedObjects = [...this.selectedObjects];
+        
+        // Limpar seleções
+        this.selectedObject = null;
+        this.selectedObjects = [];
+        this.clearSelectionHandles();
+        
+        // Usar o redraw normal
+        this.redraw();
+        
+        // Capturar imagem
+        const dataURL = this.canvas.toDataURL('image/png', 1.0);
+        
+        // Restaurar estado
+        this.selectedObject = currentSelectedObject;
+        this.selectedObjects = currentSelectedObjects;
+        if (currentSelectedObject) {
+            this.showPropertiesPanel(currentSelectedObject);
+        }
+        this.redraw();
+        
+        return dataURL;
+    }
+    
+    // Método otimizado para redraw com requestAnimationFrame
+    requestRedraw() {
+        if (this.animationFrameId) {
+            return; // Já há um redraw agendado
+        }
+        
+        this.animationFrameId = requestAnimationFrame(() => {
+            this.redraw();
+            this.animationFrameId = null;
+        });
+    }
+    
+    // Cancelar redraw pendente
+    cancelRedraw() {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+    
+    // Método para movimento fluido com throttling
+    smoothMove(deltaX, deltaY) {
+        const now = performance.now();
+        
+        // Throttle menos agressivo para movimento mais fluido
+        const throttleDelay = this.isMobile() ? 8 : 4;
+        
+        if (now - this.lastMoveTime < throttleDelay) {
+            return;
+        }
+        
+        this.lastMoveTime = now;
+        
+        // Reduzir o threshold de movimentos pequenos para melhor responsividade
+        if (Math.abs(deltaX) < 0.2 && Math.abs(deltaY) < 0.2) {
+            return;
+        }
+        
+        if (this.selectedObject) {
+            this.moveObject(this.selectedObject, deltaX, deltaY);
+        } else if (this.selectedObjects.length > 0) {
+            this.selectedObjects.forEach(obj => {
+                this.moveObject(obj, deltaX, deltaY);
+            });
+        }
+        
+        // Usar requestAnimationFrame para redraw suave
+        this.requestRedraw();
+    }
+    
+    // Exportar como PNG
+    async exportToPNG() {
+        try {
+            let dataURL = await this.getCleanCanvasImage();
+            
+            // Se falhar, tentar método de fallback
+            if (!dataURL) {
+                console.log('Método principal falhou, tentando fallback...');
+                dataURL = this.getSimpleCanvasImage();
+            }
+            
+            if (dataURL && dataURL !== 'data:,') {
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = `whiteboard-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Erro ao exportar PNG. Verifique se há elementos desenhados no whiteboard.');
+            }
+        } catch (error) {
+            console.error('Erro ao exportar PNG:', error);
+            // Tentar método de fallback
+            try {
+                const dataURL = this.getSimpleCanvasImage();
+                if (dataURL && dataURL !== 'data:,') {
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = `whiteboard-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert('Erro ao exportar PNG. Verifique se há elementos desenhados no whiteboard.');
+                }
+            } catch (fallbackError) {
+                console.error('Erro no fallback:', fallbackError);
+                alert('Erro ao exportar PNG. Tente novamente.');
+            }
+        }
+    }
+    
+    // Exportar como PDF
+    async exportToPDF() {
+        try {
+            const dataURL = await this.getCleanCanvasImage();
+            if (!dataURL) {
+                alert('Erro ao exportar PDF. Tente novamente.');
+                return;
+            }
+            
+            // Verificar se jsPDF está disponível
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                alert('Biblioteca jsPDF não carregada. Recarregue a página e tente novamente.');
+                return;
+            }
+            
+            // Usar jsPDF
+            const { jsPDF } = window.jspdf;
+            
+            // Calcular dimensões do canvas
+            const canvasWidth = this.canvas.width;
+            const canvasHeight = this.canvas.height;
+            
+            // Calcular tamanho do PDF (A4 landscape se muito largo, portrait se alto)
+            const aspectRatio = canvasWidth / canvasHeight;
+            let pdfWidth, pdfHeight;
+            
+            if (aspectRatio > 1.4) {
+                // Formato landscape para canvas muito largo
+                pdfWidth = 297; // A4 landscape width in mm
+                pdfHeight = 210; // A4 landscape height in mm
+            } else {
+                // Formato portrait
+                pdfWidth = 210; // A4 portrait width in mm
+                pdfHeight = 297; // A4 portrait height in mm
+            }
+            
+            // Ajustar dimensões mantendo aspect ratio
+            const pdfAspectRatio = pdfWidth / pdfHeight;
+            if (aspectRatio > pdfAspectRatio) {
+                // Canvas é mais largo que o PDF, ajustar pela largura
+                pdfHeight = pdfWidth / aspectRatio;
+            } else {
+                // Canvas é mais alto que o PDF, ajustar pela altura
+                pdfWidth = pdfHeight * aspectRatio;
+            }
+            
+            const pdf = new jsPDF({
+                orientation: aspectRatio > 1.4 ? 'landscape' : 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            // Adicionar a imagem do canvas ao PDF
+            pdf.addImage(dataURL, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            
+            // Baixar o PDF
+            const fileName = `whiteboard-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`;
+            pdf.save(fileName);
+        } catch (error) {
+            console.error('Erro ao exportar PDF:', error);
+            alert('Erro ao exportar PDF. Tente novamente.');
+        }
+    }
+    
+    // Métodos de persistência de dados
+    saveToLocalStorage() {
+        if (!this.autoSaveEnabled) return;
+        
+        try {
+            const data = {
+                objects: this.objects,
+                scale: this.scale,
+                offsetX: this.offsetX,
+                offsetY: this.offsetY,
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem(this.saveKey, JSON.stringify(data));
+            this.lastSaveTime = Date.now();
+            console.log('Whiteboard salvo automaticamente');
+            
+            // Mostrar feedback visual discreto
+            this.showSaveIndicator();
+        } catch (error) {
+            console.warn('Erro ao salvar no localStorage:', error);
+        }
+    }
+    
+    loadFromLocalStorage() {
+        try {
+            const savedData = localStorage.getItem(this.saveKey);
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                
+                // Restaurar objetos
+                this.objects = data.objects || [];
+                
+                // Restaurar visualização (opcional)
+                if (data.scale !== undefined) {
+                    this.scale = data.scale;
+                    this.offsetX = data.offsetX || 0;
+                    this.offsetY = data.offsetY || 0;
+                }
+                
+                // Redraw para mostrar os objetos carregados
+                this.redraw();
+                this.updateZoomDisplay();
+                
+                console.log('Whiteboard carregado do localStorage');
+                return true;
+            }
+        } catch (error) {
+            console.warn('Erro ao carregar do localStorage:', error);
+        }
+        return false;
+    }
+    
+    // Auto-save com throttling
+    autoSave() {
+        const now = Date.now();
+        if (now - this.lastSaveTime > 2000) { // Salvar a cada 2 segundos no máximo
+            this.saveToLocalStorage();
+        }
+    }
+    
+    // Limpar dados salvos
+    clearSavedData() {
+        try {
+            localStorage.removeItem(this.saveKey);
+            console.log('Dados salvos limpos');
+        } catch (error) {
+            console.warn('Erro ao limpar dados salvos:', error);
+        }
+    }
+    
+    // Mostrar indicador visual de salvamento
+    showSaveIndicator() {
+        // Criar ou atualizar indicador
+        let indicator = document.getElementById('saveIndicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'saveIndicator';
+            indicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4caf50;
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 14px;
+                z-index: 10000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none;
+            `;
+            indicator.textContent = 'Salvo automaticamente';
+            document.body.appendChild(indicator);
+        }
+        
+        // Mostrar e esconder
+        indicator.style.opacity = '1';
+        setTimeout(() => {
+            indicator.style.opacity = '0';
+        }, 1500);
+    }
 }
 
 // Initialize whiteboard
@@ -2215,7 +3048,6 @@ let whiteboard;
 
 document.addEventListener('DOMContentLoaded', () => {
     whiteboard = new Whiteboard();
-    
     // Set default note color as selected
     document.querySelector('.note-color[data-color="#ffeb3b"]').classList.add('selected');
 });
@@ -2224,11 +3056,24 @@ document.addEventListener('DOMContentLoaded', () => {
 function clearCanvas() {
     if (confirm('Tem certeza que deseja limpar todo o whiteboard?')) {
         whiteboard.clear();
+        
+        // Perguntar se também quer limpar dados salvos
+        if (confirm('Deseja também limpar os dados salvos automaticamente?')) {
+            whiteboard.clearSavedData();
+        }
     }
 }
 
 function saveCanvas() {
     whiteboard.save();
+}
+
+function exportPNG() {
+    whiteboard.exportToPNG();
+}
+
+function exportPDF() {
+    whiteboard.exportToPDF();
 }
 
 function loadCanvas() {
@@ -2283,6 +3128,13 @@ function undo() {
 
 function redo() {
     whiteboard.redo();
+}
+
+function clearSavedData() {
+    if (confirm('Tem certeza que deseja limpar todos os dados salvos automaticamente?')) {
+        whiteboard.clearSavedData();
+        alert('Dados salvos limpos com sucesso!');
+    }
 }
 
 // Text modal functions

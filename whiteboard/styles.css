@@ -21,31 +21,61 @@ body {
     position: fixed;
     top: 20px;
     left: 20px;
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
     background: #2196f3;
     color: white;
     border: none;
     border-radius: 50%;
-    font-size: 18px;
+    font-size: 20px;
     cursor: pointer;
-    z-index: 1001;
+    z-index: 9999;
     display: none;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+    transition: all 0.2s ease;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: auto;
+    /* Ensure it's always interactive */
+    isolation: isolate;
 }
 
 .mobile-menu-toggle:hover {
     background: #1976d2;
     transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(33, 150, 243, 0.5);
 }
 
 .mobile-menu-toggle:active {
     transform: scale(0.95);
+    background: #1565c0;
+}
+
+/* Additional mobile touch optimizations */
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        /* Larger touch target on mobile */
+        width: 60px;
+        height: 60px;
+        font-size: 22px;
+    }
+    
+    /* Remove hover effects on touch devices */
+    .mobile-menu-toggle:hover {
+        background: #2196f3;
+        transform: none;
+        box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+    }
+    
+    /* Better active state for touch */
+    .mobile-menu-toggle:active {
+        background: #1976d2;
+        transform: scale(0.9);
+    }
 }
 
 .toolbar {
@@ -228,7 +258,7 @@ body {
 
 /* Properties Panel */
 .properties-panel {
-    position: absolute;
+    position: fixed;
     top: 100px;
     right: 20px;
     width: 250px;
@@ -236,8 +266,17 @@ body {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     padding: 20px;
-    z-index: 1000;
+    z-index: 100;
     display: none;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+
+.properties-panel.positioned {
+    /* When positioned dynamically, remove default positioning */
+    right: auto;
+    top: auto;
 }
 
 .properties-panel h3 {
@@ -280,6 +319,88 @@ body {
     margin-left: 8px;
 }
 
+.font-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.font-size-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    color: #333;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.font-size-btn:hover {
+    background: #f0f0f0;
+    border-color: #bbb;
+}
+
+.font-size-btn:active {
+    background: #e0e0e0;
+    transform: scale(0.95);
+}
+
+.font-size-controls input[type="number"] {
+    flex: 1;
+    text-align: center;
+    margin: 0;
+}
+
+.sensitivity-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.sensitivity-controls input[type="range"] {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+}
+
+.sensitivity-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #2196f3;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sensitivity-controls input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #2196f3;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#sensitivityValue {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 500;
+    color: #2196f3;
+}
+
 /* Modal Styles */
 .modal {
     position: fixed;
@@ -317,6 +438,22 @@ body {
     resize: vertical;
     font-family: inherit;
     font-size: 14px;
+}
+
+.modal-hint {
+    margin-top: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.modal-hint small {
+    color: #666;
+    font-size: 12px;
+    display: inline-block;
+    padding: 4px 8px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(33, 150, 243, 0.2);
 }
 
 .note-colors {
@@ -532,10 +669,18 @@ body {
     }
     
     .properties-panel {
+        position: fixed;
+        bottom: 80px;
         right: 10px;
-        width: 220px;
-        max-height: 50vh;
+        left: 10px;
+        top: auto;
+        width: auto;
+        max-height: 40vh;
         overflow-y: auto;
+        z-index: 200;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(0, 0, 0, 0.1);
     }
     
     /* Larger touch targets for mobile */
@@ -682,5 +827,25 @@ body {
     }
     to {
         transform: translateX(0);
+    }
+}
+
+/* Mobile font size controls */
+@media (max-width: 768px) {
+    .font-size-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        border-radius: 8px;
+    }
+    
+    .font-size-controls {
+        gap: 12px;
+    }
+    
+    .font-size-controls input[type="number"] {
+        min-height: 44px;
+        font-size: 16px;
+        border-radius: 8px;
     }
 }

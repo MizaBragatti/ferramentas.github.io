@@ -11,6 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E📝%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="whiteboard-container">
@@ -133,11 +134,20 @@
                         <button class="tool-btn" onclick="clearCanvas()" title="Limpar">
                             <i class="fas fa-trash"></i>
                         </button>
-                        <button class="tool-btn" onclick="saveCanvas()" title="Salvar">
+                        <button class="tool-btn" onclick="saveCanvas()" title="Salvar JSON">
                             <i class="fas fa-save"></i>
+                        </button>
+                        <button class="tool-btn" onclick="exportPNG()" title="Exportar PNG">
+                            <i class="fas fa-image"></i>
+                        </button>
+                        <button class="tool-btn" onclick="exportPDF()" title="Exportar PDF">
+                            <i class="fas fa-file-pdf"></i>
                         </button>
                         <button class="tool-btn" onclick="loadCanvas()" title="Carregar">
                             <i class="fas fa-folder-open"></i>
+                        </button>
+                        <button class="tool-btn" onclick="clearSavedData()" title="Limpar Dados Salvos">
+                            <i class="fas fa-database"></i>
                         </button>
                     </div>
                 </div>
@@ -193,8 +203,20 @@
             </div>
             <div class="property-group" id="fontSizeGroup" style="display: none;">
                 <label>Tamanho da Fonte:</label>
-                <input type="number" id="propFontSize" min="8" max="200" placeholder="16">
-                <span>px</span>
+                <div class="font-size-controls">
+                    <button type="button" class="font-size-btn" id="fontSizeDown">-</button>
+                    <input type="number" id="propFontSize" min="8" max="200" placeholder="16" step="1">
+                    <button type="button" class="font-size-btn" id="fontSizeUp">+</button>
+                    <span>px</span>
+                </div>
+            </div>
+            <div class="property-group">
+                <label>Sensibilidade do Redimensionamento:</label>
+                <div class="sensitivity-controls">
+                    <input type="range" id="resizeSensitivity" min="0.1" max="1.0" step="0.1" value="0.6">
+                    <span id="sensitivityValue">60%</span>
+                </div>
+                <small>Menor = mais suave, Maior = mais responsivo</small>
             </div>
             <button onclick="deleteSelected()">Excluir</button>
         </div>
@@ -205,6 +227,9 @@
         <div class="modal-content">
             <h3>Adicionar Texto</h3>
             <textarea id="textInput" placeholder="Digite seu texto aqui..."></textarea>
+            <div class="modal-hint">
+                <small>💡 Dica: Ctrl+Enter para adicionar, Esc para cancelar</small>
+            </div>
             <div class="modal-buttons">
                 <button onclick="addText()">Adicionar</button>
                 <button onclick="closeTextModal()">Cancelar</button>
@@ -217,6 +242,9 @@
         <div class="modal-content">
             <h3>Criar Nota Adesiva</h3>
             <textarea id="noteInput" placeholder="Digite o conteúdo da nota..."></textarea>
+            <div class="modal-hint">
+                <small>💡 Dica: Ctrl+Enter para criar, Esc para cancelar</small>
+            </div>
             <div class="note-colors">
                 <div class="note-color" data-color="#ffeb3b" style="background: #ffeb3b;"></div>
                 <div class="note-color" data-color="#ff9800" style="background: #ff9800;"></div>
