@@ -53,6 +53,11 @@ class Whiteboard {
         this.autoSaveEnabled = true;
         this.saveKey = 'whiteboard_data';
         this.lastSaveTime = 0;
+        this.isInitialized = false;
+        
+        // Grid properties
+        this.showGrid = false;
+        this.gridSize = 20;
         this.offsetX = 0;
         this.offsetY = 0;
         this.minScale = 0.1;
@@ -78,19 +83,22 @@ class Whiteboard {
         this.bindEvents();
         this.initMobileFeatures();
         this.updateCanvasSize();
-        
-        // Carregar dados salvos automaticamente
-        setTimeout(() => {
-            this.loadFromLocalStorage();
-        }, 100);
     }
     
     initCanvas() {
         this.updateCanvasSize();
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
-        this.saveState(); // Save initial empty state
-        this.redraw();
+        
+        // Verificar se há dados salvos antes de inicializar
+        const hasSavedData = localStorage.getItem(this.saveKey);
+        
+        if (!hasSavedData) {
+            // Só salva estado inicial se não há dados salvos
+            this.saveState(); 
+            this.redraw();
+        }
+        // Se há dados salvos, não faz redraw inicial - será feito após carregar
         // Touch tracking properties
         this.lastTouchDistance = 0;
         this.lastTouchCenter = { x: 0, y: 0 };
@@ -256,17 +264,7 @@ class Whiteboard {
             }
         });
         
-        // Resize sensitivity control
-        document.getElementById('resizeSensitivity').addEventListener('input', (e) => {
-            if (e.target && e.target.value !== undefined) {
-                this.resizeSensitivity = parseFloat(e.target.value);
-                const percentage = Math.round(this.resizeSensitivity * 100);
-                const sensitivityValue = document.getElementById('sensitivityValue');
-                if (sensitivityValue) {
-                    sensitivityValue.textContent = percentage + '%';
-                }
-            }
-        });
+
         
         // Window resize
         window.addEventListener('resize', () => {
@@ -453,6 +451,11 @@ class Whiteboard {
                     this.resizeStartBounds = JSON.parse(JSON.stringify(this.getObjectBounds(this.selectedObject)));
                     // Initialize lastResizePos for smoothing/clamping
                     this.lastResizePos = { x: pos.x, y: pos.y };
+                    
+                    // Reset text resize helper properties for accurate font scaling
+                    if (this.selectedObject.type === 'text') {
+                        this.selectedObject.originalFontSize = this.selectedObject.fontSize;
+                    }
                 }
                 return;
             }
@@ -531,8 +534,22 @@ class Whiteboard {
             // Handle rotation
             const center = this.getObjectCenter(this.selectedObject);
             const currentAngle = this.calculateAngle(pos, center);
-            const angleDelta = currentAngle - this.rotationStart;
+
+            // Normalize angle delta to the shortest rotation path to avoid wrapping jumps
+            let rawDelta = currentAngle - this.rotationStart;
+            const TWO_PI = Math.PI * 2;
+            // Normalize rawDelta into range [-PI, PI]
+            rawDelta = ((rawDelta + Math.PI) % TWO_PI + TWO_PI) % TWO_PI - Math.PI;
+
+            // Apply a tiny deadzone to avoid micro-jitter when angle is very small
+            const DEADZONE = 0.0005; // radians (~0.03 degrees)
+            const angleDelta = Math.abs(rawDelta) < DEADZONE ? 0 : rawDelta;
+
             this.selectedObject.rotation = this.initialRotation + angleDelta;
+            // Normalize object's rotation into [0, 2PI)
+            if (this.selectedObject.rotation < 0) this.selectedObject.rotation += TWO_PI;
+            if (this.selectedObject.rotation >= TWO_PI) this.selectedObject.rotation -= TWO_PI;
+
             this.requestRedraw();
         } else if (this.isResizing && this.selectedObject && this.resizeHandle) {
             // Handle resizing
@@ -620,6 +637,12 @@ class Whiteboard {
             this.resizeHandle = null;
             this.resizeStartBounds = null;
             this.lastResizePos = null;
+            
+            // Clean up text resize helper properties
+            if (this.selectedObject && this.selectedObject.type === 'text') {
+                delete this.selectedObject.originalFontSize;
+            }
+            
             this.saveState(); // Save state for undo/redo
             return;
         }
@@ -1042,14 +1065,6 @@ class Whiteboard {
             
             // Set mobile-friendly resize sensitivity default
             this.resizeSensitivity = 0.35;
-            const resizeSensitivitySlider = document.getElementById('resizeSensitivity');
-            if (resizeSensitivitySlider) {
-                resizeSensitivitySlider.value = this.resizeSensitivity;
-                const sensitivityValue = document.getElementById('sensitivityValue');
-                if (sensitivityValue) {
-                    sensitivityValue.textContent = Math.round(this.resizeSensitivity * 100) + '%';
-                }
-            }
         } else {
             // Configure for desktop
             const fontSizeInput = document.getElementById('propFontSize');
@@ -1059,14 +1074,6 @@ class Whiteboard {
             
             // Set desktop resize sensitivity default
             this.resizeSensitivity = 0.6;
-            const resizeSensitivitySlider = document.getElementById('resizeSensitivity');
-            if (resizeSensitivitySlider) {
-                resizeSensitivitySlider.value = this.resizeSensitivity;
-                const sensitivityValue = document.getElementById('sensitivityValue');
-                if (sensitivityValue) {
-                    sensitivityValue.textContent = Math.round(this.resizeSensitivity * 100) + '%';
-                }
-            }
         }
     }
     
@@ -1253,6 +1260,8 @@ class Whiteboard {
     }
     
     finishDrawing() {
+        let shapeWasCreated = false;
+        
         if (this.currentPath) {
             // Ensure the path has proper properties
             this.currentPath.forEach(path => {
@@ -1264,6 +1273,9 @@ class Whiteboard {
             this.objects.push(...this.currentPath);
             this.currentPath = null;
             this.saveState(); // Save state for undo/redo
+            // Force immediate save for persistence
+            this.saveToLocalStorage();
+            shapeWasCreated = true;
         }
         if (this.currentShape) {
             // Ensure the shape has proper properties
@@ -1274,7 +1286,16 @@ class Whiteboard {
             this.objects.push(this.currentShape);
             this.currentShape = null;
             this.saveState(); // Save state for undo/redo
+            // Force immediate save for persistence
+            this.saveToLocalStorage();
+            shapeWasCreated = true;
         }
+        
+        // Automatically switch to select tool after drawing a shape
+        if (shapeWasCreated && this.currentTool !== 'select' && this.currentTool !== 'text') {
+            this.setTool('select');
+        }
+        
         this.redraw();
     }
     
@@ -1884,13 +1905,50 @@ class Whiteboard {
         // Handles are now drawn directly on canvas, no need to update DOM
     }
     
+    // Função auxiliar para transformar coordenadas considerando rotação
+    transformPoint(point, center, rotation) {
+        if (!rotation || rotation === 0) return point;
+        
+        const cos = Math.cos(rotation);
+        const sin = Math.sin(rotation);
+        const dx = point.x - center.x;
+        const dy = point.y - center.y;
+        
+        return {
+            x: center.x + dx * cos - dy * sin,
+            y: center.y + dx * sin + dy * cos
+        };
+    }
+    
+    // Função auxiliar para transformar coordenadas inversas (para detecção de hit)
+    inverseTransformPoint(point, center, rotation) {
+        if (!rotation || rotation === 0) return point;
+        
+        const cos = Math.cos(-rotation); // Rotação inversa
+        const sin = Math.sin(-rotation);
+        const dx = point.x - center.x;
+        const dy = point.y - center.y;
+        
+        return {
+            x: center.x + dx * cos - dy * sin,
+            y: center.y + dx * sin + dy * cos
+        };
+    }
+    
     getResizeHandleAt(pos) {
         if (!this.selectedObject) return null;
         
         const bounds = this.getObjectBounds(this.selectedObject);
         const handleSize = this.isMobile() ? 25 / this.scale : 15 / this.scale; // Larger touch targets on mobile
         
-        // Resize handles
+        // Se o objeto está rotacionado, transformamos a posição do mouse para o espaço não-rotacionado
+        let transformedPos = pos;
+        if (this.selectedObject.rotation && this.selectedObject.rotation !== 0) {
+            const center = this.getObjectCenter(this.selectedObject);
+            transformedPos = this.inverseTransformPoint(pos, center, this.selectedObject.rotation);
+        }
+        
+        // Resize handles (no espaço não-rotacionado)
         const handles = [
             { direction: 'nw', x: bounds.minX, y: bounds.minY },
             { direction: 'n', x: (bounds.minX + bounds.maxX) / 2, y: bounds.minY },
@@ -1911,7 +1969,7 @@ class Whiteboard {
         
         // Check rotation handle first
         const rotationDistance = Math.sqrt(
-            Math.pow(pos.x - rotationHandle.x, 2) + Math.pow(pos.y - rotationHandle.y, 2)
+            Math.pow(transformedPos.x - rotationHandle.x, 2) + Math.pow(transformedPos.y - rotationHandle.y, 2)
         );
         if (rotationDistance <= handleSize) {
             return 'rotate';
@@ -1920,7 +1978,7 @@ class Whiteboard {
         // Check resize handles
         for (let handle of handles) {
             const distance = Math.sqrt(
-                Math.pow(pos.x - handle.x, 2) + Math.pow(pos.y - handle.y, 2)
+                Math.pow(transformedPos.x - handle.x, 2) + Math.pow(transformedPos.y - handle.y, 2)
             );
             if (distance <= handleSize) {
                 return handle.direction;
@@ -2029,15 +2087,27 @@ class Whiteboard {
             if (originalHeight > 0) {
                 let heightRatio = newHeight / originalHeight;
                 
-                // Make font scaling less sensitive on mobile
-                if (this.isMobile()) {
-                    // Reduce sensitivity by using square root - makes large changes smaller
-                    heightRatio = heightRatio > 1 ? 
-                        1 + Math.sqrt(heightRatio - 1) * 0.5 : // Slower growth
-                        1 - (1 - heightRatio) * 0.5; // Slower shrinking
+                // Store the original font size if not already stored
+                if (obj.originalFontSize === undefined) {
+                    obj.originalFontSize = obj.fontSize;
                 }
                 
-                obj.fontSize = Math.max(8, Math.min(200, obj.fontSize * heightRatio));
+                // Make font scaling less sensitive with damping
+                if (this.isMobile()) {
+                    // Extra damping for mobile - use sqrt damping for smoother control
+                    heightRatio = heightRatio > 1 ? 
+                        1 + Math.sqrt(heightRatio - 1) * 0.7 : // Slower growth
+                        1 - (1 - heightRatio) * 0.7; // Slower shrinking
+                } else {
+                    // Desktop gets moderate damping for smoother control
+                    heightRatio = heightRatio > 1 ? 
+                        1 + (heightRatio - 1) * 0.8 : // Slightly slower growth
+                        1 - (1 - heightRatio) * 0.8; // Slightly slower shrinking
+                }
+                
+                // Apply size change directly from original font size to avoid accumulation
+                const newFontSize = obj.originalFontSize * heightRatio;
+                obj.fontSize = Math.max(8, Math.min(200, newFontSize));
             }
         } else if (obj.type === 'pen' && obj.points && obj.points.length > 0) {
             // Scale pen points proportionally
@@ -2177,6 +2247,11 @@ class Whiteboard {
     redraw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Draw grid if enabled
+        if (this.showGrid) {
+            this.drawGrid();
+        }
+        
         this.ctx.save();
         this.ctx.scale(this.scale, this.scale);
         this.ctx.translate(this.offsetX / this.scale, this.offsetY / this.scale);
@@ -2232,11 +2307,55 @@ class Whiteboard {
         this.ctx.restore();
     }
     
+    drawGrid() {
+        this.ctx.save();
+        
+        // Apply transformations for grid to follow zoom/pan
+        this.ctx.scale(this.scale, this.scale);
+        this.ctx.translate(this.offsetX / this.scale, this.offsetY / this.scale);
+        
+        this.ctx.strokeStyle = '#e0e0e0';
+        this.ctx.lineWidth = 0.5 / this.scale;
+        this.ctx.globalAlpha = 0.5;
+        
+        // Calculate visible bounds
+        const startX = Math.floor((-this.offsetX / this.scale) / this.gridSize) * this.gridSize;
+        const endX = Math.ceil((this.canvas.width / this.scale - this.offsetX / this.scale) / this.gridSize) * this.gridSize;
+        const startY = Math.floor((-this.offsetY / this.scale) / this.gridSize) * this.gridSize;
+        const endY = Math.ceil((this.canvas.height / this.scale - this.offsetY / this.scale) / this.gridSize) * this.gridSize;
+        
+        this.ctx.beginPath();
+        
+        // Draw vertical lines
+        for (let x = startX; x <= endX; x += this.gridSize) {
+            this.ctx.moveTo(x, startY);
+            this.ctx.lineTo(x, endY);
+        }
+        
+        // Draw horizontal lines
+        for (let y = startY; y <= endY; y += this.gridSize) {
+            this.ctx.moveTo(startX, y);
+            this.ctx.lineTo(endX, y);
+        }
+        
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+    
     drawSelection(obj) {
         const bounds = this.getObjectBounds(obj);
         const padding = 5;
         
         this.ctx.save();
+        
+        // Apply rotation if object is rotated
+        if (obj.rotation && obj.rotation !== 0) {
+            const center = this.getObjectCenter(obj);
+            this.ctx.translate(center.x, center.y);
+            this.ctx.rotate(obj.rotation);
+            this.ctx.translate(-center.x, -center.y);
+        }
+        
         this.ctx.strokeStyle = '#2196f3';
         this.ctx.lineWidth = 2 / this.scale;
         this.ctx.setLineDash([5 / this.scale, 5 / this.scale]);
@@ -2498,8 +2617,10 @@ class Whiteboard {
         
         this.updateUndoRedoButtons();
         
-        // Auto-save após mudanças
-        this.autoSave();
+        // Auto-save após mudanças (apenas se não é inicialização)
+        if (this.isInitialized) {
+            this.autoSave();
+        }
     }
     
     updateUndoRedoButtons() {
@@ -2949,12 +3070,13 @@ class Whiteboard {
                 scale: this.scale,
                 offsetX: this.offsetX,
                 offsetY: this.offsetY,
+                showGrid: this.showGrid,
                 timestamp: Date.now()
             };
             
             localStorage.setItem(this.saveKey, JSON.stringify(data));
             this.lastSaveTime = Date.now();
-            console.log('Whiteboard salvo automaticamente');
+            console.log('Whiteboard salvo automaticamente - Objetos:', this.objects.length);
             
             // Mostrar feedback visual discreto
             this.showSaveIndicator();
@@ -2979,12 +3101,39 @@ class Whiteboard {
                     this.offsetY = data.offsetY || 0;
                 }
                 
+                // Restaurar configuração da grade
+                if (data.showGrid !== undefined) {
+                    this.showGrid = data.showGrid;
+                } else {
+                    // Se não há configuração salva, inicializar como desabilitada
+                    this.showGrid = false;
+                }
+                
+                // Update grid button state and CSS background
+                const gridToggle = document.getElementById('gridToggle');
+                const gridBackground = document.querySelector('.grid-background');
+                
+                if (gridToggle) {
+                    if (this.showGrid) {
+                        gridToggle.classList.add('active');
+                        gridToggle.title = 'Ocultar Grade';
+                        if (gridBackground) gridBackground.style.display = 'block';
+                    } else {
+                        gridToggle.classList.remove('active');
+                        gridToggle.title = 'Mostrar Grade';
+                        if (gridBackground) gridBackground.style.display = 'none';
+                    }
+                }
+                
                 // Redraw para mostrar os objetos carregados
                 this.redraw();
                 this.updateZoomDisplay();
                 
-                console.log('Whiteboard carregado do localStorage');
+                console.log('Whiteboard carregado do localStorage - Objetos:', this.objects.length);
                 return true;
+            } else {
+                console.log('Nenhum dado salvo encontrado no localStorage');
+                return false;
             }
         } catch (error) {
             console.warn('Erro ao carregar do localStorage:', error);
@@ -2995,7 +3144,7 @@ class Whiteboard {
     // Auto-save com throttling
     autoSave() {
         const now = Date.now();
-        if (now - this.lastSaveTime > 2000) { // Salvar a cada 2 segundos no máximo
+        if (now - this.lastSaveTime > 1000) { // Salvar a cada 1 segundo no máximo
             this.saveToLocalStorage();
         }
     }
@@ -3048,6 +3197,19 @@ let whiteboard;
 
 document.addEventListener('DOMContentLoaded', () => {
     whiteboard = new Whiteboard();
+    
+    // Carregar dados salvos imediatamente
+    const loaded = whiteboard.loadFromLocalStorage();
+    
+    // Marcar como inicializado após carregar dados
+    whiteboard.isInitialized = true;
+    
+    // Se não havia dados salvos, fazer redraw inicial
+    if (!loaded) {
+        whiteboard.saveState(); // Save initial empty state
+        whiteboard.redraw();
+    }
+    
     // Set default note color as selected
     document.querySelector('.note-color[data-color="#ffeb3b"]').classList.add('selected');
 });
@@ -3117,9 +3279,33 @@ function resetZoom() {
     whiteboard.redraw();
 }
 
+function toggleGrid() {
+    whiteboard.showGrid = !whiteboard.showGrid;
+    
+    // Control CSS grid background visibility
+    const gridBackground = document.querySelector('.grid-background');
+    if (gridBackground) {
+        gridBackground.style.display = whiteboard.showGrid ? 'block' : 'none';
+    }
+    
+    // Update button appearance
+    const gridToggle = document.getElementById('gridToggle');
+    if (whiteboard.showGrid) {
+        gridToggle.classList.add('active');
+        gridToggle.title = 'Ocultar Grade';
+    } else {
+        gridToggle.classList.remove('active');
+        gridToggle.title = 'Mostrar Grade';
+    }
+    
+    whiteboard.redraw();
+}
+
 function deleteSelected() {
     whiteboard.deleteSelected();
 }
+
+
 
 // Global functions for toolbar buttons
 function undo() {

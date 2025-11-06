@@ -254,6 +254,7 @@ body {
         linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
     z-index: -1;
+    display: none; /* Oculto por padrão */
 }
 
 /* Properties Panel */
@@ -357,49 +358,7 @@ body {
     margin: 0;
 }
 
-.sensitivity-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-}
 
-.sensitivity-controls input[type="range"] {
-    flex: 1;
-    height: 6px;
-    border-radius: 3px;
-    background: #ddd;
-    outline: none;
-}
-
-.sensitivity-controls input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #2196f3;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.sensitivity-controls input[type="range"]::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #2196f3;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-#sensitivityValue {
-    min-width: 40px;
-    text-align: center;
-    font-weight: 500;
-    color: #2196f3;
-}
 
 /* Modal Styles */
 .modal {
