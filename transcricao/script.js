@@ -16,6 +16,13 @@ class TranscritorWeb {
         this.translationQueue = [];
         this.isTranslating = false;
         
+        // Controles para gravação
+        this.mediaRecorder = null;
+        this.audioChunks = [];
+        this.isRecording = false;
+        this.recordedAudio = null;
+        this.transcriptionMode = 'live'; // 'live' ou 'record'
+        
         this.initializeElements();
         this.checkBrowserSupport();
         this.setupEventListeners();
@@ -27,12 +34,31 @@ class TranscritorWeb {
     }
 
     initializeElements() {
+        // Botões de controle
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
+        this.recordBtn = document.getElementById('recordBtn');
+        this.stopRecordBtn = document.getElementById('stopRecordBtn');
+        this.transcribeBtn = document.getElementById('transcribeBtn');
         this.clearBtn = document.getElementById('clearBtn');
         this.downloadBtn = document.getElementById('downloadBtn');
         this.clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
+        // Player de áudio
+        this.audioPlayerContainer = document.getElementById('audioPlayerContainer');
+        this.audioPlayer = document.getElementById('audioPlayer');
+        this.playBtn = document.getElementById('playBtn');
+        this.downloadAudioBtn = document.getElementById('downloadAudioBtn');
+        this.deleteAudioBtn = document.getElementById('deleteAudioBtn');
+        this.audioInfo = document.getElementById('audioInfo');
+
+        // Seleção de modo
+        this.liveMode = document.getElementById('liveMode');
+        this.recordMode = document.getElementById('recordMode');
+        this.liveControls = document.getElementById('liveControls');
+        this.recordControls = document.getElementById('recordControls');
+
+        // Configurações
         this.languageSelect = document.getElementById('languageSelect');
         this.continuousMode = document.getElementById('continuousMode');
         this.interimResults = document.getElementById('interimResults');
@@ -210,6 +236,11 @@ class TranscritorWeb {
         
         if (isScrolledToBottom || container.children.length <= 1) {
             container.scrollTop = container.scrollHeight;
+            
+            // Sincronizar scroll da área de tradução se estiver visível
+            if (this.translationArea && this.translationArea.style.display !== 'none') {
+                this.scrollTranslationToBottom();
+            }
         }
     }
 
@@ -361,17 +392,72 @@ class TranscritorWeb {
     }
 
     setupEventListeners() {
+        // Controles de transcrição em tempo real
         this.startBtn.addEventListener('click', () => this.startRecognition());
         this.stopBtn.addEventListener('click', () => this.stopRecognition());
+        
+        // Controles de gravação
+        this.recordBtn.addEventListener('click', () => this.startRecording());
+        this.stopRecordBtn.addEventListener('click', () => this.stopRecording());
+        this.transcribeBtn.addEventListener('click', () => this.transcribeAudio());
+        
+        // Player de áudio
+        this.playBtn.addEventListener('click', () => this.togglePlayback());
+        this.downloadAudioBtn.addEventListener('click', () => this.downloadAudio());
+        this.deleteAudioBtn.addEventListener('click', () => this.deleteAudio());
+        
+        // Event listeners do elemento de áudio
+        if (this.audioPlayer) {
+            this.audioPlayer.addEventListener('ended', () => {
+                this.playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduzir';
+                // Garantir que todos os botões permaneçam habilitados
+                this.playBtn.disabled = false;
+                this.downloadAudioBtn.disabled = false;
+                this.deleteAudioBtn.disabled = false;
+                this.transcribeBtn.disabled = false;
+            });
+            
+            this.audioPlayer.addEventListener('error', (event) => {
+                // Só mostrar erro se o player estiver visível e há um áudio válido
+                if (this.audioPlayerContainer.style.display !== 'none' && this.currentAudioBlob) {
+                    console.error('Erro no player de áudio:', event);
+                    this.showError('Erro ao reproduzir áudio.');
+                }
+                this.playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduzir';
+                // Manter botões habilitados mesmo em caso de erro
+                this.playBtn.disabled = false;
+                this.downloadAudioBtn.disabled = false;
+                this.deleteAudioBtn.disabled = false;
+                this.transcribeBtn.disabled = false;
+            });
+            
+            this.audioPlayer.addEventListener('play', () => {
+                this.playBtn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+            });
+            
+            this.audioPlayer.addEventListener('pause', () => {
+                this.playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduzir';
+            });
+        }
+        
+        // Seleção de modo
+        this.liveMode.addEventListener('change', () => this.switchMode('live'));
+        this.recordMode.addEventListener('change', () => this.switchMode('record'));
+        
+        // Controles gerais
         this.clearBtn.addEventListener('click', () => this.clearTranscription());
         this.downloadBtn.addEventListener('click', () => this.downloadTranscription());
         this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
 
+        // Configurações
         this.languageSelect.addEventListener('change', () => this.updateLanguage());
         this.continuousMode.addEventListener('change', () => this.saveSettings());
         this.interimResults.addEventListener('change', () => this.updateInterimResults());
         this.translationMode.addEventListener('change', () => this.toggleTranslation());
         this.targetLanguageSelect.addEventListener('change', () => this.updateTargetLanguage());
+
+        // Sincronização de scroll entre as colunas
+        this.setupScrollSync();
 
         this.closeErrorModal.addEventListener('click', () => this.hideError());
         this.dismissError.addEventListener('click', () => this.hideError());
@@ -446,7 +532,273 @@ class TranscritorWeb {
         }
     }
 
-    // ... resto dos métodos permanecem iguais ...
+    // ==================== FUNCIONALIDADES DE GRAVAÇÃO ====================
+
+    switchMode(mode) {
+        this.transcriptionMode = mode;
+        
+        if (mode === 'live') {
+            this.liveControls.style.display = 'flex';
+            this.recordControls.style.display = 'none';
+            this.hideAudioPlayer(); // Esconder player ao trocar para modo ao vivo
+            
+            // Parar gravação se estiver ativa
+            if (this.isRecording) {
+                this.stopRecording();
+            }
+        } else {
+            this.liveControls.style.display = 'none';
+            this.recordControls.style.display = 'flex';
+            
+            // Parar transcrição se estiver ativa
+            if (this.isListening) {
+                this.stopRecognition();
+            }
+        }
+        
+        this.saveSettings();
+    }
+
+    async startRecording() {
+        if (this.isRecording) return;
+        
+        try {
+            // Solicitar permissão para microfone
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    sampleRate: 44100
+                } 
+            });
+            
+            this.audioChunks = [];
+            
+            // Configurar MediaRecorder
+            const options = {
+                mimeType: 'audio/webm;codecs=opus'
+            };
+            
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options.mimeType = 'audio/webm';
+            }
+            
+            this.mediaRecorder = new MediaRecorder(stream, options);
+            
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    this.audioChunks.push(event.data);
+                }
+            };
+            
+            this.mediaRecorder.onstop = () => {
+                // Criar arquivo de áudio a partir dos chunks
+                const audioBlob = new Blob(this.audioChunks, { 
+                    type: this.mediaRecorder.mimeType 
+                });
+                
+                this.recordedAudio = audioBlob;
+                
+                // Parar stream do microfone
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Mostrar player de áudio
+                this.showAudioPlayer(audioBlob);
+                
+                // Esconder loading
+                this.hideLoading();
+                
+                // Limpar chunks para próxima gravação
+                this.audioChunks = [];
+            };
+            
+            // Iniciar gravação
+            this.mediaRecorder.start(1000); // Chunk a cada segundo
+            this.isRecording = true;
+            this.sessionStartTime = new Date();
+            
+            this.updateRecordingUI();
+            
+        } catch (error) {
+            console.error('Erro ao iniciar gravação:', error);
+            this.showError('Erro ao acessar o microfone. Verifique as permissões.');
+        }
+    }
+
+    stopRecording() {
+        if (!this.isRecording || !this.mediaRecorder) return;
+        
+        this.mediaRecorder.stop();
+        this.isRecording = false;
+        this.updateRecordingUI();
+        
+        this.showLoading('Processando gravação...');
+    }
+
+    async transcribeRecordedAudio() {
+        if (!this.recordedAudio) return;
+        
+        try {
+            // Converter blob para File
+            const audioFile = new File([this.recordedAudio], 'recording.webm', {
+                type: this.recordedAudio.type
+            });
+            
+            // Usar Web Speech API com áudio gravado
+            // Nota: A Web Speech API não suporta diretamente arquivos de áudio
+            // Então vamos simular reproduzindo o áudio e capturando
+            await this.transcribeFromAudioPlayback(this.recordedAudio);
+            
+        } catch (error) {
+            console.error('Erro na transcrição:', error);
+            this.showError('Erro ao transcrever áudio gravado.');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    async transcribeFromAudioPlayback(audioBlob) {
+        return new Promise((resolve, reject) => {
+            // Criar elemento de áudio para reprodução
+            const audio = document.createElement('audio');
+            audio.src = URL.createObjectURL(audioBlob);
+            audio.style.display = 'none';
+            document.body.appendChild(audio);
+            
+            // Configurar reconhecimento para capturar durante reprodução
+            if (!this.recognition) {
+                reject(new Error('Reconhecimento de voz não disponível'));
+                return;
+            }
+            
+            // Resetar arrays de transcrição para a gravação
+            const originalTranscriptions = [...this.finalTranscriptions];
+            this.finalTranscriptions = [];
+            this.lastResultIndex = 0;
+            
+            // Configurar eventos do reconhecimento
+            const originalOnResult = this.recognition.onresult;
+            const originalOnEnd = this.recognition.onend;
+            const originalOnError = this.recognition.onerror;
+            
+            let hasResults = false;
+            
+            this.recognition.onresult = (event) => {
+                hasResults = true;
+                if (this.isProcessingResult) return;
+                this.isProcessingResult = true;
+                
+                try {
+                    this.processResults(event);
+                } finally {
+                    this.isProcessingResult = false;
+                }
+            };
+            
+            this.recognition.onend = () => {
+                console.log('Transcrição do áudio gravado concluída');
+                
+                // Restaurar handlers originais
+                this.recognition.onresult = originalOnResult;
+                this.recognition.onend = originalOnEnd;
+                this.recognition.onerror = originalOnError;
+                
+                // Limpar elemento de áudio
+                document.body.removeChild(audio);
+                URL.revokeObjectURL(audio.src);
+                
+                if (hasResults) {
+                    // Mesclar com transcrições anteriores se existirem
+                    this.finalTranscriptions = [...originalTranscriptions, ...this.finalTranscriptions];
+                    this.displayFinalTranscriptions();
+                    this.updateStats();
+                    this.saveSession();
+                } else {
+                    this.finalTranscriptions = originalTranscriptions;
+                    this.showError('Nenhuma fala detectada no áudio gravado.');
+                }
+                
+                resolve();
+            };
+            
+            this.recognition.onerror = (event) => {
+                console.error('Erro na transcrição:', event.error);
+                
+                // Restaurar handlers originais
+                this.recognition.onresult = originalOnResult;
+                this.recognition.onend = originalOnEnd;
+                this.recognition.onerror = originalOnError;
+                
+                // Restaurar transcrições originais
+                this.finalTranscriptions = originalTranscriptions;
+                
+                // Limpar elemento de áudio
+                document.body.removeChild(audio);
+                URL.revokeObjectURL(audio.src);
+                
+                reject(new Error('Erro no reconhecimento: ' + event.error));
+            };
+            
+            // Configurar reprodução
+            audio.onended = () => {
+                // Aguardar um pouco para capturar últimas palavras
+                setTimeout(() => {
+                    if (this.recognition && this.isListening) {
+                        this.recognition.stop();
+                    }
+                }, 1000);
+            };
+            
+            // Iniciar reconhecimento e reprodução simultaneamente
+            try {
+                this.recognition.lang = this.languageSelect.value;
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                
+                this.recognition.start();
+                
+                // Aguardar um pouco e iniciar reprodução
+                setTimeout(() => {
+                    audio.volume = 1.0; // Volume máximo para melhor captura
+                    audio.play();
+                }, 500);
+                
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    updateRecordingUI() {
+        if (this.isRecording) {
+            this.recordBtn.disabled = true;
+            this.stopRecordBtn.disabled = false;
+            this.recordBtn.classList.add('recording');
+            this.recordBtn.innerHTML = '<i class="fas fa-circle"></i> Gravando...';
+            
+            this.statusIndicator.classList.add('recording');
+            this.statusIndicator.innerHTML = '<i class="fas fa-circle"></i> <span>Gravando Áudio</span>';
+            
+        } else {
+            this.recordBtn.disabled = false;
+            this.stopRecordBtn.disabled = true;
+            this.recordBtn.classList.remove('recording');
+            this.recordBtn.innerHTML = '<i class="fas fa-circle"></i> Iniciar Gravação';
+            
+            this.statusIndicator.classList.remove('recording');
+            this.statusIndicator.innerHTML = '<i class="fas fa-microphone-slash"></i> <span>Parado</span>';
+            
+            // Garantir que os botões do player de áudio permaneçam habilitados se existir áudio
+            if (this.currentAudioBlob && this.audioPlayerContainer.style.display === 'block') {
+                this.playBtn.disabled = false;
+                this.downloadAudioBtn.disabled = false;
+                this.deleteAudioBtn.disabled = false;
+                this.transcribeBtn.disabled = false;
+            }
+        }
+    }
+
+    // ==================== RESTO DOS MÉTODOS ====================
     updateLanguage() {
         if (this.recognition) {
             this.recognition.lang = this.languageSelect.value;
@@ -782,7 +1134,8 @@ class TranscritorWeb {
             continuous: this.continuousMode.checked,
             interimResults: this.interimResults.checked,
             translationEnabled: this.translationMode.checked,
-            targetLanguage: this.targetLanguageSelect.value
+            targetLanguage: this.targetLanguageSelect.value,
+            transcriptionMode: this.transcriptionMode
         };
         
         localStorage.setItem('transcriptionSettings', JSON.stringify(settings));
@@ -797,6 +1150,16 @@ class TranscritorWeb {
                 this.interimResults.checked = settings.interimResults !== false;
                 this.translationMode.checked = settings.translationEnabled || false;
                 this.targetLanguageSelect.value = settings.targetLanguage || 'pt';
+                this.transcriptionMode = settings.transcriptionMode || 'live';
+                
+                // Aplicar modo salvo
+                if (this.transcriptionMode === 'record') {
+                    this.recordMode.checked = true;
+                    this.switchMode('record');
+                } else {
+                    this.liveMode.checked = true;
+                    this.switchMode('live');
+                }
                 
                 this.toggleTranslation();
             }
@@ -804,6 +1167,9 @@ class TranscritorWeb {
             this.languageSelect.value = 'en-US';
             this.translationMode.checked = true;
             this.targetLanguageSelect.value = 'pt';
+            this.transcriptionMode = 'live';
+            this.liveMode.checked = true;
+            this.switchMode('live');
             this.toggleTranslation();
         }
     }
@@ -823,8 +1189,12 @@ class TranscritorWeb {
         this.errorModal.style.display = 'none';
     }
 
-    showLoading() {
+    showLoading(message = 'Inicializando reconhecimento de voz...') {
         this.loadingOverlay.style.display = 'flex';
+        const loadingText = this.loadingOverlay.querySelector('p');
+        if (loadingText) {
+            loadingText.textContent = message;
+        }
     }
 
     hideLoading() {
@@ -839,6 +1209,175 @@ class TranscritorWeb {
 
     formatDateForFile(date) {
         return date.toISOString().slice(0, 19).replace(/[:.]/g, '-');
+    }
+
+    // Sincronização de scroll entre colunas
+    setupScrollSync() {
+        let isScrolling = false;
+        
+        // Sincronizar scroll da esquerda para a direita
+        this.transcriptionArea.addEventListener('scroll', () => {
+            if (isScrolling || !this.isTranslationEnabled) return;
+            
+            isScrolling = true;
+            requestAnimationFrame(() => {
+                const scrollPercentage = this.transcriptionArea.scrollTop / 
+                    (this.transcriptionArea.scrollHeight - this.transcriptionArea.clientHeight);
+                
+                const translationScrollTop = scrollPercentage * 
+                    (this.translationArea.scrollHeight - this.translationArea.clientHeight);
+                
+                this.translationArea.scrollTop = translationScrollTop;
+                isScrolling = false;
+            });
+        });
+
+        // Sincronizar scroll da direita para a esquerda
+        this.translationArea.addEventListener('scroll', () => {
+            if (isScrolling || !this.isTranslationEnabled) return;
+            
+            isScrolling = true;
+            requestAnimationFrame(() => {
+                const scrollPercentage = this.translationArea.scrollTop / 
+                    (this.translationArea.scrollHeight - this.translationArea.clientHeight);
+                
+                const transcriptionScrollTop = scrollPercentage * 
+                    (this.transcriptionArea.scrollHeight - this.transcriptionArea.clientHeight);
+                
+                this.transcriptionArea.scrollTop = transcriptionScrollTop;
+                isScrolling = false;
+            });
+        });
+    }
+
+    // Funções do Player de Áudio
+    showAudioPlayer(audioBlob) {
+        // Criar URL do áudio
+        this.currentAudioBlob = audioBlob;
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Configurar o player
+        this.audioPlayer.src = audioUrl;
+        
+        // Mostrar informações do áudio
+        const duration = audioBlob.size > 0 ? 'Áudio gravado' : 'Sem áudio';
+        const size = (audioBlob.size / 1024).toFixed(1) + ' KB';
+        this.audioInfo.textContent = `${duration} - ${size}`;
+        
+        // Mostrar container do player
+        this.audioPlayerContainer.style.display = 'block';
+        
+        // Resetar botão de play e garantir que todos os botões estejam habilitados
+        this.playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduzir';
+        this.playBtn.disabled = false;
+        this.downloadAudioBtn.disabled = false;
+        this.deleteAudioBtn.disabled = false;
+        this.transcribeBtn.disabled = false;
+    }
+
+    hideAudioPlayer() {
+        // Parar reprodução se estiver ativa
+        if (!this.audioPlayer.paused) {
+            this.audioPlayer.pause();
+        }
+        
+        // Limpar source antes de esconder
+        const currentSrc = this.audioPlayer.src;
+        this.audioPlayer.src = '';
+        
+        // Revogar URL se existir
+        if (currentSrc && currentSrc.startsWith('blob:')) {
+            URL.revokeObjectURL(currentSrc);
+        }
+        
+        // Esconder container
+        this.audioPlayerContainer.style.display = 'none';
+        
+        // Resetar botão de play
+        this.playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduzir';
+        
+        // Limpar referência do blob
+        this.currentAudioBlob = null;
+    }
+
+    togglePlayback() {
+        try {
+            if (!this.audioPlayer.src || !this.currentAudioBlob) {
+                this.showError('Nenhum áudio disponível para reproduzir.');
+                return;
+            }
+
+            if (this.audioPlayer.paused) {
+                this.audioPlayer.play().then(() => {
+                    this.playBtn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+                }).catch(error => {
+                    console.error('Erro ao reproduzir áudio:', error);
+                    this.showError('Erro ao reproduzir áudio. Tente gravar novamente.');
+                });
+            } else {
+                this.audioPlayer.pause();
+                this.playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduzir';
+            }
+            
+            // Garantir que os outros botões permaneçam habilitados
+            this.downloadAudioBtn.disabled = false;
+            this.deleteAudioBtn.disabled = false;
+        } catch (error) {
+            console.error('Erro no controle de reprodução:', error);
+            this.showError('Erro ao controlar reprodução do áudio.');
+        }
+    }
+
+    downloadAudio() {
+        if (!this.currentAudioBlob) {
+            this.showError('Nenhum áudio disponível para download.');
+            return;
+        }
+
+        const url = URL.createObjectURL(this.currentAudioBlob);
+        const a = document.createElement('a');
+        const timestamp = this.formatDateForFile(new Date());
+        
+        a.href = url;
+        a.download = `gravacao_${timestamp}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    deleteAudio() {
+        if (confirm('Tem certeza que deseja excluir esta gravação?')) {
+            this.hideAudioPlayer();
+            this.clearTranscription();
+            
+            // Resetar estado da gravação
+            this.isRecording = false;
+            this.mediaRecorder = null;
+            this.recordedChunks = [];
+            
+            // Atualizar UI
+            this.updateUI();
+        }
+    }
+
+    transcribeAudio() {
+        if (!this.currentAudioBlob) {
+            this.showError('Nenhum áudio disponível para transcrever.');
+            return;
+        }
+
+        // Por enquanto, mostrar mensagem informativa
+        // A transcrição de áudio gravado requer uma API externa
+        this.showError('A transcrição de áudio gravado ainda não está implementada. Esta funcionalidade requer uma API de reconhecimento de fala que aceite arquivos de áudio.');
+        
+        // TODO: Implementar transcrição de arquivo de áudio
+        // Isso requereria um serviço como:
+        // - Google Cloud Speech-to-Text
+        // - Azure Speech Services  
+        // - AWS Transcribe
+        // - AssemblyAI
+        // Ou converter o áudio para texto usando Web Audio API + análise local
     }
 }
 

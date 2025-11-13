@@ -55,6 +55,11 @@ class Whiteboard {
         this.lastSaveTime = 0;
         this.isInitialized = false;
         
+        // Text editing
+        this.editingTextObject = null;
+        this.textTargetShape = null;
+        this.textTargetPosition = null;
+        
         // Grid properties
         this.showGrid = false;
         this.gridSize = 20;
@@ -133,6 +138,7 @@ class Whiteboard {
         this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
         this.canvas.addEventListener('wheel', this.handleWheel.bind(this));
+        this.canvas.addEventListener('dblclick', this.handleDoubleClick.bind(this));
         
         // Touch events for mobile
         this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
@@ -324,7 +330,20 @@ class Whiteboard {
         
         // Handle special tools
         if (tool === 'text') {
-            document.getElementById('textModal').style.display = 'flex';
+            const textModal = document.getElementById('textModal');
+            const modalTitle = textModal.querySelector('h3');
+            textModal.style.display = 'flex';
+            
+            // Reset modal title for new text
+            if (modalTitle) {
+                modalTitle.textContent = 'Adicionar Texto';
+            }
+            
+            // Clear any editing and shape references
+            this.editingTextObject = null;
+            this.textTargetShape = null;
+            this.textTargetPosition = null;
+            
             // Focus on text input for immediate typing
             setTimeout(() => {
                 const textInput = document.getElementById('textInput');
@@ -659,6 +678,30 @@ class Whiteboard {
         }
         
         this.isDrawing = false;
+    }
+    
+    handleDoubleClick(e) {
+        e.preventDefault();
+        
+        const pos = this.getMousePos(e);
+        
+        // Check if double click is on a text object first
+        for (let i = this.objects.length - 1; i >= 0; i--) {
+            const obj = this.objects[i];
+            if (obj.type === 'text' && this.isPointInTextBounds(pos, obj)) {
+                this.editText(obj);
+                return;
+            }
+        }
+        
+        // Check if double click is on a shape to add text inside
+        for (let i = this.objects.length - 1; i >= 0; i--) {
+            const obj = this.objects[i];
+            if (this.isShapeType(obj.type) && this.isPointInObject(pos, obj)) {
+                this.addTextToShape(obj, pos);
+                return;
+            }
+        }
     }
     
     handleWheel(e) {
@@ -1674,15 +1717,41 @@ class Whiteboard {
             const dy = pos.y - yy;
             return Math.sqrt(dx * dx + dy * dy) <= (obj.width || 3) * 2;
         } else if (obj.type === 'text') {
-            // Melhorar área de detecção para texto
-            const textWidth = obj.text.length * obj.fontSize * 0.6;
-            const textHeight = obj.fontSize;
-            const padding = 5; // Adicionar padding para facilitar seleção
-            
-            return pos.x >= obj.x - padding && pos.x <= obj.x + textWidth + padding && 
-                   pos.y >= obj.y - textHeight - padding && pos.y <= obj.y + padding;
+            // Use the specialized text bounds detection
+            return this.isPointInTextBounds(pos, obj);
         }
         return false;
+    }
+    
+    isPointInTextBounds(pos, obj) {
+        if (obj.type !== 'text') return false;
+        
+        const textWidth = obj.text.length * obj.fontSize * 0.6;
+        const textHeight = obj.fontSize;
+        const padding = 5; // Adicionar padding para facilitar seleção
+        
+        let textX, textY;
+        if (obj.parentShape) {
+            // Text is centered
+            textX = obj.x - textWidth / 2;
+            textY = obj.y - textHeight / 2;
+        } else {
+            // Text starts at position
+            textX = obj.x;
+            textY = obj.y - textHeight;
+        }
+        
+        return pos.x >= textX - padding && pos.x <= textX + textWidth + padding && 
+               pos.y >= textY - padding && pos.y <= textY + textHeight + padding;
+    }
+    
+    isShapeType(type) {
+        const shapeTypes = [
+            'rectangle', 'rounded-rectangle', 'circle', 'oval', 'triangle',
+            'diamond', 'parallelogram', 'trapezoid', 'pentagon', 'hexagon', 
+            'octagon', 'star'
+        ];
+        return shapeTypes.includes(type);
     }
     
     moveObject(obj, deltaX, deltaY) {
@@ -2283,6 +2352,16 @@ class Whiteboard {
             } else if (obj.type === 'text') {
                 this.ctx.fillStyle = obj.color || '#000000';
                 this.ctx.font = `${obj.fontSize}px Arial`;
+                
+                // Center text if it belongs to a shape
+                if (obj.parentShape) {
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                } else {
+                    this.ctx.textAlign = 'start';
+                    this.ctx.textBaseline = 'alphabetic';
+                }
+                
                 this.ctx.fillText(obj.text, obj.x, obj.y);
             } else {
                 this.drawShape(obj);
@@ -2797,6 +2876,16 @@ class Whiteboard {
                 } else if (obj.type === 'text') {
                     this.ctx.fillStyle = obj.color || '#000000';
                     this.ctx.font = `${obj.fontSize}px Arial`;
+                    
+                    // Center text if it belongs to a shape
+                    if (obj.parentShape) {
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                    } else {
+                        this.ctx.textAlign = 'start';
+                        this.ctx.textBaseline = 'alphabetic';
+                    }
+                    
                     this.ctx.fillText(obj.text, obj.x, obj.y);
                 } else {
                     this.drawShape(obj);
@@ -3190,6 +3279,92 @@ class Whiteboard {
             indicator.style.opacity = '0';
         }, 1500);
     }
+    
+    editText(textObj) {
+        // Store reference to the text object being edited
+        this.editingTextObject = textObj;
+        
+        // Open text modal and populate with current text
+        const textModal = document.getElementById('textModal');
+        const textInput = document.getElementById('textInput');
+        const modalTitle = textModal.querySelector('h3');
+        
+        if (textModal && textInput) {
+            textInput.value = textObj.text;
+            textModal.style.display = 'block';
+            textInput.focus();
+            textInput.select(); // Select all text for easy editing
+            
+            // Update modal title to indicate editing
+            if (modalTitle) {
+                modalTitle.textContent = 'Editar Texto';
+            }
+        }
+    }
+    
+    addTextToShape(shapeObj, clickPos) {
+        // Calculate center position of the shape
+        const center = this.getShapeCenter(shapeObj);
+        
+        // Store shape reference for text positioning
+        this.textTargetShape = shapeObj;
+        this.textTargetPosition = center;
+        
+        // Open text modal
+        const textModal = document.getElementById('textModal');
+        const textInput = document.getElementById('textInput');
+        const modalTitle = textModal.querySelector('h3');
+        
+        if (textModal && textInput) {
+            textInput.value = ''; // Start with empty text
+            textModal.style.display = 'block';
+            textInput.focus();
+            
+            // Update modal title to indicate adding text to shape
+            if (modalTitle) {
+                modalTitle.textContent = 'Adicionar Texto à Forma';
+            }
+        }
+    }
+    
+    getShapeCenter(obj) {
+        switch (obj.type) {
+            case 'rectangle':
+            case 'rounded-rectangle':
+            case 'oval':
+            case 'diamond':
+            case 'parallelogram':
+            case 'trapezoid':
+            case 'pentagon':
+            case 'hexagon':
+            case 'octagon':
+                return {
+                    x: (obj.startX + obj.endX) / 2,
+                    y: (obj.startY + obj.endY) / 2
+                };
+            case 'circle':
+                return {
+                    x: obj.startX,
+                    y: obj.startY
+                };
+            case 'triangle':
+                // For triangle, use the center of bounding box
+                return {
+                    x: (obj.startX + obj.endX) / 2,
+                    y: (obj.startY + obj.endY) / 2
+                };
+            case 'star':
+                return {
+                    x: (obj.startX + obj.endX) / 2,
+                    y: (obj.startY + obj.endY) / 2
+                };
+            default:
+                return {
+                    x: (obj.startX + obj.endX) / 2,
+                    y: (obj.startY + obj.endY) / 2
+                };
+        }
+    }
 }
 
 // Initialize whiteboard
@@ -3327,21 +3502,58 @@ function clearSavedData() {
 function addText() {
     const text = document.getElementById('textInput').value;
     if (text.trim()) {
-        // Add text object to canvas
-        const textObj = {
-            type: 'text',
-            text: text,
-            x: whiteboard.canvas.width / 2 / whiteboard.scale - whiteboard.offsetX / whiteboard.scale,
-            y: whiteboard.canvas.height / 2 / whiteboard.scale - whiteboard.offsetY / whiteboard.scale,
-            color: whiteboard.strokeColor,
-            fontSize: Math.max(16, whiteboard.strokeWidth * 4),
-            opacity: 1
-        };
-        whiteboard.objects.push(textObj);
-        whiteboard.selectedObject = textObj;
+        if (whiteboard.editingTextObject) {
+            // Edit existing text
+            whiteboard.editingTextObject.text = text;
+            whiteboard.selectedObject = whiteboard.editingTextObject;
+            whiteboard.editingTextObject = null; // Clear editing reference
+        } else {
+            // Determine text position
+            let textX, textY;
+            if (whiteboard.textTargetShape && whiteboard.textTargetPosition) {
+                // Add text to shape center (adjust Y for text baseline)
+                textX = whiteboard.textTargetPosition.x;
+                textY = whiteboard.textTargetPosition.y;
+            } else {
+                // Add text to canvas center
+                textX = whiteboard.canvas.width / 2 / whiteboard.scale - whiteboard.offsetX / whiteboard.scale;
+                textY = whiteboard.canvas.height / 2 / whiteboard.scale - whiteboard.offsetY / whiteboard.scale;
+            }
+            
+            // Calculate appropriate font size based on shape size or default
+            let fontSize = Math.max(16, whiteboard.strokeWidth * 4);
+            if (whiteboard.textTargetShape) {
+                const shapeWidth = Math.abs(whiteboard.textTargetShape.endX - whiteboard.textTargetShape.startX);
+                const shapeHeight = Math.abs(whiteboard.textTargetShape.endY - whiteboard.textTargetShape.startY);
+                const maxSize = Math.min(shapeWidth, shapeHeight);
+                fontSize = Math.max(12, Math.min(maxSize / 4, 32));
+            }
+            
+            // Add new text object to canvas
+            const textObj = {
+                type: 'text',
+                text: text,
+                x: textX,
+                y: textY,
+                color: whiteboard.strokeColor,
+                fontSize: fontSize,
+                opacity: 1,
+                parentShape: whiteboard.textTargetShape ? whiteboard.textTargetShape : null
+            };
+            
+            whiteboard.objects.push(textObj);
+            whiteboard.selectedObject = textObj;
+        }
+        
+        // Clear shape targeting
+        whiteboard.textTargetShape = null;
+        whiteboard.textTargetPosition = null;
+        
         whiteboard.saveState(); // Save state for undo/redo
         whiteboard.redraw();
-        whiteboard.showPropertiesPanel(textObj);
+        if (whiteboard.selectedObject) {
+            whiteboard.showPropertiesPanel(whiteboard.selectedObject);
+        }
     }
     closeTextModal();
 }
@@ -3349,6 +3561,9 @@ function addText() {
 function closeTextModal() {
     document.getElementById('textModal').style.display = 'none';
     document.getElementById('textInput').value = '';
+    whiteboard.editingTextObject = null; // Clear editing reference
+    whiteboard.textTargetShape = null; // Clear shape reference
+    whiteboard.textTargetPosition = null; // Clear position reference
     whiteboard.setTool('select');
 }
 

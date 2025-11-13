@@ -27,24 +27,95 @@
             </div>
         </div>
 
+        <!-- Mode Selection -->
+        <div class="mode-selection">
+            <div class="mode-toggle">
+                <input type="radio" id="liveMode" name="transcriptionMode" value="live" checked>
+                <label for="liveMode" class="mode-label">
+                    <i class="fas fa-broadcast-tower"></i>
+                    Tempo Real
+                </label>
+                
+                <input type="radio" id="recordMode" name="transcriptionMode" value="record">
+                <label for="recordMode" class="mode-label">
+                    <i class="fas fa-microphone-alt"></i>
+                    Gravar e Transcrever
+                </label>
+            </div>
+        </div>
+
         <!-- Control Panel -->
         <div class="control-panel">
-            <button id="startBtn" class="btn btn-primary">
-                <i class="fas fa-play"></i>
-                Iniciar Transcrição
-            </button>
-            <button id="stopBtn" class="btn btn-secondary" disabled>
-                <i class="fas fa-stop"></i>
-                Parar
-            </button>
-            <button id="clearBtn" class="btn btn-warning">
-                <i class="fas fa-trash"></i>
-                Limpar
-            </button>
-            <button id="downloadBtn" class="btn btn-success">
-                <i class="fas fa-download"></i>
-                Baixar
-            </button>
+            <!-- Live Mode Controls -->
+            <div id="liveControls" class="control-group">
+                <button id="startBtn" class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                    Iniciar Transcrição
+                </button>
+                <button id="stopBtn" class="btn btn-secondary" disabled>
+                    <i class="fas fa-stop"></i>
+                    Parar
+                </button>
+            </div>
+
+            <!-- Record Mode Controls -->
+            <div id="recordControls" class="control-group" style="display: none;">
+                <button id="recordBtn" class="btn btn-danger">
+                    <i class="fas fa-circle"></i>
+                    Iniciar Gravação
+                </button>
+                <button id="stopRecordBtn" class="btn btn-secondary" disabled>
+                    <i class="fas fa-stop"></i>
+                    Parar Gravação
+                </button>
+                <button id="transcribeBtn" class="btn btn-info" disabled>
+                    <i class="fas fa-file-text"></i>
+                    Transcrever Áudio
+                </button>
+            </div>
+
+            <!-- Common Controls -->
+            <div class="control-group">
+                <button id="clearBtn" class="btn btn-warning">
+                    <i class="fas fa-trash"></i>
+                    Limpar
+                </button>
+                <button id="downloadBtn" class="btn btn-success">
+                    <i class="fas fa-download"></i>
+                    Baixar Transcrição
+                </button>
+            </div>
+        </div>
+
+        <!-- Audio Player Section -->
+        <div class="audio-player-container" id="audioPlayerContainer" style="display: none;">
+            <div class="audio-player-header">
+                <h3><i class="fas fa-play-circle"></i> Player de Áudio Gravado</h3>
+                <div class="audio-controls-info">
+                    <span id="audioInfo">Nenhum áudio gravado</span>
+                </div>
+            </div>
+            
+            <div class="audio-player">
+                <audio id="audioPlayer" controls preload="none">
+                    Seu navegador não suporta o elemento de áudio.
+                </audio>
+                
+                <div class="audio-actions">
+                    <button id="playBtn" class="btn btn-primary" disabled>
+                        <i class="fas fa-play"></i>
+                        Reproduzir
+                    </button>
+                    <button id="downloadAudioBtn" class="btn btn-success" disabled>
+                        <i class="fas fa-download"></i>
+                        Baixar Áudio
+                    </button>
+                    <button id="deleteAudioBtn" class="btn btn-danger" disabled>
+                        <i class="fas fa-trash"></i>
+                        Excluir Áudio
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Settings Panel -->
