@@ -3,6 +3,7 @@ class ExpenseManager {
     constructor() {
         this.expenses = this.loadExpenses();
         this.editingId = null;
+        this.checkAndUpdateMonthlyExpenses(); // Verifica e atualiza gastos mensais
         this.initializeEventListeners();
         this.applyFilters();
         this.updateSummary();
@@ -15,18 +16,65 @@ class ExpenseManager {
         
         try {
             const expenses = JSON.parse(stored);
-            // Migra dados antigos que não têm dueDate, isPaid ou type
+            
+            // Migração de dados antigos
             return expenses.map(expense => ({
                 ...expense,
                 dueDate: expense.dueDate || new Date().toISOString().split('T')[0],
                 isPaid: expense.isPaid !== undefined ? expense.isPaid : false,
-                type: expense.type || 'expense' // Assume gasto por padrão
+                type: expense.type || 'expense'
             }));
         } catch (error) {
             console.error('Erro ao carregar gastos do localStorage:', error);
             // Limpa dados corrompidos
             localStorage.removeItem('expenses');
             return [];
+        }
+    }
+
+    // Verifica e atualiza gastos pagos do mês anterior
+    checkAndUpdateMonthlyExpenses() {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        let hasChanges = false;
+        
+        this.expenses = this.expenses.map(expense => {
+            const expenseDate = new Date(expense.dueDate);
+            const expenseMonth = expenseDate.getMonth();
+            const expenseYear = expenseDate.getFullYear();
+            
+            // Se o gasto está pago e é de um mês anterior ao atual
+            if (expense.isPaid && (expenseYear < currentYear || (expenseYear === currentYear && expenseMonth < currentMonth))) {
+                hasChanges = true;
+                
+                // Atualiza para o mês corrente
+                let newDate = new Date(currentYear, currentMonth, expenseDate.getDate());
+                
+                // Verifica se cai no fim de semana e ajusta para próximo dia útil
+                const dayOfWeek = newDate.getDay();
+                if (dayOfWeek === 0) { // Domingo
+                    newDate.setDate(newDate.getDate() + 1); // Move para segunda
+                } else if (dayOfWeek === 6) { // Sábado
+                    newDate.setDate(newDate.getDate() + 2); // Move para segunda
+                }
+                
+                console.log(`Atualizando: ${expense.description} de ${expense.dueDate} para ${newDate.toISOString().split('T')[0]}`);
+                
+                return {
+                    ...expense,
+                    dueDate: newDate.toISOString().split('T')[0],
+                    isPaid: false
+                };
+            }
+            
+            return expense;
+        });
+        
+        // Salva se houver mudanças
+        if (hasChanges) {
+            this.saveExpenses();
+            console.log('Gastos mensais atualizados!');
         }
     }
 
