@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste LocalStorage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teste de LocalStorage</h1>
+    
+    <button onclick="testarSalvar()">Salvar Teste</button>
+    <button onclick="testarCarregar()">Carregar Teste</button>
+    <button onclick="limparLocalStorage()">Limpar Tudo</button>
+    <button onclick="verTodosDados()">Ver Todos os Dados</button>
+    
+    <div id="resultado"></div>
+    
+    <script>
+        function obterDataHoje() {
+            const hoje = new Date();
+            return hoje.toISOString().split('T')[0];
+        }
+        
+        function testarSalvar() {
+            const dataHoje = obterDataHoje();
+            const dadosTeste = {
+                data: dataHoje,
+                servicos: {
+                    "Cabelo": 5,
+                    "Barba": 3
+                },
+                barbeiro1: {
+                    "Cabelo": 3,
+                    "Barba": 1
+                },
+                barbeiro2: {
+                    "Cabelo": 2,
+                    "Barba": 2
+                }
+            };
+            
+            localStorage.setItem(`servicos_${dataHoje}`, JSON.stringify(dadosTeste));
+            document.getElementById('resultado').innerHTML = 
+                '<h3>✅ Dados salvos com sucesso!</h3>' +
+                '<pre>' + JSON.stringify(dadosTeste, null, 2) + '</pre>';
+        }
+        
+        function testarCarregar() {
+            const dataHoje = obterDataHoje();
+            const dados = localStorage.getItem(`servicos_${dataHoje}`);
+            
+            if (dados) {
+                const dadosObj = JSON.parse(dados);
+                document.getElementById('resultado').innerHTML = 
+                    '<h3>✅ Dados carregados!</h3>' +
+                    '<pre>' + JSON.stringify(dadosObj, null, 2) + '</pre>';
+            } else {
+                document.getElementById('resultado').innerHTML = 
+                    '<h3>❌ Nenhum dado encontrado para hoje</h3>';
+            }
+        }
+        
+        function limparLocalStorage() {
+            localStorage.clear();
+            document.getElementById('resultado').innerHTML = 
+                '<h3>🗑️ LocalStorage limpo!</h3>';
+        }
+        
+        function verTodosDados() {
+            let html = '<h3>📦 Todos os dados no LocalStorage:</h3>';
+            
+            if (localStorage.length === 0) {
+                html += '<p>Nenhum dado encontrado</p>';
+            } else {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const chave = localStorage.key(i);
+                    const valor = localStorage.getItem(chave);
+                    html += `<h4>${chave}:</h4><pre>${valor}</pre>`;
+                }
+            }
+            
+            document.getElementById('resultado').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

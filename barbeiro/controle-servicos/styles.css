@@ -1,0 +1,474 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --preto: #1a1a1a;
+    --cinza-escuro: #2d2d2d;
+    --cinza: #4a4a4a;
+    --cinza-claro: #6b6b6b;
+    --marrom: #8b4513;
+    --marrom-claro: #a0522d;
+    --branco: #f5f5f5;
+    --dourado: #d4af37;
+    --verde: #4caf50;
+    --vermelho: #f44336;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--preto) 0%, var(--cinza-escuro) 100%);
+    color: var(--branco);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--cinza-escuro);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+header h1 {
+    font-size: 2rem;
+    color: var(--dourado);
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.data-atual {
+    font-size: 1.1rem;
+    color: var(--branco);
+    opacity: 0.9;
+}
+
+.resumo-dia {
+    background: var(--marrom);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Seleção de Barbeiro */
+.selecao-barbeiro {
+    background: var(--cinza-escuro);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.selecao-barbeiro h2 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    color: var(--dourado);
+    text-align: center;
+}
+
+.barbeiros-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.barbeiro-btn {
+    background: var(--cinza);
+    border: 3px solid var(--cinza-claro);
+    padding: 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.barbeiro-btn:hover {
+    transform: translateY(-3px);
+    border-color: var(--dourado);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.barbeiro-btn.selecionado {
+    background: var(--marrom);
+    border-color: var(--dourado);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+}
+
+.barbeiro-icon {
+    font-size: 2.5rem;
+}
+
+.barbeiro-nome {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--branco);
+}
+
+.barbeiro-total {
+    font-size: 0.9rem;
+    color: var(--dourado);
+}
+
+.resumo-dia {
+    background: var(--marrom);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.resumo-dia h2 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    color: var(--dourado);
+}
+
+.total-servicos {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.total-servicos .valor {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--dourado);
+}
+
+.servicos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.servico-card {
+    background: var(--cinza-escuro);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid var(--cinza);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.servico-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--dourado);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.servico-card:active {
+    transform: translateY(-2px);
+    background: var(--marrom);
+}
+
+.servico-card h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--branco);
+}
+
+.servico-card .contador {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--dourado);
+    display: block;
+    margin-top: 10px;
+}
+
+.servico-card .duracao {
+    font-size: 0.85rem;
+    color: var(--cinza-claro);
+    margin-top: 5px;
+    display: block;
+}
+
+.servico-card .valor-servico {
+    font-size: 0.9rem;
+    color: var(--dourado);
+    font-weight: bold;
+    display: block;
+    margin-top: 3px;
+}
+
+.historico {
+    background: var(--cinza-escuro);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.historico h3 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: var(--dourado);
+}
+
+.historico-lista {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.historico-item {
+    background: var(--cinza);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.historico-item .servico-nome {
+    font-weight: bold;
+    color: var(--dourado);
+}
+
+.historico-item .hora {
+    color: var(--cinza-claro);
+    font-size: 0.9rem;
+}
+
+.acoes-admin {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-relatorio,
+.btn-relatorio-barbeiro,
+.btn-limpar {
+    flex: 1;
+    min-width: 150px;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.btn-relatorio,
+.btn-relatorio-barbeiro {
+    background: var(--marrom-claro);
+    color: var(--branco);
+}
+
+.btn-relatorio:hover,
+.btn-relatorio-barbeiro:hover {
+    background: var(--marrom);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(160, 82, 45, 0.4);
+}
+
+.btn-limpar {
+    background: var(--cinza);
+    color: var(--branco);
+}
+
+.btn-limpar:hover {
+    background: var(--vermelho);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal.ativo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: var(--cinza-escuro);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 90%;
+    width: 400px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-content h3 {
+    color: var(--dourado);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    color: var(--branco);
+}
+
+.modal-acoes {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-cancelar,
+.btn-confirmar,
+.btn-fechar {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.btn-cancelar {
+    background: var(--cinza);
+    color: var(--branco);
+}
+
+.btn-cancelar:hover {
+    background: var(--cinza-claro);
+}
+
+.btn-confirmar {
+    background: var(--vermelho);
+    color: var(--branco);
+}
+
+.btn-confirmar:hover {
+    background: #d32f2f;
+}
+
+.btn-fechar {
+    background: var(--marrom-claro);
+    color: var(--branco);
+}
+
+.btn-fechar:hover {
+    background: var(--marrom);
+}
+
+.modal-relatorio {
+    width: 90%;
+    max-width: 500px;
+}
+
+.relatorio-conteudo {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.relatorio-item {
+    background: var(--cinza);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.relatorio-item h4 {
+    color: var(--dourado);
+    margin-bottom: 5px;
+}
+
+.relatorio-item .detalhes {
+    display: flex;
+    justify-content: space-between;
+    color: var(--branco);
+    margin-top: 5px;
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .servicos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .acoes-admin {
+        flex-direction: column;
+    }
+    
+    .btn-relatorio,
+    .btn-relatorio-barbeiro,
+    .btn-limpar {
+        min-width: 100%;
+    }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--cinza-escuro);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--marrom);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--marrom-claro);
+}

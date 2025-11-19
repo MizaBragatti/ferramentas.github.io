@@ -71,6 +71,20 @@ body {
     animation: pulse 1.5s infinite;
 }
 
+.status-indicator.recording.listening {
+    color: #2ecc71;
+}
+
+.status-indicator.recording.listening i:first-child {
+    color: #ff4757;
+    animation: pulse 1.5s infinite;
+}
+
+.status-indicator.recording.listening i:nth-child(2) {
+    color: #2ecc71;
+    animation: bounce 2s infinite;
+}
+
 .browser-support {
     display: flex;
     align-items: center;
@@ -663,6 +677,12 @@ body {
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-3px); }
+    60% { transform: translateY(-2px); }
 }
 
 /* Responsive Design */

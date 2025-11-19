@@ -13,6 +13,10 @@ class TranscritorWeb {
         this.lastResultIndex = 0;
         this.isProcessingResult = false;
         this.restartTimeout = null;
+        
+        // Controles de timeout para reconhecimento
+        this.recognitionTimeout = null;
+        this.maxRecognitionTime = 30000; // 30 segundos sem resultado
         this.translationQueue = [];
         this.isTranslating = false;
         
@@ -21,7 +25,15 @@ class TranscritorWeb {
         this.audioChunks = [];
         this.isRecording = false;
         this.recordedAudio = null;
-        this.transcriptionMode = 'live'; // 'live' ou 'record'
+        this.transcriptionMode = 'live';
+        this.isSimultaneousMode = false; // Nova propriedade para gravação + transcrição
+        this.recognitionTimeout = null;
+        
+        // Proteção contra substituição de texto
+        this.processedResultsSet = new Set(); // Set para rastrear resultados já processados
+        this.lastConfidentResult = ''; // Último resultado confiável processado
+        this.currentSessionId = null; // ID da sessão atual para resetar proteções
+        this.cleanupInterval = null; // Interval para limpeza automática
         
         this.initializeElements();
         this.checkBrowserSupport();
@@ -166,14 +178,37 @@ class TranscritorWeb {
         // Processar apenas resultados novos para evitar duplicação
         for (let i = this.lastResultIndex; i < event.results.length; i++) {
             const result = event.results[i];
-            const transcript = result[0].transcript;
+            const transcript = result[0].transcript.trim();
+            const confidence = result[0].confidence || 0;
             
             if (result.isFinal) {
-                finalTranscript += transcript + ' ';
-                hasNewFinal = true;
+                // Verificar se este resultado já foi processado
+                const resultHash = this.generateResultHash(transcript, i);
+                
+                if (!this.processedResultsSet.has(resultHash)) {
+                    // Verificar se não é uma repetição do último resultado confiável
+                    if (!this.isDuplicateResult(transcript)) {
+                        finalTranscript += transcript + ' ';
+                        hasNewFinal = true;
+                        
+                        // Marcar como processado
+                        this.processedResultsSet.add(resultHash);
+                        
+                        // Atualizar último resultado confiável se a confiança é boa
+                        if (confidence > 0.7 || confidence === undefined) {
+                            this.lastConfidentResult = transcript;
+                        }
+                    } else {
+                        console.log('Resultado duplicado ignorado:', transcript);
+                    }
+                }
+                
                 this.lastResultIndex = i + 1; // Atualizar índice para próxima vez
             } else {
-                interimTranscript += transcript;
+                // Para resultados interim, apenas mostrar se não for muito similar ao último final
+                if (!this.isDuplicateResult(transcript)) {
+                    interimTranscript += transcript;
+                }
             }
         }
 
@@ -200,6 +235,130 @@ class TranscritorWeb {
                 this.startRecognition();
             }
         }, 500); // Reduzido para 500ms para mais fluidez
+    }
+
+    // Funções auxiliares para evitar duplicação de resultados
+    generateResultHash(transcript, index) {
+        // Criar hash único baseado no conteúdo e posição
+        return `${transcript.toLowerCase().replace(/[^\w\s]/g, '')}_${index}_${Date.now()}`;
+    }
+
+    isDuplicateResult(transcript) {
+        if (!transcript || transcript.length < 3) return true;
+        
+        const normalizedTranscript = transcript.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        const normalizedLast = this.lastConfidentResult.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        
+        // Se não há último resultado, não é duplicado
+        if (!normalizedLast) return false;
+        
+        // Verificar se é exatamente igual ao último resultado
+        if (normalizedTranscript === normalizedLast) {
+            return true;
+        }
+        
+        // Verificar se o novo resultado está totalmente contido no último
+        if (normalizedLast.includes(normalizedTranscript) && normalizedTranscript.length < normalizedLast.length) {
+            return true;
+        }
+        
+        // Verificar se o último resultado está contido no novo (possível extensão)
+        if (normalizedTranscript.includes(normalizedLast) && normalizedLast.length > 0) {
+            // Se o novo resultado apenas estende o anterior, não é duplicado
+            const extension = normalizedTranscript.replace(normalizedLast, '').trim();
+            if (extension.length > 2) { // Extensão significativa
+                return false;
+            }
+        }
+        
+        // Verificar similaridade alta (possível reprocessamento com pequenas variações)
+        if (this.calculateSimilarity(normalizedTranscript, normalizedLast) > 0.9) {
+            return true;
+        }
+        
+        // Verificar se são palavras muito similares (typos ou variações)
+        const words1 = normalizedTranscript.split(/\s+/);
+        const words2 = normalizedLast.split(/\s+/);
+        
+        if (words1.length === words2.length && words1.length > 0) {
+            let similarWords = 0;
+            for (let i = 0; i < words1.length; i++) {
+                if (words1[i] === words2[i] || this.calculateSimilarity(words1[i], words2[i]) > 0.8) {
+                    similarWords++;
+                }
+            }
+            
+            // Se mais de 80% das palavras são similares, considerar duplicado
+            if (similarWords / words1.length > 0.8) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    calculateSimilarity(str1, str2) {
+        if (!str1 || !str2) return 0;
+        if (str1 === str2) return 1;
+        
+        const longer = str1.length > str2.length ? str1 : str2;
+        const shorter = str1.length > str2.length ? str2 : str1;
+        
+        if (longer.length === 0) return 1;
+        
+        const editDistance = this.getEditDistance(longer, shorter);
+        return (longer.length - editDistance) / longer.length;
+    }
+
+    getEditDistance(str1, str2) {
+        const matrix = [];
+        
+        for (let i = 0; i <= str2.length; i++) {
+            matrix[i] = [i];
+        }
+        
+        for (let j = 0; j <= str1.length; j++) {
+            matrix[0][j] = j;
+        }
+        
+        for (let i = 1; i <= str2.length; i++) {
+            for (let j = 1; j <= str1.length; j++) {
+                if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
+            }
+        }
+        
+        return matrix[str2.length][str1.length];
+    }
+
+    resetDuplicateProtection() {
+        // Resetar proteções quando iniciar nova sessão
+        this.processedResultsSet.clear();
+        this.lastConfidentResult = '';
+        this.currentSessionId = Date.now() + '_' + Math.random();
+        console.log('Proteção anti-duplicação resetada para nova sessão');
+        
+        // Configurar limpeza periódica do Set para evitar memory leak
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+        }
+        
+        this.cleanupInterval = setInterval(() => {
+            if (this.processedResultsSet.size > 100) {
+                // Manter apenas os últimos 50 resultados
+                const entries = Array.from(this.processedResultsSet);
+                this.processedResultsSet.clear();
+                entries.slice(-50).forEach(entry => this.processedResultsSet.add(entry));
+                console.log('Limpeza automática do cache de resultados processados');
+            }
+        }, 60000); // Verificar a cada minuto
     }
 
     displayInterimResult(interimText) {
@@ -510,6 +669,7 @@ class TranscritorWeb {
             this.recognition.interimResults = this.interimResults.checked;
             
             this.lastResultIndex = 0; // Reset do índice
+            this.resetDuplicateProtection(); // Reset proteção anti-duplicação
             this.recognition.start();
             
         } catch (error) {
@@ -563,6 +723,8 @@ class TranscritorWeb {
         if (this.isRecording) return;
         
         try {
+            this.showLoading('Iniciando gravação com transcrição...');
+            
             // Solicitar permissão para microfone
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 audio: {
@@ -592,6 +754,11 @@ class TranscritorWeb {
             };
             
             this.mediaRecorder.onstop = () => {
+                // Parar transcrição se estiver ativa
+                if (this.isSimultaneousMode && this.isListening) {
+                    this.stopSimultaneousRecognition();
+                }
+                
                 // Criar arquivo de áudio a partir dos chunks
                 const audioBlob = new Blob(this.audioChunks, { 
                     type: this.mediaRecorder.mimeType 
@@ -605,34 +772,283 @@ class TranscritorWeb {
                 // Mostrar player de áudio
                 this.showAudioPlayer(audioBlob);
                 
+                // Salvar sessão se houve transcrições
+                if (this.finalTranscriptions.length > 0) {
+                    this.saveSession();
+                }
+                
                 // Esconder loading
                 this.hideLoading();
                 
                 // Limpar chunks para próxima gravação
                 this.audioChunks = [];
+                
+                // Resetar modo simultâneo
+                this.isSimultaneousMode = false;
+            };
+            
+            this.mediaRecorder.onerror = (event) => {
+                console.error('Erro no MediaRecorder:', event.error);
+                this.hideLoading();
+                this.showError('Erro durante a gravação: ' + event.error);
+                
+                // Parar transcrição se estiver ativa
+                if (this.isSimultaneousMode && this.isListening) {
+                    this.stopSimultaneousRecognition();
+                }
+                
+                // Parar stream
+                stream.getTracks().forEach(track => track.stop());
+                this.isRecording = false;
+                this.isSimultaneousMode = false;
+                this.updateRecordingUI();
             };
             
             // Iniciar gravação
             this.mediaRecorder.start(1000); // Chunk a cada segundo
             this.isRecording = true;
+            this.isSimultaneousMode = true;
             this.sessionStartTime = new Date();
             
+            // Iniciar transcrição simultânea
+            await this.startSimultaneousRecognition();
+            
             this.updateRecordingUI();
+            this.hideLoading();
             
         } catch (error) {
             console.error('Erro ao iniciar gravação:', error);
-            this.showError('Erro ao acessar o microfone. Verifique as permissões.');
+            this.hideLoading();
+            this.isSimultaneousMode = false;
+            
+            if (error.name === 'NotAllowedError') {
+                this.showError('Permissão negada para acessar o microfone. Clique no ícone de microfone na barra de endereços e permita o acesso.');
+            } else {
+                this.showError('Erro ao acessar o microfone: ' + error.message);
+            }
+        }
+    }
+
+    // Nova função para iniciar reconhecimento simultâneo à gravação
+    async startSimultaneousRecognition() {
+        if (!this.recognition) return;
+        
+        try {
+            // Configurar reconhecimento para capturar durante gravação
+            this.recognition.lang = this.languageSelect.value;
+            this.recognition.continuous = true;
+            this.recognition.interimResults = this.interimResults.checked;
+            this.recognition.maxAlternatives = 1;
+            
+            // Reset do índice para nova sessão
+            this.lastResultIndex = 0;
+            this.resetDuplicateProtection(); // Reset proteção anti-duplicação
+            
+            // Configurar eventos específicos para modo simultâneo
+            const originalOnResult = this.recognition.onresult;
+            const originalOnEnd = this.recognition.onend;
+            const originalOnError = this.recognition.onerror;
+            const originalOnStart = this.recognition.onstart;
+            
+            this.recognition.onstart = () => {
+                console.log('Reconhecimento simultâneo iniciado');
+                this.isListening = true;
+                this.updateUI();
+                
+                // Iniciar timeout de segurança
+                this.startRecognitionTimeout();
+                
+                // Chamar handler original se existir
+                if (originalOnStart) originalOnStart();
+            };
+            
+            this.recognition.onresult = (event) => {
+                if (!this.isSimultaneousMode) return; // Só processar se estiver no modo simultâneo
+                
+                if (this.isProcessingResult) return;
+                this.isProcessingResult = true;
+                
+                try {
+                    // Resetar timeout quando houver atividade
+                    this.resetRecognitionTimeout();
+                    
+                    this.processResults(event);
+                } finally {
+                    this.isProcessingResult = false;
+                }
+            };
+            
+            this.recognition.onerror = (event) => {
+                console.error('Erro no reconhecimento simultâneo:', event.error);
+                this.isProcessingResult = false;
+                
+                // Lista de erros "normais" que não devem interromper
+                const normalErrors = ['no-speech', 'audio-capture', 'network', 'aborted'];
+                
+                if (!normalErrors.includes(event.error)) {
+                    console.warn('Erro significativo no reconhecimento:', event.error);
+                    
+                    // Para erros críticos, tentar reiniciar após delay
+                    if (this.isSimultaneousMode && this.isRecording) {
+                        setTimeout(() => {
+                            if (this.isSimultaneousMode && this.isRecording && !this.isListening) {
+                                console.log('Tentando recuperar de erro crítico...');
+                                this.restartSimultaneousRecognition();
+                            }
+                        }, 2000);
+                    }
+                } else {
+                    console.log('Erro normal ignorado:', event.error);
+                }
+            };
+            
+            this.recognition.onend = () => {
+                console.log('Reconhecimento simultâneo encerrado');
+                this.isListening = false;
+                
+                // Tentar reiniciar se ainda estiver gravando
+                if (this.isSimultaneousMode && this.isRecording) {
+                    console.log('Reiniciando reconhecimento durante gravação...');
+                    // Aumentar delay e adicionar verificação de estado
+                    setTimeout(() => {
+                        if (this.isSimultaneousMode && this.isRecording && !this.isListening) {
+                            this.restartSimultaneousRecognition();
+                        }
+                    }, 1000);
+                } else {
+                    // Restaurar handlers originais se não estiver mais gravando
+                    this.recognition.onresult = originalOnResult;
+                    this.recognition.onend = originalOnEnd;
+                    this.recognition.onerror = originalOnError;
+                    this.recognition.onstart = originalOnStart;
+                    this.updateUI();
+                }
+            };
+            
+            // Iniciar reconhecimento
+            this.recognition.start();
+            
+        } catch (error) {
+            console.error('Erro ao iniciar reconhecimento simultâneo:', error);
+            this.isSimultaneousMode = false;
+            throw error;
+        }
+    }
+
+    // Função para reiniciar reconhecimento durante gravação
+    async restartSimultaneousRecognition() {
+        if (!this.isSimultaneousMode || !this.isRecording || this.isListening) {
+            console.log('Cancelando reinicialização - condições não atendidas');
+            return;
+        }
+        
+        try {
+            console.log('Tentando reiniciar reconhecimento...');
+            
+            // Pausa maior para estabilizar
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Verificar novamente as condições após pausa
+            if (!this.isSimultaneousMode || !this.isRecording || this.isListening) {
+                return;
+            }
+            
+            // Tentar iniciar novamente
+            this.recognition.start();
+            
+        } catch (error) {
+            console.error('Erro ao reiniciar reconhecimento:', error);
+            
+            // Se for erro de "already started", ignorar
+            if (error.message && error.message.includes('already started')) {
+                console.log('Reconhecimento já estava ativo');
+                return;
+            }
+            
+            // Tentar novamente após delay maior apenas se ainda estivermos gravando
+            if (this.isSimultaneousMode && this.isRecording && !this.isListening) {
+                console.log('Agendando nova tentativa de reinicialização...');
+                setTimeout(() => {
+                    if (this.isSimultaneousMode && this.isRecording && !this.isListening) {
+                        this.restartSimultaneousRecognition();
+                    }
+                }, 2000);
+            }
+        }
+    }
+
+    // Função para parar reconhecimento simultâneo
+    stopSimultaneousRecognition() {
+        if (this.recognition && this.isListening) {
+            try {
+                this.recognition.stop();
+            } catch (error) {
+                console.error('Erro ao parar reconhecimento:', error);
+            }
+        }
+        
+        // Limpar timeout se existir
+        this.clearRecognitionTimeout();
+        
+        this.isListening = false;
+        this.isSimultaneousMode = false;
+    }
+
+    // Funções para controle de timeout do reconhecimento
+    startRecognitionTimeout() {
+        // Limpar timeout anterior se existir
+        this.clearRecognitionTimeout();
+        
+        // Configurar novo timeout
+        this.recognitionTimeout = setTimeout(() => {
+            console.log('Timeout do reconhecimento - reiniciando...');
+            
+            if (this.isSimultaneousMode && this.isRecording) {
+                // Parar reconhecimento atual
+                if (this.isListening) {
+                    try {
+                        this.recognition.stop();
+                    } catch (error) {
+                        console.error('Erro ao parar reconhecimento no timeout:', error);
+                    }
+                }
+                
+                // Tentar reiniciar após pausa
+                setTimeout(() => {
+                    if (this.isSimultaneousMode && this.isRecording && !this.isListening) {
+                        this.restartSimultaneousRecognition();
+                    }
+                }, 1000);
+            }
+        }, this.maxRecognitionTime);
+    }
+
+    clearRecognitionTimeout() {
+        if (this.recognitionTimeout) {
+            clearTimeout(this.recognitionTimeout);
+            this.recognitionTimeout = null;
+        }
+    }
+
+    resetRecognitionTimeout() {
+        // Reiniciar timeout quando houver atividade
+        if (this.isSimultaneousMode && this.isRecording && this.isListening) {
+            this.startRecognitionTimeout();
         }
     }
 
     stopRecording() {
         if (!this.isRecording || !this.mediaRecorder) return;
         
+        this.showLoading('Finalizando gravação...');
+        
+        // Parar gravação
         this.mediaRecorder.stop();
         this.isRecording = false;
-        this.updateRecordingUI();
         
-        this.showLoading('Processando gravação...');
+        // O reconhecimento será parado automaticamente no evento onstop do MediaRecorder
+        
+        this.updateRecordingUI();
     }
 
     async transcribeRecordedAudio() {
@@ -776,8 +1192,14 @@ class TranscritorWeb {
             this.recordBtn.classList.add('recording');
             this.recordBtn.innerHTML = '<i class="fas fa-circle"></i> Gravando...';
             
-            this.statusIndicator.classList.add('recording');
-            this.statusIndicator.innerHTML = '<i class="fas fa-circle"></i> <span>Gravando Áudio</span>';
+            // Mostrar status de gravação + transcrição simultânea
+            if (this.isSimultaneousMode && this.isListening) {
+                this.statusIndicator.classList.add('recording', 'listening');
+                this.statusIndicator.innerHTML = '<i class="fas fa-circle"></i> <i class="fas fa-microphone"></i> <span>Gravando e Transcrevendo</span>';
+            } else {
+                this.statusIndicator.classList.add('recording');
+                this.statusIndicator.innerHTML = '<i class="fas fa-circle"></i> <span>Gravando Áudio</span>';
+            }
             
         } else {
             this.recordBtn.disabled = false;
@@ -785,7 +1207,7 @@ class TranscritorWeb {
             this.recordBtn.classList.remove('recording');
             this.recordBtn.innerHTML = '<i class="fas fa-circle"></i> Iniciar Gravação';
             
-            this.statusIndicator.classList.remove('recording');
+            this.statusIndicator.classList.remove('recording', 'listening');
             this.statusIndicator.innerHTML = '<i class="fas fa-microphone-slash"></i> <span>Parado</span>';
             
             // Garantir que os botões do player de áudio permaneçam habilitados se existir áudio
@@ -937,7 +1359,14 @@ class TranscritorWeb {
             this.startBtn.disabled = true;
             this.stopBtn.disabled = false;
             this.statusIndicator.classList.add('recording');
-            this.statusIndicator.innerHTML = '<i class="fas fa-microphone"></i> <span id="statusText">Gravando</span>';
+            
+            // Status específico para modo simultâneo
+            if (this.isSimultaneousMode && this.isRecording) {
+                this.statusIndicator.innerHTML = '<i class="fas fa-microphone bounce"></i> <span id="statusText">Gravando e Transcrevendo</span>';
+            } else {
+                this.statusIndicator.innerHTML = '<i class="fas fa-microphone"></i> <span id="statusText">Escutando</span>';
+            }
+            
             this.transcriptionArea.classList.add('active');
         } else {
             this.startBtn.disabled = false;

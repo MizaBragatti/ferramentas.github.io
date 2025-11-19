@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Serviços - Barbearia</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🪒 Controle de Serviços</h1>
+            <div class="data-atual" id="dataAtual"></div>
+        </header>
+
+        <!-- Seleção de Barbeiro -->
+        <div class="selecao-barbeiro">
+            <h2>Selecione o Barbeiro</h2>
+            <div class="barbeiros-grid">
+                <button class="barbeiro-btn" id="btnBarbeiro1" onclick="selecionarBarbeiro(1)">
+                    <span class="barbeiro-icon">👨‍🦲</span>
+                    <span class="barbeiro-nome">Barbeiro 1</span>
+                    <span class="barbeiro-total" id="totalBarbeiro1">0 serviços</span>
+                </button>
+                <button class="barbeiro-btn" id="btnBarbeiro2" onclick="selecionarBarbeiro(2)">
+                    <span class="barbeiro-icon">👨‍🦱</span>
+                    <span class="barbeiro-nome">Barbeiro 2</span>
+                    <span class="barbeiro-total" id="totalBarbeiro2">0 serviços</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="resumo-dia">
+            <h2>Resumo do Dia</h2>
+            <div class="total-servicos">
+                <span class="label">Total Geral:</span>
+                <span class="valor" id="totalServicos">0</span>
+            </div>
+        </div>
+
+        <div class="servicos-grid" id="servicosGrid">
+            <!-- Serviços serão inseridos aqui pelo JavaScript -->
+        </div>
+
+        <div class="historico">
+            <h3>Últimos Registros</h3>
+            <div class="historico-lista" id="historicoLista">
+                <!-- Histórico será inserido aqui -->
+            </div>
+        </div>
+
+        <div class="acoes-admin">
+            <button class="btn-relatorio" onclick="abrirRelatorio()">📊 Ver Relatório Completo</button>
+            <button class="btn-relatorio-barbeiro" onclick="abrirRelatorioPorBarbeiro()">👥 Relatório por Barbeiro</button>
+            <button class="btn-limpar" onclick="confirmarLimpeza()">🗑️ Limpar Dados do Dia</button>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal" id="modalConfirmacao">
+        <div class="modal-content">
+            <h3>Confirmar Limpeza</h3>
+            <p>Deseja realmente limpar todos os dados do dia?</p>
+            <div class="modal-acoes">
+                <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                <button class="btn-confirmar" onclick="limparDados()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Relatório -->
+    <div class="modal" id="modalRelatorio">
+        <div class="modal-content modal-relatorio">
+            <h3>📊 Relatório Completo</h3>
+            <div class="relatorio-conteudo" id="relatorioConteudo">
+                <!-- Relatório será inserido aqui -->
+            </div>
+            <button class="btn-fechar" onclick="fecharRelatorio()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Relatório por Barbeiro -->
+    <div class="modal" id="modalRelatorioBarbeiro">
+        <div class="modal-content modal-relatorio">
+            <h3>👥 Relatório por Barbeiro</h3>
+            <div class="relatorio-conteudo" id="relatorioConteudoBarbeiro">
+                <!-- Relatório por barbeiro será inserido aqui -->
+            </div>
+            <button class="btn-fechar" onclick="fecharRelatorioBarbeiro()">Fechar</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
