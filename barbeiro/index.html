@@ -18,13 +18,13 @@
             <h2>Selecione o Barbeiro</h2>
             <div class="barbeiros-grid">
                 <button class="barbeiro-btn" id="btnBarbeiro1" onclick="selecionarBarbeiro(1)">
-                    <span class="barbeiro-icon">👨‍🦲</span>
-                    <span class="barbeiro-nome">Barbeiro 1</span>
+                    <img src="img/Sergio-Barbeiro.png" alt="Sérgio" class="barbeiro-foto">
+                    <span class="barbeiro-nome">Sérgio</span>
                     <span class="barbeiro-total" id="totalBarbeiro1">0 serviços</span>
                 </button>
                 <button class="barbeiro-btn" id="btnBarbeiro2" onclick="selecionarBarbeiro(2)">
                     <span class="barbeiro-icon">👨‍🦱</span>
-                    <span class="barbeiro-nome">Barbeiro 2</span>
+                    <span class="barbeiro-nome">Hélio</span>
                     <span class="barbeiro-total" id="totalBarbeiro2">0 serviços</span>
                 </button>
             </div>
@@ -64,6 +64,19 @@
             <div class="modal-acoes">
                 <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
                 <button class="btn-confirmar" onclick="limparDados()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exclusão de Serviço -->
+    <div class="modal" id="modalExclusao">
+        <div class="modal-content">
+            <h3>Remover Serviço</h3>
+            <p>Deseja realmente remover este serviço?</p>
+            <p style="font-weight: bold; color: var(--dourado); margin-top: 10px;" id="servicoExcluir"></p>
+            <div class="modal-acoes">
+                <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                <button class="btn-confirmar" onclick="excluirServico()">Remover</button>
             </div>
         </div>
     </div>

@@ -1,18 +1,21 @@
 // Lista de serviços disponíveis
 const servicos = [
-    { nome: "Cabelo", duracao: 30, valor: 35.00 },
-    { nome: "Barba", duracao: 40, valor: 30.00 },
-    { nome: "Barba e cabelo", duracao: 75, valor: 60.00 },
-    { nome: "Barba, cabelo e sobrancelha", duracao: 80, valor: 70.00 },
-    { nome: "Cabelo e sobrancelha", duracao: 40, valor: 40.00 },
-    { nome: "Pezinho e barba", duracao: 45, valor: 35.00 },
-    { nome: "Barba e sobrancelha", duracao: 45, valor: 35.00 },
-    { nome: "Barba e hidratação de barba", duracao: 60, valor: 50.00 },
-    { nome: "Barba, cabelo, sobrancelha e hidratação de barba", duracao: 105, valor: 90.00 }
+    { nome: "Corte Masculino", duracao: 30, valor: 40.00 },
+    { nome: "Corte Feminino", duracao: 40, valor: 50.00 },
+    { nome: "Barba", duracao: 30, valor: 30.00 },
+    { nome: "Sombrancelha", duracao: 15, valor: 15.00 },
+    { nome: "Pezinho", duracao: 15, valor: 15.00 },
+    { nome: "Relaxamento", duracao: 60, valor: 60.00 }
 ];
 
 // Variável para armazenar o barbeiro selecionado
 let barbeiroSelecionado = null;
+
+// Nomes dos barbeiros
+const nomesBarbeiros = {
+    1: 'Sérgio',
+    2: 'Hélio'
+};
 
 // Função para formatar valor monetário
 function formatarValor(valor) {
@@ -157,7 +160,7 @@ function registrarServico(nomeServico) {
 function mostrarFeedback(nomeServico, numeroBarbeiro) {
     // Criar elemento de feedback
     const feedback = document.createElement('div');
-    feedback.textContent = `✓ ${nomeServico} - Barbeiro ${numeroBarbeiro}`;
+    feedback.textContent = `✓ ${nomeServico} - ${nomesBarbeiros[numeroBarbeiro]}`;
     feedback.style.cssText = `
         position: fixed;
         top: 50%;
@@ -223,12 +226,15 @@ function renderizarHistorico() {
     lista.innerHTML = '';
     
     // Mostrar apenas os últimos 10
-    dados.historico.slice(0, 10).forEach(item => {
+    dados.historico.slice(0, 10).forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'historico-item';
         div.innerHTML = `
-            <span class="servico-nome">${item.servico} - Barbeiro ${item.barbeiro}</span>
+            <span class="servico-nome">${item.servico} - ${nomesBarbeiros[item.barbeiro]}</span>
             <span class="hora">${item.hora}</span>
+            <button class="btn-excluir-historico" onclick="confirmarExclusao(${index})" title="Remover este serviço">
+                🗑️
+            </button>
         `;
         lista.appendChild(div);
     });
@@ -298,6 +304,7 @@ function confirmarLimpeza() {
 // Função para fechar modal
 function fecharModal() {
     document.getElementById('modalConfirmacao').classList.remove('ativo');
+    document.getElementById('modalExclusao').classList.remove('ativo');
 }
 
 // Função para limpar dados do dia
@@ -306,6 +313,68 @@ function limparDados() {
     localStorage.removeItem(`servicos_${dataHoje}`);
     fecharModal();
     atualizarInterface();
+}
+
+// Variável para armazenar o índice do item a ser excluído
+let indiceParaExcluir = null;
+
+// Função para confirmar exclusão de um serviço
+function confirmarExclusao(indice) {
+    indiceParaExcluir = indice;
+    const dados = carregarDados();
+    const item = dados.historico[indice];
+    
+    document.getElementById('servicoExcluir').textContent = 
+        `${item.servico} - ${nomesBarbeiros[item.barbeiro]} (${item.hora})`;
+    
+    document.getElementById('modalExclusao').classList.add('ativo');
+}
+
+// Função para excluir o serviço
+function excluirServico() {
+    if (indiceParaExcluir === null) return;
+    
+    const dados = carregarDados();
+    const itemRemovido = dados.historico[indiceParaExcluir];
+    
+    // Decrementar contadores
+    dados.servicos[itemRemovido.servico] = Math.max(0, (dados.servicos[itemRemovido.servico] || 0) - 1);
+    
+    const chaveBarbeiro = `barbeiro${itemRemovido.barbeiro}`;
+    dados[chaveBarbeiro][itemRemovido.servico] = Math.max(0, (dados[chaveBarbeiro][itemRemovido.servico] || 0) - 1);
+    
+    // Remover do histórico
+    dados.historico.splice(indiceParaExcluir, 1);
+    
+    salvarDados(dados);
+    fecharModal();
+    indiceParaExcluir = null;
+    atualizarInterface();
+    
+    // Mostrar feedback
+    const feedback = document.createElement('div');
+    feedback.textContent = '✓ Serviço removido!';
+    feedback.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--vermelho);
+        color: white;
+        padding: 20px 40px;
+        border-radius: 10px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        z-index: 2000;
+        box-shadow: 0 4px 20px rgba(244, 67, 54, 0.5);
+        animation: feedbackPulse 0.5s ease;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    setTimeout(() => {
+        feedback.remove();
+    }, 1000);
 }
 
 // Função para abrir relatório completo
@@ -373,7 +442,7 @@ function abrirRelatorioPorBarbeiro() {
     
     // Relatório Barbeiro 1
     html += '<div style="margin-bottom: 30px;">';
-    html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦲 Barbeiro 1</h4>';
+    html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦲 Sérgio</h4>';
     
     let totalBarbeiro1 = 0;
     let tempoTotalBarbeiro1 = 0;
@@ -419,7 +488,7 @@ function abrirRelatorioPorBarbeiro() {
     
     // Relatório Barbeiro 2
     html += '<div style="margin-bottom: 20px;">';
-    html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦱 Barbeiro 2</h4>';
+    html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦱 Hélio</h4>';
     
     let totalBarbeiro2 = 0;
     let tempoTotalBarbeiro2 = 0;
