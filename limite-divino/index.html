@@ -153,6 +153,22 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
+        
+        .input-section .btn-clear {
+            background: #95a5a6;
+            margin-left: 10px;
+        }
+        
+        .input-section .btn-clear:hover {
+            background: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section .btn-clear {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
 
         .stats-grid {
             display: grid;
@@ -425,8 +441,9 @@
 
         <div class="input-section">
             <label for="birthdate">📅 Digite sua Data de Nascimento:</label>
-            <input type="date" id="birthdate">
+            <input type="text" id="birthdate" placeholder="DD/MM/AAAA" maxlength="10">
             <button onclick="calculate()">Calcular</button>
+            <button class="btn-clear" onclick="clearData()">🗑️ Limpar</button>
         </div>
 
         <div id="results" class="hidden">
@@ -437,6 +454,10 @@
             </div>
 
             <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Você Nasceu em</h3>
+                    <div class="value" id="birthWeekday">-</div>
+                </div>
                 <div class="stat-card">
                     <h3>Dias Vividos</h3>
                     <div class="value" id="daysLived">0</div>
@@ -510,6 +531,28 @@
                 document.getElementById('birthdate').value = savedBirthdate;
                 calculate();
             }
+            
+            // Adicionar máscara de data ao campo
+            const birthdateInput = document.getElementById('birthdate');
+            birthdateInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                
+                if (value.length >= 2) {
+                    value = value.substring(0, 2) + '/' + value.substring(2);
+                }
+                if (value.length >= 5) {
+                    value = value.substring(0, 5) + '/' + value.substring(5, 9);
+                }
+                
+                e.target.value = value;
+            });
+            
+            // Permitir apagar completamente com backspace
+            birthdateInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && e.target.value.length <= 1) {
+                    e.target.value = '';
+                }
+            });
         });
 
         function isLeapYear(year) {
@@ -527,10 +570,31 @@
                 return;
             }
 
+            // Validar e converter formato DD/MM/AAAA para Date
+            const parts = birthdateInput.split('/');
+            if (parts.length !== 3) {
+                alert('Por favor, use o formato DD/MM/AAAA');
+                return;
+            }
+            
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // JavaScript usa mês 0-11
+            const year = parseInt(parts[2]);
+            
+            if (isNaN(day) || isNaN(month) || isNaN(year)) {
+                alert('Data inválida! Use o formato DD/MM/AAAA');
+                return;
+            }
+            
+            if (day < 1 || day > 31 || month < 0 || month > 11 || year < 1900 || year > 2100) {
+                alert('Data fora do intervalo válido!');
+                return;
+            }
+
             // Salvar data de nascimento no localStorage
             localStorage.setItem('birthdate', birthdateInput);
 
-            const birthdate = new Date(birthdateInput + 'T00:00:00');
+            const birthdate = new Date(year, month, day);
             document.getElementById('results').classList.remove('hidden');
 
             // Calcular 120 anos em dias e horas (sem considerar anos bissextos)
@@ -553,9 +617,33 @@
             updateCountdown(birthdate);
             countdownInterval = setInterval(() => updateCountdown(birthdate), 1000);
         }
+        
+        function clearData() {
+            // Limpar campo de entrada
+            document.getElementById('birthdate').value = '';
+            
+            // Limpar localStorage
+            localStorage.removeItem('birthdate');
+            
+            // Esconder resultados
+            document.getElementById('results').classList.add('hidden');
+            
+            // Parar contagem regressiva
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            // Focar no campo de entrada
+            document.getElementById('birthdate').focus();
+        }
 
         function updateStats(birthdate) {
             const now = new Date();
+            
+            // Dia da semana que nasceu
+            const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+            const birthWeekday = weekdays[birthdate.getDay()];
+            document.getElementById('birthWeekday').textContent = birthWeekday;
             
             // Dias vividos
             const diffTime = now - birthdate;
