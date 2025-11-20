@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limite Divino - 120 Anos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #2c3e50;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                border-radius: 15px;
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        .verse {
+            text-align: center;
+            font-style: italic;
+            color: #34495e;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            border-left: 4px solid #2c3e50;
+        }
+        
+        @media (max-width: 768px) {
+            .verse {
+                font-size: 0.95em;
+                padding: 12px;
+                margin-bottom: 20px;
+            }
+        }
+
+        .verse strong {
+            color: #2c3e50;
+        }
+
+        .input-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section {
+                padding: 15px;
+            }
+        }
+
+        .input-section label {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section label {
+                font-size: 1em;
+            }
+        }
+
+        .input-section input {
+            padding: 12px 20px;
+            font-size: 1.1em;
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            width: 250px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section input {
+                width: 100%;
+                max-width: 250px;
+                font-size: 1em;
+                padding: 10px 15px;
+            }
+        }
+
+        .input-section button {
+            padding: 12px 30px;
+            font-size: 1.1em;
+            background: #34495e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section button {
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
+                max-width: 250px;
+                font-size: 1em;
+                padding: 10px 20px;
+            }
+        }
+
+        .input-section button:hover {
+            background: #2c3e50;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            padding: 20px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .stat-card {
+                padding: 15px;
+            }
+        }
+
+        .stat-card h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .stat-card h3 {
+                font-size: 0.85em;
+            }
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .stat-card .value {
+                font-size: 1.5em;
+            }
+        }
+
+        .countdown {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+            border: 2px solid #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown {
+                padding: 20px;
+            }
+        }
+
+        .countdown h2 {
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+        }
+
+        .countdown-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+        }
+
+        .countdown-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        @media (max-width: 768px) {
+            .countdown-item {
+                padding: 10px 5px;
+            }
+        }
+
+        .countdown-item .number {
+            font-size: 2.5em;
+            font-weight: bold;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown-item .number {
+                font-size: 1.5em;
+            }
+        }
+
+        .countdown-item .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown-item .label {
+                font-size: 0.75em;
+            }
+        }
+
+        .timeline-section {
+            margin-top: 30px;
+        }
+
+        .timeline-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .years-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .year-item, .month-item, .day-item {
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .year-item.passed, .month-item.passed, .day-item.passed {
+            background: #ccc;
+            color: #666;
+            opacity: 0.6;
+        }
+
+        .year-item.current, .month-item.current, .day-item.current {
+            background: #e74c3c;
+            color: white;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+        }
+
+        .year-item.future, .month-item.future, .day-item.future {
+            background: #ecf0f1;
+            color: #34495e;
+            border: 2px solid #34495e;
+        }
+
+        .months-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        @media (max-width: 768px) {
+            .days-grid {
+                gap: 5px;
+            }
+        }
+        
+        .day-header {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+            background: #ecf0f1;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .day-header {
+                padding: 8px 5px;
+                font-size: 0.75em;
+            }
+        }
+        
+        .day-item {
+            padding: 12px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 768px) {
+            .day-item {
+                padding: 8px;
+                font-size: 0.85em;
+            }
+        }
+        
+        .day-item.empty {
+            background: transparent;
+            border: none;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .info-120 {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .info-120 h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .info-120 .big-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #34495e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏳ O Limite Divino da Vida ⏳</h1>
+        <div class="verse">
+            <strong>Gênesis 6:3</strong> - "Então disse o Senhor: Não contenderá o meu Espírito para sempre com o homem; porque ele também é carne; porém os seus dias serão cento e vinte anos."
+        </div>
+
+        <div class="input-section">
+            <label for="birthdate">📅 Digite sua Data de Nascimento:</label>
+            <input type="date" id="birthdate">
+            <button onclick="calculate()">Calcular</button>
+        </div>
+
+        <div id="results" class="hidden">
+            <div class="info-120">
+                <h3>120 Anos Equivalem a:</h3>
+                <p><span class="big-number" id="days120">43,800</span> dias</p>
+                <p><span class="big-number" id="hours120">1,051,200</span> horas</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Dias Vividos</h3>
+                    <div class="value" id="daysLived">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Tempo Vivido</h3>
+                    <div class="value" id="timeLived">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Expectativa Brasileira (76 anos)</h3>
+                    <div class="value" id="expectancyBR">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Tempo até 120 Anos</h3>
+                    <div class="value" id="timeTo120">0</div>
+                </div>
+            </div>
+
+            <div class="countdown">
+                <h2>⏱️ Contagem Regressiva até 120 Anos</h2>
+                <div class="countdown-grid">
+                    <div class="countdown-item">
+                        <span class="number" id="countYears">0</span>
+                        <span class="label">Anos</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="number" id="countMonths">0</span>
+                        <span class="label">Meses</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="number" id="countDays">0</span>
+                        <span class="label">Dias</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="number" id="countHours">0</span>
+                        <span class="label">Horas</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="number" id="countMinutes">0</span>
+                        <span class="label">Minutos</span>
+                    </div>
+                    <div class="countdown-item">
+                        <span class="number" id="countSeconds">0</span>
+                        <span class="label">Segundos</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-section">
+                <h2>📊 Sua Linha do Tempo</h2>
+                
+                <div class="section-title">Anos da Vida</div>
+                <div class="years-grid" id="yearsGrid"></div>
+
+                <div class="section-title">Meses do Ano Atual</div>
+                <div class="months-grid" id="monthsGrid"></div>
+
+                <div class="section-title">Dias do Mês Atual</div>
+                <div class="days-grid" id="daysGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countdownInterval;
+
+        // Carregar data de nascimento salva ao carregar a página
+        window.addEventListener('DOMContentLoaded', function() {
+            const savedBirthdate = localStorage.getItem('birthdate');
+            if (savedBirthdate) {
+                document.getElementById('birthdate').value = savedBirthdate;
+                calculate();
+            }
+        });
+
+        function isLeapYear(year) {
+            return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function calculate() {
+            const birthdateInput = document.getElementById('birthdate').value;
+            if (!birthdateInput) {
+                alert('Por favor, insira sua data de nascimento!');
+                return;
+            }
+
+            // Salvar data de nascimento no localStorage
+            localStorage.setItem('birthdate', birthdateInput);
+
+            const birthdate = new Date(birthdateInput + 'T00:00:00');
+            document.getElementById('results').classList.remove('hidden');
+
+            // Calcular 120 anos em dias e horas (sem considerar anos bissextos)
+            const totalDays120 = 120 * 365;
+            document.getElementById('days120').textContent = totalDays120.toLocaleString('pt-BR');
+            document.getElementById('hours120').textContent = (totalDays120 * 24).toLocaleString('pt-BR');
+
+            // Calcular estatísticas
+            updateStats(birthdate);
+
+            // Criar visualizações de timeline
+            createYearsGrid(birthdate);
+            createMonthsGrid();
+            createDaysGrid();
+
+            // Iniciar contagem regressiva
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            updateCountdown(birthdate);
+            countdownInterval = setInterval(() => updateCountdown(birthdate), 1000);
+        }
+
+        function updateStats(birthdate) {
+            const now = new Date();
+            
+            // Dias vividos
+            const diffTime = now - birthdate;
+            const daysLived = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            document.getElementById('daysLived').textContent = daysLived.toLocaleString('pt-BR');
+
+            // Tempo vivido
+            const lived = calculateDetailedTime(birthdate, now);
+            document.getElementById('timeLived').textContent = 
+                `${lived.years}a ${lived.months}m ${lived.days}d`;
+
+            // Expectativa brasileira (76 anos)
+            const expectancy76 = new Date(birthdate);
+            expectancy76.setFullYear(expectancy76.getFullYear() + 76);
+            
+            if (now < expectancy76) {
+                const remaining76 = calculateDetailedTime(now, expectancy76);
+                document.getElementById('expectancyBR').textContent = 
+                    `Faltam ${remaining76.years}a ${remaining76.months}m ${remaining76.days}d`;
+            } else {
+                const exceeded76 = calculateDetailedTime(expectancy76, now);
+                document.getElementById('expectancyBR').textContent = 
+                    `+${exceeded76.years}a ${exceeded76.months}m ${exceeded76.days}d`;
+            }
+
+            // Tempo até 120 anos
+            const limit120 = new Date(birthdate);
+            limit120.setFullYear(limit120.getFullYear() + 120);
+            
+            if (now < limit120) {
+                const remaining120 = calculateDetailedTime(now, limit120);
+                document.getElementById('timeTo120').textContent = 
+                    `${remaining120.years}a ${remaining120.months}m ${remaining120.days}d`;
+            } else {
+                document.getElementById('timeTo120').textContent = 'Completado!';
+            }
+        }
+
+        function calculateDetailedTime(startDate, endDate) {
+            let years = 0;
+            let months = 0;
+            let days = 0;
+
+            let current = new Date(startDate);
+            const end = new Date(endDate);
+
+            // Calcular anos
+            while (true) {
+                const nextYear = new Date(current);
+                nextYear.setFullYear(nextYear.getFullYear() + 1);
+                if (nextYear <= end) {
+                    years++;
+                    current = nextYear;
+                } else {
+                    break;
+                }
+            }
+
+            // Calcular meses
+            while (true) {
+                const nextMonth = new Date(current);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+                if (nextMonth <= end) {
+                    months++;
+                    current = nextMonth;
+                } else {
+                    break;
+                }
+            }
+
+            // Calcular dias
+            days = Math.floor((end - current) / (1000 * 60 * 60 * 24));
+
+            return { years, months, days };
+        }
+
+        function updateCountdown(birthdate) {
+            const now = new Date();
+            const limit120 = new Date(birthdate);
+            limit120.setFullYear(limit120.getFullYear() + 120);
+
+            if (now >= limit120) {
+                document.getElementById('countYears').textContent = '0';
+                document.getElementById('countMonths').textContent = '0';
+                document.getElementById('countDays').textContent = '0';
+                document.getElementById('countHours').textContent = '0';
+                document.getElementById('countMinutes').textContent = '0';
+                document.getElementById('countSeconds').textContent = '0';
+                return;
+            }
+
+            const remaining = calculateDetailedTime(now, limit120);
+            
+            // Calcular horas, minutos e segundos restantes no dia atual
+            let current = new Date(now);
+            current.setFullYear(current.getFullYear() + remaining.years);
+            current.setMonth(current.getMonth() + remaining.months);
+            current.setDate(current.getDate() + remaining.days);
+
+            const diffMs = limit120 - current;
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+            document.getElementById('countYears').textContent = remaining.years;
+            document.getElementById('countMonths').textContent = remaining.months;
+            document.getElementById('countDays').textContent = remaining.days;
+            document.getElementById('countHours').textContent = hours;
+            document.getElementById('countMinutes').textContent = minutes;
+            document.getElementById('countSeconds').textContent = seconds;
+        }
+
+        function createYearsGrid(birthdate) {
+            const grid = document.getElementById('yearsGrid');
+            grid.innerHTML = '';
+
+            const birthYear = birthdate.getFullYear();
+            const currentYear = new Date().getFullYear();
+
+            for (let i = 0; i < 120; i++) {
+                const year = birthYear + i;
+                const div = document.createElement('div');
+                div.className = 'year-item';
+                div.textContent = year;
+
+                if (year < currentYear) {
+                    div.classList.add('passed');
+                } else if (year === currentYear) {
+                    div.classList.add('current');
+                } else {
+                    div.classList.add('future');
+                }
+
+                grid.appendChild(div);
+            }
+        }
+
+        function createMonthsGrid() {
+            const grid = document.getElementById('monthsGrid');
+            grid.innerHTML = '';
+
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
+                          'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const currentMonth = new Date().getMonth();
+
+            months.forEach((month, index) => {
+                const div = document.createElement('div');
+                div.className = 'month-item';
+                div.textContent = month;
+
+                if (index < currentMonth) {
+                    div.classList.add('passed');
+                } else if (index === currentMonth) {
+                    div.classList.add('current');
+                } else {
+                    div.classList.add('future');
+                }
+
+                grid.appendChild(div);
+            });
+        }
+
+        function createDaysGrid() {
+            const grid = document.getElementById('daysGrid');
+            grid.innerHTML = '';
+
+            const now = new Date();
+            const currentDay = now.getDate();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            
+            // Descobrir em qual dia da semana começa o mês (0 = Domingo, 1 = Segunda, etc.)
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            
+            // Adicionar cabeçalhos dos dias da semana
+            const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            weekDays.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+            
+            // Adicionar células vazias antes do primeiro dia do mês
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'day-item empty';
+                grid.appendChild(empty);
+            }
+            
+            // Adicionar os dias do mês
+            for (let i = 1; i <= daysInMonth; i++) {
+                const div = document.createElement('div');
+                div.className = 'day-item';
+                div.textContent = i;
+
+                if (i < currentDay) {
+                    div.classList.add('passed');
+                } else if (i === currentDay) {
+                    div.classList.add('current');
+                } else {
+                    div.classList.add('future');
+                }
+
+                grid.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>
