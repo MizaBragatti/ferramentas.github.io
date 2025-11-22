@@ -1,64 +1,90 @@
 # 🪒 Sistema de Controle de Serviços - Barbearia
 
-Sistema simples para controle diário de serviços prestados em barbearia.
+Sistema simples para controle diário de serviços prestados em barbearia com controle individual por barbeiro.
 
 ## 📋 Funcionalidades
 
+- ✅ Seleção de barbeiro (Sérgio ou Hélio)
 - ✅ Registro rápido de serviços com um toque
 - ✅ Contador automático por tipo de serviço
-- ✅ Histórico dos últimos serviços registrados
-- ✅ Relatório completo do dia
-- ✅ Armazenamento local (LocalStorage)
+- ✅ Controle individual por barbeiro
+- ✅ Valores monetários calculados automaticamente
+- ✅ Histórico dos últimos 10 serviços com exclusão
+- ✅ Relatório completo do dia com valores em R$
+- ✅ Relatório individual por barbeiro
+- ✅ Armazenamento local (LocalStorage) por data
 - ✅ Design responsivo mobile-first
-- ✅ Tema old school (preto, cinza e marrom)
+- ✅ Tema old school (preto, cinza, marrom e dourado)
+- ✅ Foto personalizada dos barbeiros
 
 ## 🎯 Serviços Disponíveis
 
-1. **Cabelo** - 30 minutos
-2. **Barba** - 40 minutos
-3. **Barba e cabelo** - 1h15 (75 min)
-4. **Barba, cabelo e sobrancelha** - 1h20 (80 min)
-5. **Cabelo e sobrancelha** - 40 minutos
-6. **Pezinho e barba** - 45 minutos
-7. **Barba e sobrancelha** - 45 minutos
-8. **Barba e hidratação de barba** - 1 hora
-9. **Barba, cabelo, sobrancelha e hidratação de barba** - 1h45 (105 min)
+1. **Corte Masculino** - R$ 40,00 (30 min)
+2. **Corte Feminino** - R$ 50,00 (45 min)
+3. **Barba** - R$ 30,00 (20 min)
+4. **Sombrancelha** - R$ 15,00 (10 min)
+5. **Pezinho** - R$ 15,00 (10 min)
+6. **Relaxamento** - R$ 60,00 (30 min)
 
 ## 🚀 Como Usar
 
 1. Abra o arquivo `index.html` no navegador (de preferência no celular/tablet)
-2. Toque no card do serviço que foi prestado
-3. O contador será incrementado automaticamente
-4. Veja o resumo do dia e os últimos registros
-5. Acesse o relatório completo para ver detalhes
+2. **Selecione o barbeiro** (Sérgio ou Hélio)
+3. Toque no card do serviço que foi prestado
+4. O serviço será registrado com feedback visual instantâneo
+5. Veja o resumo do dia com totais individuais e geral
+6. Histórico mostra os últimos 10 serviços registrados
+7. Use o botão 🗑️ para excluir serviços registrados por engano
+8. Acesse "📊 Ver Relatório Completo" para detalhes gerais
+9. Acesse "👥 Relatório por Barbeiro" para detalhes individuais
 
 ## 💾 Armazenamento
 
 - Os dados são salvos automaticamente no **LocalStorage** do navegador
-- Cada dia tem seus próprios dados independentes
+- Cada dia tem seus próprios dados independentes (chave: `servicos_YYYY-MM-DD`)
 - Os dados persistem mesmo ao fechar o navegador
-- Use "Limpar Dados do Dia" para resetar o contador
+- Estrutura de dados inclui:
+  - Contadores gerais por serviço
+  - Contadores individuais por barbeiro (barbeiro1 e barbeiro2)
+  - Histórico com timestamp de até 50 registros
+- Use "🗑️ Limpar Dados do Dia" para resetar o dia (com confirmação)
 
 ## 📱 Mobile-First
 
 - Interface otimizada para dispositivos móveis
 - Toque rápido para registrar serviços
 - Visual limpo e intuitivo
-- Animações de feedback
+- Animações de feedback em tempo real
+- Seleção visual do barbeiro ativo
+- Touch targets otimizados (mínimo 44px)
 
 ## 🎨 Design
 
-- Paleta de cores: Preto, Cinza e Marrom (tema old school)
-- Destaques em dourado
-- Animações suaves
+- Paleta de cores: Preto (#1a1a1a), Cinza, Marrom (#8b4513) e Dourado (#d4af37)
+- Tema old school barbershop
+- Gradientes elegantes
+- Destaques em dourado para valores e ações importantes
+- Animações suaves (hover, seleção, feedback)
 - Responsivo para todos os tamanhos de tela
+- Foto personalizada do Sérgio no botão de seleção
 
-## 📊 Relatório
+## 📊 Relatórios
 
-O relatório completo mostra:
-- Quantidade de cada tipo de serviço
-- Tempo total gasto por serviço
+### Relatório Completo
+- Quantidade de cada tipo de serviço realizado
+- Tempo total gasto por tipo de serviço
+- Valor unitário e total por serviço
 - Total geral de serviços do dia
+- Valor total arrecadado no dia
+- Tempo total trabalhado em minutos
+
+### Relatório por Barbeiro
+- Detalhamento individual de Sérgio e Hélio
+- Serviços realizados por cada um
+- Quantidade e valores por serviço
+- Total de serviços e valor em R$ por barbeiro
+- Tempo total trabalhado por cada barbeiro
+- Comparação lado a lado dos desempenhos
 
 ## 🔧 Tecnologias
 
@@ -70,11 +96,51 @@ O relatório completo mostra:
 ## 📁 Estrutura de Arquivos
 
 ```
-controle-servicos/
-├── index.html    # Página principal
-├── styles.css    # Estilos
-├── script.js     # Lógica do sistema
-└── README.md     # Este arquivo
+barbeiro/
+├── index.html      # Página principal com modais
+├── styles.css      # Estilos completos (variáveis CSS, animações, grid)
+├── script.js       # Lógica do sistema (LocalStorage, cálculos, renderização)
+├── img/
+│   └── Sergio-Barbeiro.png  # Foto do Sérgio
+├── README.md       # Este arquivo
+└── funcionalidades.txt  # Planejamento de funcionalidades
+```
+
+## 👥 Barbeiros
+
+- **Sérgio** (Barbeiro 1) - Dono da barbearia
+- **Hélio** (Barbeiro 2) - Barbeiro
+
+## 🔧 Estrutura de Dados
+
+```javascript
+{
+  "data": "2025-11-22",
+  "servicos": {
+    "Corte Masculino": 5,
+    "Barba": 3,
+    // ... outros serviços
+  },
+  "barbeiro1": {  // Sérgio
+    "Corte Masculino": 3,
+    "Barba": 2,
+    // ... contadores individuais
+  },
+  "barbeiro2": {  // Hélio
+    "Corte Masculino": 2,
+    "Barba": 1,
+    // ... contadores individuais
+  },
+  "historico": [
+    {
+      "servico": "Corte Masculino",
+      "barbeiro": 1,
+      "hora": "14:30",
+      "timestamp": 1700668200000
+    },
+    // ... últimos 50 registros
+  ]
+}
 ```
 
 ## 🌐 Instalação
@@ -86,6 +152,31 @@ Para melhor experiência mobile:
 2. Use em modo retrato
 3. Recomendado usar Chrome ou Safari
 
+## ✨ Funcionalidades em Destaque
+
+### Feedback Visual
+- ✓ Confirmação instantânea ao registrar serviço
+- ✓ Animação de pulso ao selecionar barbeiro
+- ✓ Badge com nome do barbeiro e serviço
+
+### Exclusão de Serviços
+- 🗑️ Botão de lixeira em cada registro do histórico
+- ⚠️ Modal de confirmação antes de excluir
+- ♻️ Atualização automática de contadores e valores
+
+### Cálculos Automáticos
+- 💰 Valores calculados em tempo real
+- 📊 Totais por barbeiro atualizados instantaneamente
+- 🧮 Soma geral do dia sempre visível
+
+## 🎯 Casos de Uso
+
+- **Registrar Serviço**: Barbeiro seleciona seu nome e toca no serviço realizado
+- **Corrigir Erro**: Clicar em 🗑️ no histórico para remover serviço incorreto
+- **Ver Desempenho**: Verificar quanto cada barbeiro fez no dia
+- **Fechar Caixa**: Consultar relatório completo para valores totais
+- **Resetar Dia**: Limpar dados ao final do expediente
+
 ---
 
-Desenvolvido para facilitar o controle diário de serviços em barbearias.
+Desenvolvido para facilitar o controle diário de serviços em barbearias com múltiplos profissionais.

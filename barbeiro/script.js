@@ -1,3 +1,81 @@
+// ========================================
+// CONFIGURAÇÃO FIREBASE
+// ========================================
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAhIHFSkRw6wPP5T1WOwAAwOvyqggBqMZ8",
+    authDomain: "barbeiro-de8a5.firebaseapp.com",
+    databaseURL: "https://barbeiro-de8a5-default-rtdb.firebaseio.com",
+    projectId: "barbeiro-de8a5",
+    storageBucket: "barbeiro-de8a5.firebasestorage.app",
+    messagingSenderId: "116498868750",
+    appId: "1:116498868750:web:27553cfc59f109d5b16a5f"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// ========================================
+// AUTENTICAÇÃO E SESSÃO
+// ========================================
+
+// Verificar sessão e exibir usuário logado
+function verificarSessao() {
+    const barbeiroLogado = sessionStorage.getItem('barbeiroLogado');
+    const nomeBarbeiro = sessionStorage.getItem('nomeBareiro');
+    
+    if (barbeiroLogado && nomeBarbeiro) {
+        const usuarioElement = document.getElementById('usuarioLogado');
+        if (usuarioElement) {
+            usuarioElement.textContent = `👤 Logado como: ${nomeBarbeiro}`;
+        }
+        
+        // Auto-selecionar o barbeiro logado
+        setTimeout(() => {
+            selecionarBarbeiro(parseInt(barbeiroLogado));
+        }, 500);
+    }
+}
+
+// Função para sair
+function sair() {
+    if (confirm('Deseja realmente sair?')) {
+        sessionStorage.removeItem('barbeiroLogado');
+        sessionStorage.removeItem('nomeBareiro');
+        window.location.href = 'login.html';
+    }
+}
+
+// ========================================
+// CONEXÃO FIREBASE
+// ========================================
+
+// Estado da conexão
+let statusConexao = false;
+
+// Monitorar conexão
+const connectedRef = database.ref('.info/connected');
+connectedRef.on('value', (snap) => {
+    statusConexao = snap.val() === true;
+    atualizarStatusConexao();
+});
+
+function atualizarStatusConexao() {
+    const statusElement = document.getElementById('statusConexao');
+    if (statusConexao) {
+        statusElement.className = 'status-conexao online';
+        statusElement.querySelector('.status-text').textContent = 'Online - Sincronizado';
+    } else {
+        statusElement.className = 'status-conexao offline';
+        statusElement.querySelector('.status-text').textContent = 'Offline - Modo Local';
+    }
+}
+
+// ========================================
+// DADOS E SERVIÇOS
+// ========================================
+
 // Lista de serviços disponíveis
 const servicos = [
     { nome: "Corte Masculino", duracao: 30, valor: 40.00 },
@@ -51,31 +129,21 @@ function formatarHora() {
     });
 }
 
-// Função para carregar dados do localStorage
+// ========================================
+// FUNÇÕES DE DADOS (Apenas Firebase)
+// ========================================
+
+// Cache local em memória (não persiste ao recarregar)
+let cacheLocal = null;
+
+// Função para carregar dados
 function carregarDados() {
-    const dataHoje = obterDataHoje();
-    const dadosSalvos = localStorage.getItem(`servicos_${dataHoje}`);
-    
-    if (dadosSalvos) {
-        const dados = JSON.parse(dadosSalvos);
-        
-        // Garantir que todos os campos existem (para compatibilidade com versões antigas)
-        if (!dados.barbeiro1) dados.barbeiro1 = {};
-        if (!dados.barbeiro2) dados.barbeiro2 = {};
-        if (!dados.servicos) dados.servicos = {};
-        if (!dados.historico) dados.historico = [];
-        
-        // Garantir que todos os serviços estão inicializados
-        servicos.forEach(servico => {
-            if (!dados.servicos[servico.nome]) dados.servicos[servico.nome] = 0;
-            if (!dados.barbeiro1[servico.nome]) dados.barbeiro1[servico.nome] = 0;
-            if (!dados.barbeiro2[servico.nome]) dados.barbeiro2[servico.nome] = 0;
-        });
-        
-        return dados;
+    if (cacheLocal) {
+        return cacheLocal;
     }
     
     // Inicializar dados do dia
+    const dataHoje = obterDataHoje();
     const dadosIniciais = {
         data: dataHoje,
         servicos: {},
@@ -90,14 +158,56 @@ function carregarDados() {
         dadosIniciais.barbeiro2[servico.nome] = 0;
     });
     
+    cacheLocal = dadosIniciais;
     return dadosIniciais;
 }
 
-// Função para salvar dados no localStorage
+// Função para salvar dados (apenas Firebase)
 function salvarDados(dados) {
     const dataHoje = obterDataHoje();
-    localStorage.setItem(`servicos_${dataHoje}`, JSON.stringify(dados));
-    console.log('✅ Dados salvos:', dados);
+    
+    // Atualizar cache local
+    cacheLocal = dados;
+    
+    // Salvar no Firebase
+    if (statusConexao) {
+        database.ref(`servicos/${dataHoje}`).set(dados)
+            .then(() => {
+                console.log('☁️ Dados sincronizados com Firebase');
+            })
+            .catch((error) => {
+                console.error('❌ Erro ao salvar no Firebase:', error);
+            });
+    } else {
+        console.log('📡 Offline - aguardando conexão para sincronizar');
+    }
+}
+
+// Sincronizar dados do Firebase ao carregar
+function sincronizarComFirebase() {
+    const dataHoje = obterDataHoje();
+    
+    database.ref(`servicos/${dataHoje}`).on('value', (snapshot) => {
+        const dadosFirebase = snapshot.val();
+        
+        if (dadosFirebase) {
+            console.log('☁️ Dados recebidos do Firebase:', dadosFirebase);
+            
+            // Atualizar cache local
+            cacheLocal = dadosFirebase;
+            
+            // Atualizar interface
+            atualizarInterface();
+        } else {
+            console.log('📭 Nenhum dado no Firebase para hoje');
+            
+            // Inicializar dados vazios no Firebase
+            const dadosIniciais = carregarDados();
+            database.ref(`servicos/${dataHoje}`).set(dadosIniciais);
+        }
+    }, (error) => {
+        console.error('❌ Erro ao sincronizar:', error);
+    });
 }
 
 // Função para selecionar barbeiro
@@ -310,9 +420,23 @@ function fecharModal() {
 // Função para limpar dados do dia
 function limparDados() {
     const dataHoje = obterDataHoje();
-    localStorage.removeItem(`servicos_${dataHoje}`);
-    fecharModal();
-    atualizarInterface();
+    
+    // Limpar cache local
+    cacheLocal = null;
+    
+    // Limpar no Firebase
+    database.ref(`servicos/${dataHoje}`).remove()
+        .then(() => {
+            console.log('🗑️ Dados do dia removidos do Firebase');
+            fecharModal();
+            
+            // Reinicializar dados vazios
+            const dadosIniciais = carregarDados();
+            database.ref(`servicos/${dataHoje}`).set(dadosIniciais);
+        })
+        .catch((error) => {
+            console.error('❌ Erro ao limpar dados:', error);
+        });
 }
 
 // Variável para armazenar o índice do item a ser excluído
@@ -586,9 +710,19 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Inicializar ao carregar a página
+// ========================================
+// INICIALIZAÇÃO
+// ========================================
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Iniciando sistema...');
     console.log('📅 Data de hoje:', obterDataHoje());
+    
+    // Verificar sessão de login
+    verificarSessao();
+    
+    // Iniciar sincronização com Firebase
+    sincronizarComFirebase();
     
     const dados = carregarDados();
     console.log('📊 Dados carregados:', dados);

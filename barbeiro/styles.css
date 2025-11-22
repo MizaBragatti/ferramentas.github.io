@@ -39,6 +39,48 @@ header {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    gap: 15px;
+}
+
+.header-top > div {
+    flex: 1;
+}
+
+.btn-sair {
+    background: var(--vermelho);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-sair:hover {
+    background: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+}
+
+.usuario-logado {
+    background: var(--marrom);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--dourado);
+    font-weight: bold;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+
 header h1 {
     font-size: 2rem;
     color: var(--dourado);
@@ -50,6 +92,50 @@ header h1 {
     font-size: 1.1rem;
     color: var(--branco);
     opacity: 0.9;
+}
+
+.status-conexao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cinza-claro);
+    animation: pulse 2s infinite;
+}
+
+.status-conexao.online .status-indicator {
+    background: var(--verde);
+    animation: none;
+}
+
+.status-conexao.offline .status-indicator {
+    background: #ff4444;
+    animation: none;
+}
+
+.status-text {
+    color: var(--cinza-claro);
+    font-size: 0.85rem;
+}
+
+.status-conexao.online .status-text {
+    color: var(--verde);
+}
+
+.status-conexao.offline .status-text {
+    color: #ff4444;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .resumo-dia {
