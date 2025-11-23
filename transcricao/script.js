@@ -27,7 +27,6 @@ class TranscritorWeb {
         this.setupEventListeners();
         this.loadSettings();
         this.updateTimestamp();
-        this.loadHistory();
     }
 
     initializeElements() {
@@ -35,7 +34,6 @@ class TranscritorWeb {
         this.stopBtn = document.getElementById('stopBtn');
         this.clearBtn = document.getElementById('clearBtn');
         this.downloadBtn = document.getElementById('downloadBtn');
-        this.clearHistoryBtn = document.getElementById('clearHistoryBtn');
         
         this.languageSelect = document.getElementById('languageSelect');
         this.continuousMode = document.getElementById('continuousMode');
@@ -57,7 +55,6 @@ class TranscritorWeb {
         this.wordCount = document.getElementById('wordCount');
         this.charCount = document.getElementById('charCount');
         this.timestamp = document.getElementById('timestamp');
-        this.historyList = document.getElementById('historyList');
         
         this.errorModal = document.getElementById('errorModal');
         this.errorMessage = document.getElementById('errorMessage');
@@ -264,15 +261,14 @@ class TranscritorWeb {
     }
 
     scrollToBottom() {
-        const container = this.transcriptionArea;
-        const isBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 1;
-        
-        if (isBottom || container.children.length <= 1) {
-            container.scrollTop = container.scrollHeight;
-            if (this.isTranslationEnabled) {
+        // Sempre fazer scroll para o final quando houver novo conteúdo
+        setTimeout(() => {
+            this.transcriptionArea.scrollTop = this.transcriptionArea.scrollHeight;
+            
+            if (this.isTranslationEnabled && this.translationArea) {
                 this.translationArea.scrollTop = this.translationArea.scrollHeight;
             }
-        }
+        }, 50);
     }
 
     setupEventListeners() {
@@ -280,7 +276,6 @@ class TranscritorWeb {
         this.stopBtn.addEventListener('click', () => this.stop());
         this.clearBtn.addEventListener('click', () => this.clear());
         this.downloadBtn.addEventListener('click', () => this.download());
-        this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
         
         this.languageSelect.addEventListener('change', () => {
             if (this.recognition) this.recognition.lang = this.languageSelect.value;
@@ -300,6 +295,47 @@ class TranscritorWeb {
         this.dismissError.addEventListener('click', () => this.hideError());
         this.errorModal.addEventListener('click', (e) => {
             if (e.target === this.errorModal) this.hideError();
+        });
+        
+        // Configurar sincronização de scroll entre áreas
+        this.setupScrollSync();
+    }
+
+    setupScrollSync() {
+        let isScrolling = false;
+        
+        // Sincronizar scroll da área original para a tradução
+        this.transcriptionArea.addEventListener('scroll', () => {
+            if (isScrolling || !this.isTranslationEnabled) return;
+            
+            isScrolling = true;
+            requestAnimationFrame(() => {
+                const scrollPercentage = this.transcriptionArea.scrollTop / 
+                    (this.transcriptionArea.scrollHeight - this.transcriptionArea.clientHeight);
+                
+                const translationScrollTop = scrollPercentage * 
+                    (this.translationArea.scrollHeight - this.translationArea.clientHeight);
+                
+                this.translationArea.scrollTop = translationScrollTop;
+                isScrolling = false;
+            });
+        });
+        
+        // Sincronizar scroll da área de tradução para a original
+        this.translationArea.addEventListener('scroll', () => {
+            if (isScrolling || !this.isTranslationEnabled) return;
+            
+            isScrolling = true;
+            requestAnimationFrame(() => {
+                const scrollPercentage = this.translationArea.scrollTop / 
+                    (this.translationArea.scrollHeight - this.translationArea.clientHeight);
+                
+                const transcriptionScrollTop = scrollPercentage * 
+                    (this.transcriptionArea.scrollHeight - this.transcriptionArea.clientHeight);
+                
+                this.transcriptionArea.scrollTop = transcriptionScrollTop;
+                isScrolling = false;
+            });
         });
     }
 
@@ -325,7 +361,6 @@ class TranscritorWeb {
         
         try {
             this.recognition.stop();
-            this.saveSession();
         } catch (error) {
             console.error('Erro ao parar:', error);
         }
@@ -401,75 +436,6 @@ class TranscritorWeb {
         const chars = this.finalTranscriptions.reduce((c, t) => c + t.text.length, 0);
         this.wordCount.textContent = `${words} palavra${words !== 1 ? 's' : ''}`;
         this.charCount.textContent = `${chars} caractere${chars !== 1 ? 's' : ''}`;
-    }
-
-    saveSession() {
-        if (this.finalTranscriptions.length === 0) return;
-        
-        const session = {
-            timestamp: this.sessionStartTime || new Date(),
-            language: this.languageSelect.value,
-            transcriptions: this.finalTranscriptions,
-            wordCount: this.finalTranscriptions.reduce((c, t) => c + t.text.trim().split(/\s+/).length, 0),
-            charCount: this.finalTranscriptions.reduce((c, t) => c + t.text.length, 0)
-        };
-        
-        const history = this.getHistory();
-        history.unshift(session);
-        if (history.length > 10) history.splice(10);
-        
-        localStorage.setItem('transcriptionHistory', JSON.stringify(history));
-        this.loadHistory();
-    }
-
-    getHistory() {
-        try {
-            return JSON.parse(localStorage.getItem('transcriptionHistory') || '[]');
-        } catch {
-            return [];
-        }
-    }
-
-    loadHistory() {
-        const history = this.getHistory();
-        this.historyList.innerHTML = '';
-        
-        if (history.length === 0) {
-            this.historyList.innerHTML = '<p class="no-history">Nenhuma sessão salva</p>';
-            return;
-        }
-        
-        history.forEach((s, i) => {
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `
-                <div class="history-info">
-                    <div class="history-date">${new Date(s.timestamp).toLocaleString()}</div>
-                    <div class="history-stats">${s.wordCount} palavras | ${s.charCount} caracteres</div>
-                </div>
-                <button class="btn btn-sm btn-primary" onclick="transcritor.loadSession(${i})">
-                    <i class="fas fa-upload"></i> Carregar
-                </button>
-            `;
-            this.historyList.appendChild(div);
-        });
-    }
-
-    loadSession(index) {
-        const history = this.getHistory();
-        if (history[index]) {
-            this.clear();
-            this.finalTranscriptions = history[index].transcriptions;
-            history[index].transcriptions.forEach(t => this.appendTranscription(t));
-            this.updateStats();
-        }
-    }
-
-    clearHistory() {
-        if (confirm('Limpar todo o histórico?')) {
-            localStorage.removeItem('transcriptionHistory');
-            this.loadHistory();
-        }
     }
 
     saveSettings() {

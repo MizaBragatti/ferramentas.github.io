@@ -193,6 +193,19 @@ function sincronizarComFirebase() {
         if (dadosFirebase) {
             console.log('☁️ Dados recebidos do Firebase:', dadosFirebase);
             
+            // Garantir que todos os campos existem
+            if (!dadosFirebase.barbeiro1) dadosFirebase.barbeiro1 = {};
+            if (!dadosFirebase.barbeiro2) dadosFirebase.barbeiro2 = {};
+            if (!dadosFirebase.servicos) dadosFirebase.servicos = {};
+            if (!dadosFirebase.historico) dadosFirebase.historico = [];
+            
+            // Garantir que todos os serviços estão inicializados
+            servicos.forEach(servico => {
+                if (!dadosFirebase.servicos[servico.nome]) dadosFirebase.servicos[servico.nome] = 0;
+                if (!dadosFirebase.barbeiro1[servico.nome]) dadosFirebase.barbeiro1[servico.nome] = 0;
+                if (!dadosFirebase.barbeiro2[servico.nome]) dadosFirebase.barbeiro2[servico.nome] = 0;
+            });
+            
             // Atualizar cache local
             cacheLocal = dadosFirebase;
             
@@ -231,6 +244,12 @@ function registrarServico(nomeServico) {
     console.log('📝 Registrando serviço:', nomeServico, 'para Barbeiro', barbeiroSelecionado);
     
     const dados = carregarDados();
+    
+    // Garantir que todos os campos existem
+    if (!dados.servicos) dados.servicos = {};
+    if (!dados.barbeiro1) dados.barbeiro1 = {};
+    if (!dados.barbeiro2) dados.barbeiro2 = {};
+    if (!dados.historico) dados.historico = [];
     
     // Incrementar contador geral
     dados.servicos[nomeServico] = (dados.servicos[nomeServico] || 0) + 1;
@@ -421,18 +440,22 @@ function fecharModal() {
 function limparDados() {
     const dataHoje = obterDataHoje();
     
-    // Limpar cache local
+    // Fechar modal imediatamente
+    fecharModal();
+    
+    // Limpar cache local primeiro
     cacheLocal = null;
     
-    // Limpar no Firebase
-    database.ref(`servicos/${dataHoje}`).remove()
+    // Inicializar dados vazios
+    const dadosIniciais = carregarDados();
+    
+    // Atualizar interface imediatamente
+    atualizarInterface();
+    
+    // Salvar dados vazios no Firebase
+    database.ref(`servicos/${dataHoje}`).set(dadosIniciais)
         .then(() => {
-            console.log('🗑️ Dados do dia removidos do Firebase');
-            fecharModal();
-            
-            // Reinicializar dados vazios
-            const dadosIniciais = carregarDados();
-            database.ref(`servicos/${dataHoje}`).set(dadosIniciais);
+            console.log('🗑️ Dados do dia limpos no Firebase');
         })
         .catch((error) => {
             console.error('❌ Erro ao limpar dados:', error);
