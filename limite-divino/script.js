@@ -1,4 +1,5 @@
 let countdownInterval;
+let statsUpdateInterval;
 
 // Carregar data de nascimento salva ao carregar a página
 window.addEventListener('DOMContentLoaded', function() {
@@ -16,6 +17,35 @@ window.addEventListener('DOMContentLoaded', function() {
     
     if (savedBirthdate) {
         calculate();
+    }
+    
+    // Atualizar estatísticas a cada minuto se houver data salva e página estiver em foco
+    if (savedBirthdate) {
+        const updateStats = () => {
+            const customAge = parseInt(document.getElementById('customAge').value) || 120;
+            const parts = savedBirthdate.split('/');
+            const birthdate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            
+            // Atualizar estatísticas
+            updateStatsData(birthdate, customAge);
+            
+            // Atualizar calendário de dias (caso tenha mudado o dia)
+            createDaysGrid();
+        };
+        
+        // Atualiza a cada 1 minuto apenas se a página estiver em foco
+        statsUpdateInterval = setInterval(() => {
+            if (!document.hidden) {
+                updateStats();
+            }
+        }, 60000);
+        
+        // Atualiza quando a página volta ao foco
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && savedBirthdate) {
+                updateStats();
+            }
+        });
     }
     
     // Adicionar máscara de data ao campo
@@ -122,7 +152,7 @@ function calculate() {
     document.getElementById('hours120').textContent = (totalDays * 24).toLocaleString('pt-BR');
 
     // Calcular estatísticas
-    updateStats(birthdate, customAge);
+    updateStatsData(birthdate, customAge);
 
     // Criar visualizações de timeline
     createYearsGrid(birthdate, customAge);
@@ -157,13 +187,16 @@ function clearData() {
     // Esconder resultados
     document.getElementById('results').classList.add('hidden');
     
-    // Parar contagem regressiva
+    // Parar contagem regressiva e atualização de estatísticas
     if (countdownInterval) {
         clearInterval(countdownInterval);
     }
+    if (statsUpdateInterval) {
+        clearInterval(statsUpdateInterval);
+    }
 }
 
-function updateStats(birthdate, customAge) {
+function updateStatsData(birthdate, customAge) {
     const now = new Date();
     
     // Dia da semana que nasceu
@@ -290,7 +323,13 @@ function createYearsGrid(birthdate, customAge) {
     grid.innerHTML = '';
 
     const birthYear = birthdate.getFullYear();
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    // Calcular progresso do ano atual
+    const startOfYear = new Date(currentYear, 0, 1);
+    const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+    const yearProgress = ((now - startOfYear) / (endOfYear - startOfYear)) * 100;
 
     for (let i = 0; i < customAge; i++) {
         const year = birthYear + i;
@@ -302,6 +341,8 @@ function createYearsGrid(birthdate, customAge) {
             div.classList.add('passed');
         } else if (year === currentYear) {
             div.classList.add('current');
+            div.style.setProperty('--year-progress', `${yearProgress.toFixed(1)}%`);
+            div.style.setProperty('background', 'linear-gradient(90deg, rgba(231, 76, 60, 0.5) 0%, rgba(231, 76, 60, 0.5) ' + yearProgress.toFixed(1) + '%, #ecf0f1 ' + yearProgress.toFixed(1) + '%)');
         } else {
             div.classList.add('future');
         }
@@ -316,7 +357,14 @@ function createMonthsGrid() {
 
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 
                   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const currentMonth = new Date().getMonth();
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentDay = now.getDate();
+    
+    // Calcular progresso do mês atual
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const monthProgress = (currentDay / daysInMonth) * 100;
 
     months.forEach((month, index) => {
         const div = document.createElement('div');
@@ -327,6 +375,7 @@ function createMonthsGrid() {
             div.classList.add('passed');
         } else if (index === currentMonth) {
             div.classList.add('current');
+            div.style.setProperty('background', 'linear-gradient(90deg, rgba(231, 76, 60, 0.5) 0%, rgba(231, 76, 60, 0.5) ' + monthProgress.toFixed(1) + '%, #ecf0f1 ' + monthProgress.toFixed(1) + '%)');
         } else {
             div.classList.add('future');
         }
@@ -344,6 +393,9 @@ function createDaysGrid() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+    
+    // Calcular progresso do dia atual (baseado na hora)
+    const dayProgress = ((now.getHours() * 60 + now.getMinutes()) / (24 * 60)) * 100;
     
     // Descobrir em qual dia da semana começa o mês (0 = Domingo, 1 = Segunda, etc.)
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
@@ -374,6 +426,7 @@ function createDaysGrid() {
             div.classList.add('passed');
         } else if (i === currentDay) {
             div.classList.add('current');
+            div.style.setProperty('background', 'linear-gradient(90deg, rgba(231, 76, 60, 0.5) 0%, rgba(231, 76, 60, 0.5) ' + dayProgress.toFixed(1) + '%, #ecf0f1 ' + dayProgress.toFixed(1) + '%)');
         } else {
             div.classList.add('future');
         }
