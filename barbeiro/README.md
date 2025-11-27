@@ -4,7 +4,7 @@ Sistema simples para controle diário de serviços prestados em barbearia com co
 
 ## 📋 Funcionalidades
 
-- ✅ Seleção de barbeiro (Sérgio ou Hélio)
+- ✅ Dois perfis de acesso: Sérgio (proprietário, acesso total) e Hélio (funcionário, acesso restrito ao próprio painel)
 - ✅ Registro rápido de serviços com um toque
 - ✅ Contador automático por tipo de serviço
 - ✅ Controle individual por barbeiro
@@ -29,14 +29,17 @@ Sistema simples para controle diário de serviços prestados em barbearia com co
 ## 🚀 Como Usar
 
 1. Abra o arquivo `index.html` no navegador (de preferência no celular/tablet)
-2. **Selecione o barbeiro** (Sérgio ou Hélio)
+2. Faça login como **Sérgio** (proprietário) ou **Hélio** (funcionário)
+  - Sérgio tem acesso a todos os dados, relatórios e histórico
+  - Hélio só visualiza e registra seus próprios serviços
 3. Toque no card do serviço que foi prestado
 4. O serviço será registrado com feedback visual instantâneo
-5. Veja o resumo do dia com totais individuais e geral
+5. Veja o resumo do dia com totais individuais e geral (conforme o perfil)
 6. Histórico mostra os últimos 10 serviços registrados
 7. Use o botão 🗑️ para excluir serviços registrados por engano
-8. Acesse "📊 Ver Relatório Completo" para detalhes gerais
+8. Acesse "📊 Ver Relatório Completo" para detalhes gerais (Sérgio)
 9. Acesse "👥 Relatório por Barbeiro" para detalhes individuais
+10. Consulte o roteiro de testes em [`ROTEIRO_TESTES.md`](./ROTEIRO_TESTES.md)
 
 ## 💾 Armazenamento
 
@@ -96,20 +99,17 @@ Sistema simples para controle diário de serviços prestados em barbearia com co
 ## 📁 Estrutura de Arquivos
 
 ```
-barbeiro/
-├── index.html      # Página principal com modais
-├── styles.css      # Estilos completos (variáveis CSS, animações, grid)
-├── script.js       # Lógica do sistema (LocalStorage, cálculos, renderização)
-├── img/
-│   └── Sergio-Barbeiro.png  # Foto do Sérgio
-├── README.md       # Este arquivo
-└── funcionalidades.txt  # Planejamento de funcionalidades
+backend/           # Backend (Node.js, integração futura)
+frontend/          # Frontend (Next.js, React, CSS)
+README.md          # Documentação principal
+ROTEIRO_TESTES.md  # Roteiro de testes do sistema
+funcionalidades.txt # Lista de funcionalidades
 ```
 
-## 👥 Barbeiros
+## 👥 Perfis de Usuário
 
-- **Sérgio** (Barbeiro 1) - Dono da barbearia
-- **Hélio** (Barbeiro 2) - Barbeiro
+- **Sérgio** (Proprietário): acesso total a todos os dados, relatórios e histórico
+- **Hélio** (Funcionário): acesso restrito ao próprio painel, só visualiza e registra seus serviços
 
 ## 🔧 Estrutura de Dados
 
@@ -145,7 +145,7 @@ barbeiro/
 
 ## 🌐 Instalação
 
-Não requer instalação! Basta abrir o `index.html` no navegador.
+Não requer instalação! Basta abrir o `index.html` no navegador (versão legacy) ou acessar o frontend Next.js.
 
 Para melhor experiência mobile:
 1. Adicione à tela inicial do celular
@@ -180,3 +180,4 @@ Para melhor experiência mobile:
 ---
 
 Desenvolvido para facilitar o controle diário de serviços em barbearias com múltiplos profissionais.
+Consulte o roteiro de testes em [`ROTEIRO_TESTES.md`](./ROTEIRO_TESTES.md).

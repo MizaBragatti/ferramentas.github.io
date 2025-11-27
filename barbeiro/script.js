@@ -319,25 +319,29 @@ function renderizarServicos() {
     const dados = carregarDados();
     const grid = document.getElementById('servicosGrid');
     grid.innerHTML = '';
-    
-    console.log('🎨 Renderizando serviços com dados:', dados.servicos);
-    
+    if (window.BARBEIRO_LOGADO == '2') {
+        barbeiroSelecionado = 2;
+    } else if (!barbeiroSelecionado) {
+        // Para Sérgio, exige seleção
+        return;
+    }
     servicos.forEach(servico => {
-        const contador = dados.servicos[servico.nome] || 0;
-        
-        console.log(`   ${servico.nome}: ${contador}`);
-        
+        let contador = 0;
+        if (window.BARBEIRO_LOGADO == '2') {
+            contador = dados.barbeiro2[servico.nome] || 0;
+        } else {
+            // Sérgio vê o total geral (ambos barbeiros)
+            contador = (dados.barbeiro1[servico.nome] || 0) + (dados.barbeiro2[servico.nome] || 0);
+        }
         const card = document.createElement('div');
         card.className = 'servico-card';
         card.onclick = () => registrarServico(servico.nome);
-        
         card.innerHTML = `
             <h3>${servico.nome}</h3>
             <span class="duracao">${servico.duracao} min</span>
             <span class="valor-servico">${formatarValor(servico.valor)}</span>
             <span class="contador">${contador}</span>
         `;
-        
         grid.appendChild(card);
     });
 }
@@ -346,16 +350,18 @@ function renderizarServicos() {
 function renderizarHistorico() {
     const dados = carregarDados();
     const lista = document.getElementById('historicoLista');
-    
-    if (dados.historico.length === 0) {
+    // Filtrar histórico conforme barbeiro logado
+    let historicoFiltrado = dados.historico;
+    if (window.BARBEIRO_LOGADO == '2') {
+        historicoFiltrado = historicoFiltrado.filter(item => item.barbeiro == 2);
+    }
+    if (historicoFiltrado.length === 0) {
         lista.innerHTML = '<p style="color: var(--cinza-claro); text-align: center;">Nenhum serviço registrado hoje</p>';
         return;
     }
     
     lista.innerHTML = '';
-    
-    // Mostrar apenas os últimos 10
-    dados.historico.slice(0, 10).forEach((item, index) => {
+    historicoFiltrado.slice(0, 10).forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'historico-item';
         div.innerHTML = `
@@ -372,42 +378,33 @@ function renderizarHistorico() {
 // Função para atualizar o total de serviços
 function atualizarTotal() {
     const dados = carregarDados();
-    const total = Object.values(dados.servicos).reduce((acc, val) => acc + val, 0);
-    
-    // Calcular valor total
+    let total = 0;
     let valorTotal = 0;
-    servicos.forEach(servico => {
-        const qtd = dados.servicos[servico.nome] || 0;
-        valorTotal += qtd * servico.valor;
-    });
-    
-    document.getElementById('totalServicos').innerHTML = `
-        ${total} <span style="font-size: 0.8rem; display: block; margin-top: 5px;">${formatarValor(valorTotal)}</span>
-    `;
-    
-    // Atualizar totais por barbeiro
-    const totalBarbeiro1 = Object.values(dados.barbeiro1).reduce((acc, val) => acc + val, 0);
-    const totalBarbeiro2 = Object.values(dados.barbeiro2).reduce((acc, val) => acc + val, 0);
-    
-    // Calcular valores por barbeiro
+    let totalBarbeiro1 = 0;
+    let totalBarbeiro2 = 0;
     let valorBarbeiro1 = 0;
     let valorBarbeiro2 = 0;
-    
     servicos.forEach(servico => {
         const qtd1 = dados.barbeiro1[servico.nome] || 0;
         const qtd2 = dados.barbeiro2[servico.nome] || 0;
+        totalBarbeiro1 += qtd1;
+        totalBarbeiro2 += qtd2;
         valorBarbeiro1 += qtd1 * servico.valor;
         valorBarbeiro2 += qtd2 * servico.valor;
     });
-    
-    document.getElementById('totalBarbeiro1').innerHTML = `
-        ${totalBarbeiro1} serviços<br>
-        <span style="font-size: 0.85rem; font-weight: bold;">${formatarValor(valorBarbeiro1)}</span>
-    `;
-    
-    document.getElementById('totalBarbeiro2').innerHTML = `
-        ${totalBarbeiro2} serviços<br>
-        <span style="font-size: 0.85rem; font-weight: bold;">${formatarValor(valorBarbeiro2)}</span>
+    total = totalBarbeiro1 + totalBarbeiro2;
+    valorTotal = valorBarbeiro1 + valorBarbeiro2;
+    // Atualizar contadores dos botões
+    const el1 = document.getElementById('totalBarbeiro1');
+    if (el1) {
+        el1.innerHTML = `${totalBarbeiro1} serviços<br><span style="font-size: 0.85rem; font-weight: bold;">${formatarValor(valorBarbeiro1)}</span>`;
+    }
+    const el2 = document.getElementById('totalBarbeiro2');
+    if (el2) {
+        el2.innerHTML = `${totalBarbeiro2} serviços<br><span style="font-size: 0.85rem; font-weight: bold;">${formatarValor(valorBarbeiro2)}</span>`;
+    }
+    document.getElementById('totalServicos').innerHTML = `
+        ${total} <span style="font-size: 0.8rem; display: block; margin-top: 5px;">${formatarValor(valorTotal)}</span>
     `;
 }
 
@@ -432,28 +429,36 @@ function confirmarLimpeza() {
 
 // Função para fechar modal
 function fecharModal() {
-    document.getElementById('modalConfirmacao').classList.remove('ativo');
-    document.getElementById('modalExclusao').classList.remove('ativo');
+    var modalExclusao = document.getElementById('modalExclusao');
+    if (modalExclusao) {
+        modalExclusao.classList.remove('ativo');
+        modalExclusao.style.display = 'none'; // Força sumir
+        setTimeout(() => { modalExclusao.style.display = ''; }, 500); // Permite reabrir depois
+    }
+    var servicoExcluir = document.getElementById('servicoExcluir');
+    if (servicoExcluir) servicoExcluir.textContent = '';
+    indiceParaExcluir = null;
 }
 
 // Função para limpar dados do dia
 function limparDados() {
     const dataHoje = obterDataHoje();
-    
-    // Fechar modal imediatamente
     fecharModal();
-    
-    // Limpar cache local primeiro
-    cacheLocal = null;
-    
-    // Inicializar dados vazios
-    const dadosIniciais = carregarDados();
-    
-    // Atualizar interface imediatamente
+    let dados = carregarDados();
+    if (window.BARBEIRO_LOGADO == '2') {
+        // Hélio só pode limpar os próprios dados
+        servicos.forEach(servico => {
+            dados.barbeiro2[servico.nome] = 0;
+        });
+        // Remove do histórico apenas os serviços do barbeiro2
+        dados.historico = dados.historico.filter(item => item.barbeiro != 2);
+    } else {
+        // Sérgio limpa tudo normalmente
+        cacheLocal = null;
+        dados = carregarDados();
+    }
     atualizarInterface();
-    
-    // Salvar dados vazios no Firebase
-    database.ref(`servicos/${dataHoje}`).set(dadosIniciais)
+    database.ref(`servicos/${dataHoje}`).set(dados)
         .then(() => {
             console.log('🗑️ Dados do dia limpos no Firebase');
         })
@@ -480,24 +485,17 @@ function confirmarExclusao(indice) {
 // Função para excluir o serviço
 function excluirServico() {
     if (indiceParaExcluir === null) return;
-    
     const dados = carregarDados();
     const itemRemovido = dados.historico[indiceParaExcluir];
-    
     // Decrementar contadores
     dados.servicos[itemRemovido.servico] = Math.max(0, (dados.servicos[itemRemovido.servico] || 0) - 1);
-    
     const chaveBarbeiro = `barbeiro${itemRemovido.barbeiro}`;
     dados[chaveBarbeiro][itemRemovido.servico] = Math.max(0, (dados[chaveBarbeiro][itemRemovido.servico] || 0) - 1);
-    
     // Remover do histórico
     dados.historico.splice(indiceParaExcluir, 1);
-    
     salvarDados(dados);
     fecharModal();
-    indiceParaExcluir = null;
     atualizarInterface();
-    
     // Mostrar feedback
     const feedback = document.createElement('div');
     feedback.textContent = '✓ Serviço removido!';
@@ -516,9 +514,7 @@ function excluirServico() {
         box-shadow: 0 4px 20px rgba(244, 67, 54, 0.5);
         animation: feedbackPulse 0.5s ease;
     `;
-    
     document.body.appendChild(feedback);
-    
     setTimeout(() => {
         feedback.remove();
     }, 1000);
@@ -528,45 +524,66 @@ function excluirServico() {
 function abrirRelatorio() {
     const dados = carregarDados();
     const conteudo = document.getElementById('relatorioConteudo');
-    
     let html = '<div style="margin-bottom: 20px;">';
     html += '<h4 style="color: var(--dourado); margin-bottom: 10px;">Serviços Realizados</h4>';
-    
     let totalGeral = 0;
     let valorTotalGeral = 0;
     let tempoTotalGeral = 0;
-    
-    servicos.forEach(servico => {
-        const qtd = dados.servicos[servico.nome] || 0;
-        totalGeral += qtd;
-        valorTotalGeral += qtd * servico.valor;
-        tempoTotalGeral += qtd * servico.duracao;
-        
-        if (qtd > 0) {
-            const valorTotal = qtd * servico.valor;
-            html += `
-                <div class="relatorio-item">
-                    <h4>${servico.nome}</h4>
-                    <div class="detalhes">
-                        <span>Qtd: ${qtd}</span>
-                        <span>Tempo: ${qtd * servico.duracao} min</span>
+    if (window.BARBEIRO_LOGADO == '2') {
+        // Hélio só vê os próprios serviços
+        servicos.forEach(servico => {
+            const qtd = dados.barbeiro2[servico.nome] || 0;
+            totalGeral += qtd;
+            valorTotalGeral += qtd * servico.valor;
+            tempoTotalGeral += qtd * servico.duracao;
+            if (qtd > 0) {
+                const valorTotal = qtd * servico.valor;
+                html += `
+                    <div class="relatorio-item">
+                        <h4>${servico.nome}</h4>
+                        <div class="detalhes">
+                            <span>Qtd: ${qtd}</span>
+                            <span>Tempo: ${qtd * servico.duracao} min</span>
+                        </div>
+                        <div class="detalhes" style="margin-top: 5px;">
+                            <span>Unit: ${formatarValor(servico.valor)}</span>
+                            <span style="font-weight: bold; color: var(--dourado);">Total: ${formatarValor(valorTotal)}</span>
+                        </div>
                     </div>
-                    <div class="detalhes" style="margin-top: 5px;">
-                        <span>Unit: ${formatarValor(servico.valor)}</span>
-                        <span style="font-weight: bold; color: var(--dourado);">Total: ${formatarValor(valorTotal)}</span>
+                `;
+            }
+        });
+    } else {
+        // Sérgio vê tudo
+        servicos.forEach(servico => {
+            const qtd = dados.servicos[servico.nome] || 0;
+            totalGeral += qtd;
+            valorTotalGeral += qtd * servico.valor;
+            tempoTotalGeral += qtd * servico.duracao;
+            if (qtd > 0) {
+                const valorTotal = qtd * servico.valor;
+                html += `
+                    <div class="relatorio-item">
+                        <h4>${servico.nome}</h4>
+                        <div class="detalhes">
+                            <span>Qtd: ${qtd}</span>
+                            <span>Tempo: ${qtd * servico.duracao} min</span>
+                        </div>
+                        <div class="detalhes" style="margin-top: 5px;">
+                            <span>Unit: ${formatarValor(servico.valor)}</span>
+                            <span style="font-weight: bold; color: var(--dourado);">Total: ${formatarValor(valorTotal)}</span>
+                        </div>
                     </div>
-                </div>
-            `;
-        }
-    });
-    
+                `;
+            }
+        });
+    }
     html += '</div>';
-    
     html += `
         <div style="background: var(--marrom); padding: 15px; border-radius: 8px; text-align: center;">
             <h4 style="color: var(--dourado); margin-bottom: 10px;">Total Geral de Serviços</h4>
             <p style="font-size: 2rem; font-weight: bold; color: white;">${totalGeral}</p>
-            <p style="font-size: 1.5rem; font-weight: bold; color: var(--dourado); margin-top: 10px;">${formatarValor(valorTotalGeral)}</p>
+            <p style="font-size: 1.5rem; font-weight: bold, color: var(--dourado); margin-top: 10px;">${formatarValor(valorTotalGeral)}</p>
             <p style="font-size: 1rem; color: white; margin-top: 5px;">Tempo total: ${tempoTotalGeral} minutos</p>
         </div>
     `;
@@ -584,126 +601,166 @@ function fecharRelatorio() {
 function abrirRelatorioPorBarbeiro() {
     const dados = carregarDados();
     const conteudo = document.getElementById('relatorioConteudoBarbeiro');
-    
     let html = '';
-    
-    // Relatório Barbeiro 1
-    html += '<div style="margin-bottom: 30px;">';
-    html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦲 Sérgio</h4>';
-    
-    let totalBarbeiro1 = 0;
-    let tempoTotalBarbeiro1 = 0;
-    let valorTotalBarbeiro1 = 0;
-    
-    servicos.forEach(servico => {
-        const qtd = dados.barbeiro1[servico.nome] || 0;
-        if (qtd > 0) {
-            totalBarbeiro1 += qtd;
-            tempoTotalBarbeiro1 += qtd * servico.duracao;
-            const valorTotal = qtd * servico.valor;
-            valorTotalBarbeiro1 += valorTotal;
-            
-            html += `
-                <div class="relatorio-item">
-                    <h4>${servico.nome}</h4>
-                    <div class="detalhes">
-                        <span>Qtd: ${qtd}</span>
-                        <span>Tempo: ${qtd * servico.duracao} min</span>
+    if (window.BARBEIRO_LOGADO == '2') {
+        // Hélio só vê o próprio relatório
+        html += '<div style="margin-bottom: 20px;">';
+        html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦱 Hélio</h4>';
+        let totalBarbeiro2 = 0;
+        let tempoTotalBarbeiro2 = 0;
+        let valorTotalBarbeiro2 = 0;
+        servicos.forEach(servico => {
+            const qtd = dados.barbeiro2[servico.nome] || 0;
+            if (qtd > 0) {
+                totalBarbeiro2 += qtd;
+                tempoTotalBarbeiro2 += qtd * servico.duracao;
+                const valorTotal = qtd * servico.valor;
+                valorTotalBarbeiro2 += valorTotal;
+                html += `
+                    <div class="relatorio-item">
+                        <h4>${servico.nome}</h4>
+                        <div class="detalhes">
+                            <span>Qtd: ${qtd}</span>
+                            <span>Tempo: ${qtd * servico.duracao} min</span>
+                        </div>
+                        <div class="detalhes" style="margin-top: 5px;">
+                            <span>${formatarValor(servico.valor)}</span>
+                            <span style="font-weight: bold; color: var(--dourado);">${formatarValor(valorTotal)}</span>
+                        </div>
                     </div>
-                    <div class="detalhes" style="margin-top: 5px;">
-                        <span>${formatarValor(servico.valor)}</span>
-                        <span style="font-weight: bold; color: var(--dourado);">${formatarValor(valorTotal)}</span>
-                    </div>
+                `;
+            }
+        });
+        html += `
+            <div style="background: var(--marrom); padding: 12px; border-radius: 8px; margin-top: 10px;">
+                <div class="detalhes" style="margin-bottom: 8px;">
+                    <span style="font-weight: bold; color: var(--dourado);">Total: ${totalBarbeiro2} serviços</span>
+                    <span style="color: white;">Tempo: ${tempoTotalBarbeiro2} min</span>
                 </div>
-            `;
-        }
-    });
-    
-    html += `
-        <div style="background: var(--marrom); padding: 12px; border-radius: 8px; margin-top: 10px;">
-            <div class="detalhes" style="margin-bottom: 8px;">
-                <span style="font-weight: bold; color: var(--dourado);">Total: ${totalBarbeiro1} serviços</span>
-                <span style="color: white;">Tempo: ${tempoTotalBarbeiro1} min</span>
-            </div>
-            <div style="text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--dourado);">
-                ${formatarValor(valorTotalBarbeiro1)}
-            </div>
-        </div>
-    `;
-    
-    html += '</div>';
-    
-    // Relatório Barbeiro 2
-    html += '<div style="margin-bottom: 20px;">';
-    html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦱 Hélio</h4>';
-    
-    let totalBarbeiro2 = 0;
-    let tempoTotalBarbeiro2 = 0;
-    let valorTotalBarbeiro2 = 0;
-    
-    servicos.forEach(servico => {
-        const qtd = dados.barbeiro2[servico.nome] || 0;
-        if (qtd > 0) {
-            totalBarbeiro2 += qtd;
-            tempoTotalBarbeiro2 += qtd * servico.duracao;
-            const valorTotal = qtd * servico.valor;
-            valorTotalBarbeiro2 += valorTotal;
-            
-            html += `
-                <div class="relatorio-item">
-                    <h4>${servico.nome}</h4>
-                    <div class="detalhes">
-                        <span>Qtd: ${qtd}</span>
-                        <span>Tempo: ${qtd * servico.duracao} min</span>
-                    </div>
-                    <div class="detalhes" style="margin-top: 5px;">
-                        <span>${formatarValor(servico.valor)}</span>
-                        <span style="font-weight: bold; color: var(--dourado);">${formatarValor(valorTotal)}</span>
-                    </div>
-                </div>
-            `;
-        }
-    });
-    
-    html += `
-        <div style="background: var(--marrom); padding: 12px; border-radius: 8px; margin-top: 10px;">
-            <div class="detalhes" style="margin-bottom: 8px;">
-                <span style="font-weight: bold; color: var(--dourado);">Total: ${totalBarbeiro2} serviços</span>
-                <span style="color: white;">Tempo: ${tempoTotalBarbeiro2} min</span>
-            </div>
-            <div style="text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--dourado);">
-                ${formatarValor(valorTotalBarbeiro2)}
-            </div>
-        </div>
-    `;
-    
-    html += '</div>';
-    
-    // Comparação
-    html += `
-        <div style="background: var(--cinza-escuro); padding: 15px; border-radius: 8px; border: 2px solid var(--dourado);">
-            <h4 style="color: var(--dourado); margin-bottom: 10px; text-align: center;">📊 Comparação</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center;">
-                <div>
-                    <p style="color: var(--cinza-claro); margin-bottom: 5px;">Barbeiro 1</p>
-                    <p style="font-size: 1.5rem; font-weight: bold; color: var(--dourado);">${totalBarbeiro1}</p>
-                    <p style="font-size: 1.1rem; color: white; margin-top: 5px;">${formatarValor(valorTotalBarbeiro1)}</p>
-                </div>
-                <div>
-                    <p style="color: var(--cinza-claro); margin-bottom: 5px;">Barbeiro 2</p>
-                    <p style="font-size: 1.5rem; font-weight: bold; color: var(--dourado);">${totalBarbeiro2}</p>
-                    <p style="font-size: 1.1rem; color: white; margin-top: 5px;">${formatarValor(valorTotalBarbeiro2)}</p>
+                <div style="text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--dourado);">
+                    ${formatarValor(valorTotalBarbeiro2)}
                 </div>
             </div>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--cinza);">
-                <p style="color: var(--cinza-claro); text-align: center; margin-bottom: 5px;">Total Geral</p>
-                <p style="font-size: 1.8rem; font-weight: bold; color: var(--dourado); text-align: center;">
-                    ${formatarValor(valorTotalBarbeiro1 + valorTotalBarbeiro2)}
-                </p>
+        `;
+        html += '</div>';
+    } else {
+        // Sérgio vê ambos
+        html += '<div style="margin-bottom: 30px;">';
+        html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦲 Sérgio</h4>';
+        
+        let totalBarbeiro1 = 0;
+        let tempoTotalBarbeiro1 = 0;
+        let valorTotalBarbeiro1 = 0;
+        
+        servicos.forEach(servico => {
+            const qtd = dados.barbeiro1[servico.nome] || 0;
+            if (qtd > 0) {
+                totalBarbeiro1 += qtd;
+                tempoTotalBarbeiro1 += qtd * servico.duracao;
+                const valorTotal = qtd * servico.valor;
+                valorTotalBarbeiro1 += valorTotal;
+                
+                html += `
+                    <div class="relatorio-item">
+                        <h4>${servico.nome}</h4>
+                        <div class="detalhes">
+                            <span>Qtd: ${qtd}</span>
+                            <span>Tempo: ${qtd * servico.duracao} min</span>
+                        </div>
+                        <div class="detalhes" style="margin-top: 5px;">
+                            <span>${formatarValor(servico.valor)}</span>
+                            <span style="font-weight: bold; color: var(--dourado);">${formatarValor(valorTotal)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        html += `
+            <div style="background: var(--marrom); padding: 12px; border-radius: 8px; margin-top: 10px;">
+                <div class="detalhes" style="margin-bottom: 8px;">
+                    <span style="font-weight: bold; color: var(--dourado);">Total: ${totalBarbeiro1} serviços</span>
+                    <span style="color: white;">Tempo: ${tempoTotalBarbeiro1} min</span>
+                </div>
+                <div style="text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--dourado);">
+                    ${formatarValor(valorTotalBarbeiro1)}
+                </div>
             </div>
-        </div>
-    `;
-    
+        `;
+        
+        html += '</div>';
+        
+        // Relatório Barbeiro 2
+        html += '<div style="margin-bottom: 20px;">';
+        html += '<h4 style="color: var(--dourado); margin-bottom: 15px; font-size: 1.3rem;">👨‍🦱 Hélio</h4>';
+        
+        let totalBarbeiro2 = 0;
+        let tempoTotalBarbeiro2 = 0;
+        let valorTotalBarbeiro2 = 0;
+        
+        servicos.forEach(servico => {
+            const qtd = dados.barbeiro2[servico.nome] || 0;
+            if (qtd > 0) {
+                totalBarbeiro2 += qtd;
+                tempoTotalBarbeiro2 += qtd * servico.duracao;
+                const valorTotal = qtd * servico.valor;
+                valorTotalBarbeiro2 += valorTotal;
+                
+                html += `
+                    <div class="relatorio-item">
+                        <h4>${servico.nome}</h4>
+                        <div class="detalhes">
+                            <span>Qtd: ${qtd}</span>
+                            <span>Tempo: ${qtd * servico.duracao} min</span>
+                        </div>
+                        <div class="detalhes" style="margin-top: 5px;">
+                            <span>${formatarValor(servico.valor)}</span>
+                            <span style="font-weight: bold; color: var(--dourado);">${formatarValor(valorTotal)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        html += `
+            <div style="background: var(--marrom); padding: 12px; border-radius: 8px; margin-top: 10px;">
+                <div class="detalhes" style="margin-bottom: 8px;">
+                    <span style="font-weight: bold; color: var(--dourado);">Total: ${totalBarbeiro2} serviços</span>
+                    <span style="color: white;">Tempo: ${tempoTotalBarbeiro2} min</span>
+                </div>
+                <div style="text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--dourado);">
+                    ${formatarValor(valorTotalBarbeiro2)}
+                </div>
+            </div>
+        `;
+        
+        html += '</div>';
+        
+        // Comparação
+        html += `
+            <div style="background: var(--cinza-escuro); padding: 15px; border-radius: 8px; border: 2px solid var(--dourado);">
+                <h4 style="color: var(--dourado); margin-bottom: 10px; text-align: center;">📊 Comparação</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center;">
+                    <div>
+                        <p style="color: var(--cinza-claro); margin-bottom: 5px;">Barbeiro 1</p>
+                        <p style="font-size: 1.5rem; font-weight: bold; color: var(--dourado);">${totalBarbeiro1}</p>
+                        <p style="font-size: 1.1rem; color: white; margin-top: 5px;">${formatarValor(valorTotalBarbeiro1)}</p>
+                    </div>
+                    <div>
+                        <p style="color: var(--cinza-claro); margin-bottom: 5px;">Barbeiro 2</p>
+                        <p style="font-size: 1.5rem; font-weight: bold, color: var(--dourado);">${totalBarbeiro2}</p>
+                        <p style="font-size: 1.1rem; color: white; margin-top: 5px;">${formatarValor(valorTotalBarbeiro2)}</p>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--cinza);">
+                    <p style="color: var(--cinza-claro); text-align: center; margin-bottom: 5px;">Total Geral</p>
+                    <p style="font-size: 1.8rem; font-weight: bold; color: var(--dourado); text-align: center;">
+                        ${formatarValor(valorTotalBarbeiro1 + valorTotalBarbeiro2)}
+                    </p>
+                </div>
+            </div>
+        `;
+    }
     conteudo.innerHTML = html;
     document.getElementById('modalRelatorioBarbeiro').classList.add('ativo');
 }
@@ -740,18 +797,17 @@ document.head.appendChild(style);
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Iniciando sistema...');
     console.log('📅 Data de hoje:', obterDataHoje());
-    
     // Verificar sessão de login
     verificarSessao();
-    
     // Iniciar sincronização com Firebase
     sincronizarComFirebase();
-    
+    // Selecionar automaticamente o barbeiro 1 para Sérgio, se nenhum selecionado
+    if (window.BARBEIRO_LOGADO == '1' && !barbeiroSelecionado) {
+        selecionarBarbeiro(1);
+    }
     const dados = carregarDados();
     console.log('📊 Dados carregados:', dados);
-    
     atualizarInterface();
-    
     // Atualizar a cada minuto (para atualizar a hora)
     setInterval(() => {
         atualizarData();
