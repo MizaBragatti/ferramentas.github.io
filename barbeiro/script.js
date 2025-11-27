@@ -403,9 +403,18 @@ function atualizarTotal() {
     if (el2) {
         el2.innerHTML = `${totalBarbeiro2} serviços<br><span style="font-size: 0.85rem; font-weight: bold;">${formatarValor(valorBarbeiro2)}</span>`;
     }
-    document.getElementById('totalServicos').innerHTML = `
-        ${total} <span style="font-size: 0.8rem; display: block; margin-top: 5px;">${formatarValor(valorTotal)}</span>
-    `;
+    // Exibir total conforme perfil logado
+    if (window.BARBEIRO_LOGADO == '2') {
+        // Hélio: mostra só o total dele
+        document.getElementById('totalServicos').innerHTML = `
+            ${totalBarbeiro2} <span style="font-size: 0.8rem; display: block; margin-top: 5px;">${formatarValor(valorBarbeiro2)}</span>
+        `;
+    } else {
+        // Sérgio: mostra total geral
+        document.getElementById('totalServicos').innerHTML = `
+            ${total} <span style="font-size: 0.8rem; display: block; margin-top: 5px;">${formatarValor(valorTotal)}</span>
+        `;
+    }
 }
 
 // Função para atualizar a data atual
@@ -808,6 +817,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const dados = carregarDados();
     console.log('📊 Dados carregados:', dados);
     atualizarInterface();
+    // Esconder botão de relatório completo para Hélio
+    const btnRelatorio = document.querySelector('.btn-relatorio');
+    if (btnRelatorio) {
+        if (sessionStorage.getItem('barbeiroLogado') == '2') {
+            btnRelatorio.style.display = 'none';
+        } else {
+            btnRelatorio.style.display = '';
+        }
+    }
     // Atualizar a cada minuto (para atualizar a hora)
     setInterval(() => {
         atualizarData();
