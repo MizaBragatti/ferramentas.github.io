@@ -25,11 +25,13 @@
                 document.getElementById('btnBarbeiro1').style.display = '';
                 document.getElementById('btnBarbeiro2').style.display = '';
                 document.getElementById('btnRelatorioBarbeiro').style.display = '';
+                document.getElementById('btnHistoricoMensal').style.display = '';
             } else if (window.BARBEIRO_LOGADO == '2') {
                 // Hélio só vê ele mesmo
                 document.getElementById('btnBarbeiro1').style.display = 'none';
                 document.getElementById('btnBarbeiro2').style.display = '';
                 document.getElementById('btnRelatorioBarbeiro').style.display = 'none';
+                document.getElementById('btnHistoricoMensal').style.display = 'none';
             }
         });
     </script>
@@ -91,6 +93,7 @@
         <div class="acoes-admin">
             <button class="btn-relatorio" onclick="abrirRelatorio()">📊 Ver Relatório Completo</button>
             <button class="btn-relatorio-barbeiro" id="btnRelatorioBarbeiro" onclick="abrirRelatorioPorBarbeiro()" style="display:none;">👥 Relatório por Barbeiro</button>
+            <button class="btn-relatorio-barbeiro" id="btnHistoricoMensal" onclick="window.location.href='historico-mensal.html'" style="display:none;">📅 Histórico Mensal</button>
         </div>
     </div>
 

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico Mensal - Barbearia</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .historico-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .historico-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: var(--cinza);
+            border-radius: 10px;
+            gap: 10px;
+        }
+
+        .historico-header h1 {
+            color: var(--dourado);
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filtro-mes {
+            background: var(--cinza);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .filtro-mes select {
+            width: 100%;
+            padding: 12px;
+            background: var(--cinza-escuro);
+            color: var(--branco);
+            border: 2px solid var(--dourado);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .filtro-mes select:focus {
+            outline: none;
+            border-color: var(--dourado);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .resumo-mes {
+            background: linear-gradient(135deg, var(--cinza) 0%, var(--cinza-escuro) 100%);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .resumo-item {
+            background: var(--cinza-escuro);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid var(--cinza-claro);
+        }
+
+        .resumo-item h3 {
+            color: var(--cinza-claro);
+            font-size: 0.75rem;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .resumo-item .valor {
+            color: var(--dourado);
+            font-size: 1.8rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .tabela-container {
+            background: var(--cinza);
+            border-radius: 12px;
+            padding: 15px;
+            overflow-x: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .tabela-historico {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .tabela-historico thead {
+            background: var(--cinza-escuro);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .tabela-historico thead th {
+            color: var(--dourado);
+            font-weight: bold;
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 2px solid var(--dourado);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .tabela-historico thead th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .tabela-historico thead th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .tabela-historico thead th.col-center {
+            text-align: center;
+        }
+
+        .tabela-historico tbody tr {
+            border-bottom: 1px solid var(--cinza-claro);
+            transition: background 0.2s ease;
+        }
+
+        .tabela-historico tbody tr:hover {
+            background: var(--cinza-escuro);
+        }
+
+        .tabela-historico tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .tabela-historico tbody td {
+            padding: 12px 8px;
+            color: var(--branco);
+        }
+
+        .tabela-historico .col-data {
+            font-weight: 500;
+            color: var(--dourado);
+            white-space: nowrap;
+        }
+
+        .tabela-historico .col-numero {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .tabela-historico .col-dinheiro {
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #4CAF50;
+        }
+
+        .tabela-historico .col-sergio {
+            color: #4FC3F7;
+        }
+
+        .tabela-historico .col-helio {
+            color: #FF9800;
+        }
+
+        .tabela-historico .col-total {
+            background: var(--dourado);
+            color: var(--preto);
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: center;
+            border-radius: 6px;
+        }
+
+        .tabela-historico tfoot {
+            background: var(--cinza-escuro);
+            font-weight: bold;
+        }
+
+        .tabela-historico tfoot td {
+            padding: 15px 8px;
+            border-top: 3px solid var(--dourado);
+            font-size: 1.1rem;
+        }
+
+        .tabela-historico tfoot .col-data {
+            color: var(--branco);
+        }
+
+        .tabela-historico tfoot .col-total {
+            font-size: 1.3rem;
+        }
+
+        .sem-dados {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--cinza-claro);
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--dourado);
+            font-size: 1.1rem;
+        }
+
+        .btn-voltar {
+            background: var(--cinza-escuro);
+            color: var(--branco);
+            border: 2px solid var(--dourado);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .btn-voltar:hover {
+            background: var(--dourado);
+            color: var(--preto);
+        }
+
+        .status-conexao {
+            display: none;
+        }
+
+            @media (max-width: 768px) {
+            .historico-header {
+                flex-wrap: wrap;
+            }
+
+            .historico-header h1 {
+                font-size: 1.3rem;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .tabela-historico {
+                font-size: 0.75rem;
+            }
+
+            .tabela-historico thead th {
+                padding: 8px 4px;
+                font-size: 0.65rem;
+            }
+
+            .tabela-historico tbody td {
+                padding: 8px 4px;
+            }
+
+            .tabela-historico .col-data {
+                font-size: 0.8rem;
+            }
+
+            .tabela-historico .col-numero {
+                font-size: 0.85rem;
+            }
+
+            .tabela-historico .col-dinheiro {
+                font-size: 0.75rem;
+            }
+
+            .tabela-historico .col-total {
+                font-size: 0.9rem;
+            }
+
+            .tabela-historico tfoot td {
+                padding: 10px 4px;
+                font-size: 0.85rem;
+            }
+
+            .tabela-historico tfoot .col-total {
+                font-size: 1rem;
+            }
+
+            .resumo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .resumo-item .valor {
+                font-size: 1.5rem;
+            }
+        }        @media (min-width: 769px) {
+            .historico-container {
+                padding: 20px;
+            }
+
+            .resumo-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .status-conexao {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 15px;
+                background: var(--cinza-escuro);
+                border-radius: 8px;
+                font-size: 0.85rem;
+            }
+
+            .status-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--cinza-claro);
+            }
+
+            .status-conexao.conectado .status-indicator {
+                background: var(--verde);
+                box-shadow: 0 0 10px var(--verde);
+            }
+
+            .status-conexao.desconectado .status-indicator {
+                background: var(--vermelho);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Verificação de Login -->
+    <script>
+        const barbeiroLogado = sessionStorage.getItem('barbeiroLogado');
+        const nomeBarbeiro = sessionStorage.getItem('nomeBareiro');
+        
+        // Apenas Sérgio (barbeiro 1) pode acessar
+        if (!barbeiroLogado || barbeiroLogado !== '1') {
+            alert('Acesso negado! Apenas o Sérgio pode acessar esta página.');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <div class="historico-container">
+        <div class="historico-header">
+            <h1>📅 Histórico Mensal</h1>
+            <div class="header-actions">
+                <div class="status-conexao" id="statusConexao">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">Conectando...</span>
+                </div>
+                <button class="btn-voltar" onclick="window.location.href='index.html'">
+                    ← Voltar
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtro de Mês -->
+        <div class="filtro-mes">
+            <select id="selectMes" onchange="carregarMes()">
+                <!-- Meses serão inseridos via JavaScript -->
+            </select>
+        </div>
+
+        <!-- Resumo do Mês -->
+        <div class="resumo-mes" id="resumoMes">
+            <div class="resumo-grid">
+                <div class="resumo-item">
+                    <h3>Total</h3>
+                    <div class="valor" id="totalServicos">0</div>
+                </div>
+                <div class="resumo-item">
+                    <h3>Sérgio</h3>
+                    <div class="valor" id="totalSergio">0</div>
+                </div>
+                <div class="resumo-item">
+                    <h3>Hélio</h3>
+                    <div class="valor" id="totalHelio">0</div>
+                </div>
+                <div class="resumo-item">
+                    <h3>Dias</h3>
+                    <div class="valor" id="diasTrabalhados">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Dias -->
+        <div class="tabela-container" id="tabelaContainer">
+            <div class="loading">Carregando dados...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // Configuração Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhIHFSkRw6wPP5T1WOwAAwOvyqggBqMZ8",
+            authDomain: "barbeiro-de8a5.firebaseapp.com",
+            databaseURL: "https://barbeiro-de8a5-default-rtdb.firebaseio.com",
+            projectId: "barbeiro-de8a5",
+            storageBucket: "barbeiro-de8a5.firebasestorage.app",
+            messagingSenderId: "116498868750",
+            appId: "1:116498868750:web:27553cfc59f109d5b16a5f"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Valores dos serviços
+        const valoresServicos = {
+            "Corte Masculino": 40.00,
+            "Corte Feminino": 50.00,
+            "Barba": 30.00,
+            "Sombrancelha": 15.00,
+            "Pezinho": 15.00,
+            "Relaxamento": 60.00
+        };
+
+        // Variáveis globais
+        let mesAtual = '';
+        let dadosMensais = {};
+
+        // Formatar valor monetário
+        function formatarDinheiro(valor) {
+            return valor.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+        }
+
+        // Monitorar conexão Firebase
+        database.ref('.info/connected').on('value', (snapshot) => {
+            const statusElement = document.getElementById('statusConexao');
+            if (snapshot.val() === true) {
+                statusElement.classList.add('conectado');
+                statusElement.classList.remove('desconectado');
+                statusElement.querySelector('.status-text').textContent = 'Conectado';
+            } else {
+                statusElement.classList.remove('conectado');
+                statusElement.classList.add('desconectado');
+                statusElement.querySelector('.status-text').textContent = 'Desconectado';
+            }
+        });
+
+        // Inicializar página
+        window.addEventListener('DOMContentLoaded', () => {
+            carregarMesesDisponiveis();
+        });
+
+        // Carregar meses disponíveis
+        function carregarMesesDisponiveis() {
+            database.ref('servicos').once('value', (snapshot) => {
+                const servicos = snapshot.val();
+                if (!servicos) {
+                    document.getElementById('listaDias').innerHTML = '<div class="sem-dados">Nenhum dado encontrado</div>';
+                    return;
+                }
+
+                const meses = new Set();
+                Object.keys(servicos).forEach(dia => {
+                    // Formato: aaaa-mm-dd
+                    const mesAno = dia.substring(0, 7); // aaaa-mm
+                    meses.add(mesAno);
+                });
+
+                // Ordenar meses (mais recente primeiro)
+                const mesesOrdenados = Array.from(meses).sort().reverse();
+
+                // Preencher select
+                const selectMes = document.getElementById('selectMes');
+                selectMes.innerHTML = '';
+                
+                mesesOrdenados.forEach(mes => {
+                    const option = document.createElement('option');
+                    option.value = mes;
+                    option.textContent = formatarMesAno(mes);
+                    selectMes.appendChild(option);
+                });
+
+                // Carregar o mês mais recente
+                if (mesesOrdenados.length > 0) {
+                    mesAtual = mesesOrdenados[0];
+                    carregarMes();
+                }
+            });
+        }
+
+        // Carregar dados do mês
+        function carregarMes() {
+            mesAtual = document.getElementById('selectMes').value;
+            document.getElementById('tabelaContainer').innerHTML = '<div class="loading">Carregando dados...</div>';
+
+            database.ref('servicos').once('value', (snapshot) => {
+                const servicos = snapshot.val();
+                if (!servicos) {
+                    document.getElementById('tabelaContainer').innerHTML = '<div class="sem-dados">Nenhum dado encontrado</div>';
+                    return;
+                }
+
+                // Filtrar dias do mês selecionado
+                const diasDoMes = {};
+                Object.keys(servicos).forEach(dia => {
+                    if (dia.startsWith(mesAtual)) {
+                        diasDoMes[dia] = servicos[dia];
+                    }
+                });
+
+                if (Object.keys(diasDoMes).length === 0) {
+                    document.getElementById('tabelaContainer').innerHTML = '<div class="sem-dados">Nenhum serviço neste mês</div>';
+                    return;
+                }
+
+                // Processar e exibir dados
+                exibirDados(diasDoMes);
+            });
+        }
+
+        // Exibir dados processados
+        function exibirDados(diasDoMes) {
+            let totalGeralServicos = 0;
+            let totalSergio = 0;
+            let totalHelio = 0;
+            let ganhoSergio = 0;
+            let ganhoHelio = 0;
+            let ganhoHelioTotal = 0;
+            let diasComServicos = 0;
+
+            // Ordenar dias (mais recente primeiro)
+            const diasOrdenados = Object.keys(diasDoMes).sort().reverse();
+
+            let linhas = '';
+
+            diasOrdenados.forEach(dia => {
+                const dadosDia = diasDoMes[dia];
+                
+                // Pular se não for um objeto válido
+                if (!dadosDia || typeof dadosDia !== 'object') {
+                    return;
+                }
+                
+                let totalSergioHoje = 0;
+                let totalHelioHoje = 0;
+                let ganhoSergioHoje = 0;
+                let ganhoHelioHoje = 0;
+                let ganhoHelioTotalHoje = 0;
+
+                // Processar dados do barbeiro1 (Sérgio)
+                if (dadosDia.barbeiro1 && typeof dadosDia.barbeiro1 === 'object') {
+                    Object.keys(dadosDia.barbeiro1).forEach(servico => {
+                        const quantidade = dadosDia.barbeiro1[servico];
+                        if (typeof quantidade === 'number' && quantidade > 0) {
+                            const valorServico = valoresServicos[servico] || 0;
+                            totalSergioHoje += quantidade;
+                            ganhoSergioHoje += quantidade * valorServico;
+                            totalSergio += quantidade;
+                            ganhoSergio += quantidade * valorServico;
+                            totalGeralServicos += quantidade;
+                        }
+                    });
+                }
+
+                // Processar dados do barbeiro2 (Hélio) - 65% do valor
+                if (dadosDia.barbeiro2 && typeof dadosDia.barbeiro2 === 'object') {
+                    Object.keys(dadosDia.barbeiro2).forEach(servico => {
+                        const quantidade = dadosDia.barbeiro2[servico];
+                        if (typeof quantidade === 'number' && quantidade > 0) {
+                            const valorServico = valoresServicos[servico] || 0;
+                            const ganhoHelioPorServico = quantidade * valorServico * 0.65;
+                            const ganhoHelioTotalPorServico = quantidade * valorServico;
+                            
+                            totalHelioHoje += quantidade;
+                            ganhoHelioHoje += ganhoHelioPorServico;
+                            ganhoHelioTotalHoje += ganhoHelioTotalPorServico;
+                            totalHelio += quantidade;
+                            ganhoHelio += ganhoHelioPorServico;
+                            ganhoHelioTotal += ganhoHelioTotalPorServico;
+                            totalGeralServicos += quantidade;
+                        }
+                    });
+                }
+
+                const totalDia = totalSergioHoje + totalHelioHoje;
+                const ganhoDia = ganhoSergioHoje + ganhoHelioHoje;
+
+                // Pular dias sem serviços válidos
+                if (totalDia === 0) {
+                    return;
+                }
+
+                // Incrementar contador de dias com serviços
+                diasComServicos++;
+
+                // Linha da tabela
+                linhas += `
+                    <tr>
+                        <td class="col-data">${formatarData(dia)}</td>
+                        <td class="col-numero col-sergio">${totalSergioHoje}</td>
+                        <td class="col-dinheiro">${formatarDinheiro(ganhoSergioHoje)}</td>
+                        <td class="col-numero col-helio">${totalHelioHoje}</td>
+                        <td class="col-dinheiro" style="color: #FFA726;">${formatarDinheiro(ganhoHelioTotalHoje)}</td>
+                        <td class="col-dinheiro">${formatarDinheiro(ganhoHelioHoje)}</td>
+                        <td class="col-numero col-total">${totalDia}</td>
+                        <td class="col-dinheiro col-total">${formatarDinheiro(ganhoDia)}</td>
+                    </tr>
+                `;
+            });
+
+            // Verificar se há dados para exibir
+            if (linhas === '') {
+                document.getElementById('tabelaContainer').innerHTML = '<div class="sem-dados">Nenhum serviço válido encontrado neste mês</div>';
+                // Zerar resumo
+                document.getElementById('totalServicos').textContent = '0';
+                document.getElementById('totalSergio').textContent = '0';
+                document.getElementById('totalHelio').textContent = '0';
+                document.getElementById('diasTrabalhados').textContent = '0';
+                return;
+            }
+
+            const ganhoTotal = ganhoSergio + ganhoHelio;
+
+            // Montar tabela completa
+            const html = `
+                <table class="tabela-historico">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th class="col-center">Sérgio</th>
+                            <th class="col-center">R$ Sérgio</th>
+                            <th class="col-center">Hélio</th>
+                            <th class="col-center">R$ Total Hélio</th>
+                            <th class="col-center">R$ Hélio (65%)</th>
+                            <th class="col-center">Total</th>
+                            <th class="col-center">R$ Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhas}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="col-data">TOTAL DO MÊS</td>
+                            <td class="col-numero col-sergio">${totalSergio}</td>
+                            <td class="col-dinheiro">${formatarDinheiro(ganhoSergio)}</td>
+                            <td class="col-numero col-helio">${totalHelio}</td>
+                            <td class="col-dinheiro" style="color: #FFA726;">${formatarDinheiro(ganhoHelioTotal)}</td>
+                            <td class="col-dinheiro">${formatarDinheiro(ganhoHelio)}</td>
+                            <td class="col-numero col-total">${totalGeralServicos}</td>
+                            <td class="col-dinheiro col-total">${formatarDinheiro(ganhoTotal)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+
+            // Atualizar resumo
+            document.getElementById('totalServicos').textContent = totalGeralServicos;
+            document.getElementById('totalSergio').textContent = totalSergio;
+            document.getElementById('totalHelio').textContent = totalHelio;
+            document.getElementById('diasTrabalhados').textContent = diasComServicos;
+
+            // Exibir tabela
+            document.getElementById('tabelaContainer').innerHTML = html;
+        }
+
+        // Formatar data (aaaa-mm-dd -> Dia da Semana, DD/MM/AAAA)
+        function formatarData(dataStr) {
+            const [ano, mes, dia] = dataStr.split('-');
+            const data = new Date(ano, mes - 1, dia);
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const diaSemana = diasSemana[data.getDay()];
+            return `${diaSemana}, ${dia}/${mes}`;
+        }
+
+        // Formatar mês/ano (aaaa-mm -> Mês/Ano)
+        function formatarMesAno(mesAnoStr) {
+            const [ano, mes] = mesAnoStr.split('-');
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            return `${meses[parseInt(mes) - 1]}/${ano}`;
+        }
+    </script>
+</body>
+</html>
