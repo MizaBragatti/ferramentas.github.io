@@ -18,18 +18,23 @@
         // Expor variáveis para uso no script.js
         window.BARBEIRO_LOGADO = barbeiroLogado;
         window.NOME_BARBEIRO = nomeBarbeiro;
-        // Exibir botões de barbeiro conforme usuário logado
+        // Auto-selecionar o barbeiro logado
         document.addEventListener('DOMContentLoaded', function() {
+            // Pré-selecionar o barbeiro automaticamente
+            const barbeiro = parseInt(window.BARBEIRO_LOGADO);
+            if (typeof selecionarBarbeiro === 'function') {
+                setTimeout(() => {
+                    selecionarBarbeiro(barbeiro);
+                }, 100);
+            }
+            
+            // Configurar visibilidade dos botões de relatório
             if (window.BARBEIRO_LOGADO == '1') {
-                // Sérgio vê ambos
-                document.getElementById('btnBarbeiro1').style.display = '';
-                document.getElementById('btnBarbeiro2').style.display = '';
+                // Sérgio vê ambos relatórios
                 document.getElementById('btnRelatorioBarbeiro').style.display = '';
                 document.getElementById('btnHistoricoMensal').style.display = '';
             } else if (window.BARBEIRO_LOGADO == '2') {
-                // Hélio só vê ele mesmo
-                document.getElementById('btnBarbeiro1').style.display = 'none';
-                document.getElementById('btnBarbeiro2').style.display = '';
+                // Hélio não vê relatórios administrativos
                 document.getElementById('btnRelatorioBarbeiro').style.display = 'none';
                 document.getElementById('btnHistoricoMensal').style.display = 'none';
             }
@@ -53,23 +58,6 @@
                 <span class="status-text">Conectando...</span>
             </div>
         </header>
-
-        <!-- Seleção de Barbeiro -->
-        <div class="selecao-barbeiro">
-            <h2>Selecione o Barbeiro</h2>
-            <div class="barbeiros-grid">
-                <button class="barbeiro-btn" id="btnBarbeiro1" onclick="selecionarBarbeiro(1)" style="display:none;">
-                    <img src="img/Sergio-Barbeiro.png" alt="Sérgio" class="barbeiro-foto">
-                    <span class="barbeiro-nome">Sérgio</span>
-                    <span class="barbeiro-total" id="totalBarbeiro1">0 serviços</span>
-                </button>
-                <button class="barbeiro-btn" id="btnBarbeiro2" onclick="selecionarBarbeiro(2)" style="display:none;">
-                    <span class="barbeiro-icon">👨‍🦱</span>
-                    <span class="barbeiro-nome">Hélio</span>
-                    <span class="barbeiro-total" id="totalBarbeiro2">0 serviços</span>
-                </button>
-            </div>
-        </div>
 
         <div class="resumo-dia">
             <h2>Resumo do Dia</h2>
