@@ -15,6 +15,7 @@ const cardData = {
         github: "https://github.com/MizaBragatti",
         instagram: "https://www.instagram.com/mizabragatti/",
         twitter: "https://x.com/mizabgt",
+        youtube: "https://www.youtube.com/@mizabgt",
         whatsapp: "https://wa.me/5511980449766"
     }
 };
@@ -38,6 +39,7 @@ function populateCard() {
     document.getElementById('githubLink').href = cardData.social.github;
     document.getElementById('instagramLink').href = cardData.social.instagram;
     document.getElementById('twitterLink').href = cardData.social.twitter;
+    document.getElementById('youtubeLink').href = cardData.social.youtube;
     document.getElementById('whatsappLink').href = cardData.social.whatsapp;
 }
 
