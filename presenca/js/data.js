@@ -1,6 +1,7 @@
 /**
  * Data Management Module
- * Handles Firebase Realtime Database and localStorage operations
+ * Handles ONLY Firebase Realtime Database (localStorage is offline cache only)
+ * All data operations require Firebase authentication
  */
 
 import { database } from './firebase-config.js';
@@ -21,93 +22,196 @@ const DataManager = {
     useFirebase: true,
     listeners: {},
 
-    // Initialize data structure
-    async init() {
-        try {
-            // Try Firebase first
-            const user = getCurrentUser();
-            if (user && this.useFirebase) {
-                await this.initFirebase(user.uid);
-            } else {
-                // Fallback to localStorage
-                this.initLocalStorage();
-            }
-        } catch (error) {
-            console.warn('Firebase init failed, using localStorage:', error);
-            this.useFirebase = false;
-            this.initLocalStorage();
+    // Helper to get Firebase path (shared students vs per-user data)
+    getFirebasePath(key, userId) {
+        // Students are shared across all users
+        if (key === this.KEYS.STUDENTS) {
+            return `shared/students`;
         }
+        // All other data is per-user
+        return `users/${userId}/${key}`;
+    },
+
+    // Initialize data structure (Firebase only)
+    async init() {
+        const user = getCurrentUser();
+        if (!user) {
+            throw new Error('User must be authenticated to initialize data');
+        }
+
+        if (!this.useFirebase) {
+            throw new Error('Firebase is required - localStorage is deprecated');
+        }
+
+        await this.initFirebase(user.uid);
+        console.log('DataManager initialized with Firebase for user:', user.uid);
     },
 
     // Initialize Firebase
     async initFirebase(userId) {
-        const modulesRef = ref(database, `users/${userId}/modules`);
+        const modulesPath = this.getFirebasePath(this.KEYS.MODULES, userId);
+        const modulesRef = ref(database, modulesPath);
         const modulesSnapshot = await get(modulesRef);
         
         if (!modulesSnapshot.exists()) {
+            console.log('No modules found in Firebase, initializing default modules...');
             await this.initializeDefaultModules();
+        } else {
+            console.log('Modules found in Firebase');
         }
     },
 
-    // Initialize localStorage
+    // Initialize localStorage (deprecated - Firebase only)
     initLocalStorage() {
-        if (!this.getDataLocal(this.KEYS.MODULES)) {
-            this.initializeDefaultModules();
-        }
-        if (!this.getDataLocal(this.KEYS.STUDENTS)) {
-            this.setDataLocal(this.KEYS.STUDENTS, []);
-        }
-        if (!this.getDataLocal(this.KEYS.ATTENDANCE)) {
-            this.setDataLocal(this.KEYS.ATTENDANCE, []);
-        }
-        if (!this.getDataLocal(this.KEYS.ALERTS)) {
-            this.setDataLocal(this.KEYS.ALERTS, []);
-        }
+        // localStorage is now used only as offline cache
+        // All data operations go through Firebase
+        console.warn('initLocalStorage called - Firebase is the primary data source');
     },
 
-    // Generic get data (Firebase or localStorage)
+    // Generic get data (localStorage cache first, then Firebase)
     async getData(key) {
-        if (this.useFirebase) {
-            try {
-                const user = getCurrentUser();
-                if (!user) return this.getDataLocal(key);
-                
-                const dataRef = ref(database, `users/${user.uid}/${key}`);
-                const snapshot = await get(dataRef);
-                return snapshot.exists() ? snapshot.val() : null;
-            } catch (error) {
-                console.warn('Firebase get failed, using localStorage:', error);
-                return this.getDataLocal(key);
+        // Try localStorage first for instant response
+        const localData = this.getDataLocal(key);
+        
+        // If we have local data, return it immediately
+        if (localData !== null) {
+            console.log(`getData(${key}) from localStorage cache:`, localData);
+            
+            // Sync with Firebase in background (don't wait)
+            if (this.useFirebase) {
+                this.syncFromFirebase(key).catch(err => 
+                    console.warn(`Background sync failed for ${key}:`, err)
+                );
             }
+            
+            return localData;
         }
-        return this.getDataLocal(key);
-    },
 
-    // Generic set data (Firebase or localStorage)
-    async setData(key, value) {
+        // No local data, try Firebase
         if (this.useFirebase) {
             try {
                 const user = getCurrentUser();
                 if (!user) {
-                    this.setDataLocal(key, value);
-                    return;
+                    console.log(`getData(${key}): No user, returning empty array`);
+                    return [];
                 }
                 
-                const dataRef = ref(database, `users/${user.uid}/${key}`);
-                await set(dataRef, value);
+                const path = this.getFirebasePath(key, user.uid);
+                const dataRef = ref(database, path);
+                const snapshot = await get(dataRef);
+                const data = snapshot.exists() ? snapshot.val() : null;
                 
-                // Also save to localStorage for offline access
-                this.setDataLocal(key, value);
+                console.log(`getData(${key}) from Firebase:`, data);
+                
+                if (!data) {
+                    console.log(`getData(${key}): No data in Firebase, returning empty array`);
+                    return [];
+                }
+                
+                // Convert Firebase object to array if needed
+                if (data && typeof data === 'object' && !Array.isArray(data)) {
+                    const keys = Object.keys(data);
+                    if (keys.every(k => !isNaN(k))) {
+                        const arr = Object.values(data);
+                        console.log(`getData(${key}): Converted object to array`, arr);
+                        // Cache locally
+                        this.setDataLocal(key, arr);
+                        return arr;
+                    }
+                }
+                
+                // Cache the data locally
+                this.setDataLocal(key, data);
+                return data;
             } catch (error) {
-                console.warn('Firebase set failed, using localStorage:', error);
-                this.setDataLocal(key, value);
+                console.error(`getData(${key}): Firebase error:`, error);
+                return [];
             }
-        } else {
-            this.setDataLocal(key, value);
+        }
+        
+        return [];
+    },
+
+    // Background sync from Firebase
+    async syncFromFirebase(key) {
+        const user = getCurrentUser();
+        if (!user) return;
+        
+        const path = this.getFirebasePath(key, user.uid);
+        const dataRef = ref(database, path);
+        const snapshot = await get(dataRef);
+        
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            
+            // Convert object to array if needed
+            let processedData = data;
+            if (data && typeof data === 'object' && !Array.isArray(data)) {
+                const keys = Object.keys(data);
+                if (keys.every(k => !isNaN(k))) {
+                    processedData = Object.values(data);
+                }
+            }
+            
+            // Update localStorage cache
+            this.setDataLocal(key, processedData);
+            console.log(`Background sync completed for ${key}`);
         }
     },
 
-    // Local storage helpers
+    // Generic set data (localStorage immediate, Firebase background)
+    async setData(key, value) {
+        // Save to localStorage immediately for instant response
+        this.setDataLocal(key, value);
+        console.log(`setData(${key}): Saved to localStorage cache`);
+        
+        // Sync to Firebase in background (don't block UI)
+        if (this.useFirebase) {
+            this.syncToFirebase(key, value).catch(err => {
+                console.warn(`Background Firebase sync failed for ${key}:`, err);
+                // Data is still in localStorage, so operation appears successful to user
+            });
+        }
+    },
+
+    // Background sync to Firebase
+    async syncToFirebase(key, value) {
+        const user = getCurrentUser();
+        if (!user) {
+            console.warn('Cannot sync to Firebase: No authenticated user');
+            return;
+        }
+        
+        // Emit syncing event
+        this.emitSyncStatus('syncing');
+        
+        try {
+            const path = this.getFirebasePath(key, user.uid);
+            const dataRef = ref(database, path);
+            await set(dataRef, value);
+            console.log(`Background sync to Firebase completed for ${key}`);
+            
+            // Emit synced event
+            this.emitSyncStatus('synced');
+        } catch (error) {
+            console.error(`Background sync to Firebase failed for ${key}:`, error);
+            
+            // Emit error event
+            this.emitSyncStatus('error');
+            throw error;
+        }
+    },
+
+    // Emit sync status event
+    emitSyncStatus(status) {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('firebase-sync', { 
+                detail: { status } 
+            }));
+        }
+    },
+
+    // Local storage helpers (OFFLINE CACHE ONLY - DO NOT USE AS PRIMARY SOURCE)
     getDataLocal(key) {
         const data = localStorage.getItem(key);
         return data ? JSON.parse(data) : null;
@@ -125,7 +229,8 @@ const DataManager = {
             const user = getCurrentUser();
             if (!user) return;
             
-            const dataRef = ref(database, `users/${user.uid}/${key}`);
+            const path = this.getFirebasePath(key, user.uid);
+            const dataRef = ref(database, path);
             const listener = onValue(dataRef, (snapshot) => {
                 const data = snapshot.exists() ? snapshot.val() : null;
                 callback(data);
@@ -410,106 +515,65 @@ const DataManager = {
         if (data.alerts) await this.setData(this.KEYS.ALERTS, data.alerts);
     },
 
-    // Clear all data
+    // Clear all data (Firebase only)
     async clearAllData() {
-        if (this.useFirebase) {
-            try {
-                const user = getCurrentUser();
-                if (user) {
-                    for (const key of Object.values(this.KEYS)) {
-                        const dataRef = ref(database, `users/${user.uid}/${key}`);
-                        await remove(dataRef);
-                    }
-                }
-            } catch (error) {
-                console.warn('Firebase clear failed:', error);
-            }
+        const user = getCurrentUser();
+        if (!user) {
+            throw new Error('User must be authenticated to clear data');
         }
-        
-        // Also clear localStorage
+
+        if (!this.useFirebase) {
+            throw new Error('Firebase is required - localStorage is deprecated');
+        }
+
+        try {
+            // Clear Firebase data (skip students as they're shared)
+            for (const key of Object.values(this.KEYS)) {
+                if (key === this.KEYS.STUDENTS) continue; // Don't delete shared students
+                const path = this.getFirebasePath(key, user.uid);
+                const dataRef = ref(database, path);
+                await remove(dataRef);
+            }
+            console.log('All Firebase data cleared');
+            
+            // Also clear localStorage cache
+            Object.values(this.KEYS).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            console.log('localStorage cache cleared');
+            
+            // Reinitialize
+            await this.init();
+        } catch (error) {
+            console.error('Failed to clear data:', error);
+            throw error;
+        }
+    },
+
+    // Clear old localStorage data (migration no longer needed - Firebase is primary)
+    async clearLocalStorageCache() {
+        console.log('Limpando cache localStorage antigo...');
         Object.values(this.KEYS).forEach(key => {
             localStorage.removeItem(key);
         });
-        
-        await this.init();
+        console.log('Cache localStorage limpo');
+        return { success: true, message: 'Cache localStorage removido' };
     },
 
-    // Migrate data from localStorage to Firebase
+    // Legacy migration function (redirects to cache clear)
     async migrateToFirebase() {
-        if (!this.useFirebase) {
-            console.error('Firebase não está habilitado');
-            return { success: false, message: 'Firebase não está habilitado' };
-        }
-
-        const user = getCurrentUser();
-        if (!user) {
-            console.error('Usuário não autenticado');
-            return { success: false, message: 'Usuário não autenticado' };
-        }
-
-        try {
-            console.log('Iniciando migração do localStorage para Firebase...');
-            let migratedCount = 0;
-
-            // Migrate each data type
-            for (const key of Object.values(this.KEYS)) {
-                const localData = this.getDataLocal(key);
-                
-                if (localData && (Array.isArray(localData) ? localData.length > 0 : true)) {
-                    console.log(`Migrando ${key}:`, localData);
-                    
-                    // Check if Firebase already has data
-                    const firebaseData = await this.getData(key);
-                    
-                    if (!firebaseData || (Array.isArray(firebaseData) && firebaseData.length === 0)) {
-                        // Firebase is empty, migrate from localStorage
-                        const dataRef = ref(database, `users/${user.uid}/${key}`);
-                        await set(dataRef, localData);
-                        migratedCount++;
-                        console.log(`✓ ${key} migrado com sucesso`);
-                    } else {
-                        console.log(`⊘ ${key} já existe no Firebase, pulando...`);
-                    }
-                }
-            }
-
-            const message = migratedCount > 0 
-                ? `Migração concluída! ${migratedCount} conjunto(s) de dados migrado(s) para Firebase.`
-                : 'Nenhum dado novo para migrar. Firebase já contém os dados.';
-            
-            console.log(message);
-            return { success: true, message, migratedCount };
-
-        } catch (error) {
-            console.error('Erro durante a migração:', error);
-            return { success: false, message: 'Erro durante a migração: ' + error.message };
-        }
+        console.warn('migrateToFirebase is deprecated - all data is now in Firebase');
+        return { success: true, message: 'Todos os dados já estão no Firebase', migratedCount: 0 };
     },
 
-    // Check if localStorage has data that Firebase doesn't
-    async hasLocalDataToMigrate() {
-        if (!this.useFirebase) return false;
-
-        const user = getCurrentUser();
-        if (!user) return false;
-
-        try {
-            for (const key of Object.values(this.KEYS)) {
-                const localData = this.getDataLocal(key);
-                const firebaseData = await this.getData(key);
-                
-                // If localStorage has data but Firebase doesn't
-                if (localData && (Array.isArray(localData) ? localData.length > 0 : true)) {
-                    if (!firebaseData || (Array.isArray(firebaseData) && firebaseData.length === 0)) {
-                        return true;
-                    }
-                }
+    // Check if localStorage has old cache (for cleanup)
+    hasLocalStorageCache() {
+        for (const key of Object.values(this.KEYS)) {
+            if (localStorage.getItem(key)) {
+                return true;
             }
-            return false;
-        } catch (error) {
-            console.error('Erro ao verificar dados locais:', error);
-            return false;
         }
+        return false;
     }
 };
 

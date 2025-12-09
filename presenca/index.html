@@ -60,11 +60,12 @@
             
             <div class="info-cards">
                 <div class="info-card">
-                    <h3>📅 Estrutura do Curso</h3>
+                    <h3>☁️ Dados na Nuvem</h3>
                     <ul>
-                        <li><strong>4 Módulos por ano</strong></li>
-                        <li><strong>4 Fases por módulo</strong></li>
-                        <li>Aulas todos os sábados</li>
+                        <li><strong>Firebase Realtime Database</strong></li>
+                        <li>Acesse de qualquer dispositivo</li>
+                        <li>Sincronização automática</li>
+                        <li>Backup automático</li>
                     </ul>
                 </div>
                 
@@ -97,9 +98,56 @@
     <script type="module">
         import { requireAuth, logout } from './js/auth.js';
         import DataManager from './js/data.js';
+        import { database } from './js/firebase-config.js';
+        import { ref, get, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Migration function - run ONCE to move students to shared location
+        window.migrarAlunosParaShared = async function() {
+            try {
+                const user = requireAuth.__lastUser;
+                if (!user) {
+                    console.error('Usuário não autenticado');
+                    return;
+                }
+
+                console.log('🔄 Iniciando migração de alunos para shared/students...');
+
+                // Get students from old location
+                const oldPath = `users/${user.uid}/${DataManager.KEYS.STUDENTS}`;
+                const oldRef = ref(database, oldPath);
+                const oldSnapshot = await get(oldRef);
+
+                if (!oldSnapshot.exists()) {
+                    console.log('✅ Nenhum aluno encontrado no local antigo');
+                    return { success: true, message: 'Nenhum dado para migrar' };
+                }
+
+                const students = oldSnapshot.val();
+                console.log(`📦 Encontrados ${Array.isArray(students) ? students.length : Object.keys(students).length} alunos`);
+
+                // Save to new shared location
+                const sharedRef = ref(database, 'shared/students');
+                await set(sharedRef, students);
+                console.log('✅ Alunos copiados para shared/students');
+
+                // Clear localStorage cache to force reload from Firebase
+                localStorage.removeItem(DataManager.KEYS.STUDENTS);
+                console.log('🗑️ Cache local limpo');
+
+                alert('✅ Migração concluída! Os alunos agora estão disponíveis para todos os usuários.');
+                return { success: true, message: 'Migração concluída' };
+            } catch (error) {
+                console.error('❌ Erro na migração:', error);
+                alert('❌ Erro na migração: ' + error.message);
+                return { success: false, error: error.message };
+            }
+        };
 
         // Require authentication
         requireAuth().then(async (user) => {
+            // Save user for migration
+            requireAuth.__lastUser = user;
+            
             // Hide loading, show content
             document.getElementById('authLoading').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
@@ -108,28 +156,13 @@
             document.getElementById('userMenu').style.display = 'flex';
             document.getElementById('userName').textContent = user.displayName || user.email;
             
-            // Initialize data
+            // Initialize data (Firebase only)
             await DataManager.init();
-
-            // Check if there's local data to migrate
-            const hasLocalData = await DataManager.hasLocalDataToMigrate();
-            if (hasLocalData) {
-                const shouldMigrate = confirm(
-                    '🔄 Detectamos dados no armazenamento local!\n\n' +
-                    'Deseja migrar seus dados para a nuvem (Firebase)?\n\n' +
-                    'Isso permitirá acessar seus dados de qualquer dispositivo.\n\n' +
-                    'Clique OK para migrar ou Cancelar para manter apenas local.'
-                );
-
-                if (shouldMigrate) {
-                    const result = await DataManager.migrateToFirebase();
-                    if (result.success) {
-                        alert('✅ ' + result.message + '\n\nSeus dados agora estão na nuvem!');
-                    } else {
-                        alert('❌ ' + result.message);
-                    }
-                }
-            }
+            console.log('Sistema inicializado - usando Firebase como fonte de dados');
+            
+            // Show migration instructions in console
+            console.log('📢 IMPORTANTE: Para migrar alunos existentes para a estrutura compartilhada, execute no console:');
+            console.log('   migrarAlunosParaShared()');
         }).catch(() => {
             // Redirects to login automatically
         });

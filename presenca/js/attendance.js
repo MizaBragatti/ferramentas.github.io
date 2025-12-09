@@ -3,16 +3,20 @@
  * Handles attendance marking and display
  */
 
+import DataManager from './data.js';
+import Calculator from './calculations.js';
+
 let currentDate = '';
 let currentModuleFilter = 'all';
 let currentPhaseFilter = 'all';
 
-// Load attendance page
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize attendance page
+export async function initAttendancePage() {
+    console.log('Initializing attendance page...');
     setToday();
-    loadAttendance();
+    await loadAttendance();
     setupEventListeners();
-});
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -37,7 +41,7 @@ function handleModuleFilterChange() {
 }
 
 // Load attendance list
-function loadAttendance() {
+async function loadAttendance() {
     currentDate = document.getElementById('attendanceDate').value;
     currentModuleFilter = document.getElementById('moduleFilter').value;
     currentPhaseFilter = document.getElementById('phaseFilter').value;
@@ -46,7 +50,7 @@ function loadAttendance() {
         return;
     }
     
-    const students = DataManager.getStudents();
+    const students = await DataManager.getStudents();
     
     if (students.length === 0) {
         document.getElementById('attendanceTableBody').innerHTML = `
@@ -64,30 +68,30 @@ function loadAttendance() {
     }
     
     // Get existing attendance records for this date
-    const existingRecords = DataManager.getAttendanceByDate(currentDate);
+    const existingRecords = await DataManager.getAttendanceByDate(currentDate);
     
     // Display alerts summary
-    displayAlertsSummary(filteredStudents);
+    await displayAlertsSummary(filteredStudents);
     
     // Render attendance list
-    renderAttendanceList(filteredStudents, existingRecords);
+    await renderAttendanceList(filteredStudents, existingRecords);
 }
 
 // Display alerts summary
-function displayAlertsSummary(students) {
+async function displayAlertsSummary(students) {
     const alerts = {
         critical: [],
         warning: []
     };
     
-    students.forEach(student => {
-        const alertStatus = Calculator.getAlertStatus(student.id, student.currentModule);
+    for (const student of students) {
+        const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
         if (alertStatus.level === 'CRITICAL') {
             alerts.critical.push({ student, alertStatus });
         } else if (alertStatus.level === 'WARNING') {
             alerts.warning.push({ student, alertStatus });
         }
-    });
+    }
     
     const summaryEl = document.getElementById('alertsSummary');
     
@@ -111,21 +115,23 @@ function displayAlertsSummary(students) {
 }
 
 // Render attendance list
-function renderAttendanceList(students, existingRecords) {
+async function renderAttendanceList(students, existingRecords) {
     const tbody = document.getElementById('attendanceTableBody');
     
-    tbody.innerHTML = students.map((student, index) => {
+    const rows = [];
+    for (let index = 0; index < students.length; index++) {
+        const student = students[index];
         const record = existingRecords.find(r => r.studentId === student.id);
         const isPresent = record ? record.present : null;
         
         // Get alert status for this student
-        const alertStatus = Calculator.getAlertStatus(student.id, student.currentModule);
-        const stats = Calculator.calculateModuleAttendance(student.id, student.currentModule);
+        const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
+        const stats = await Calculator.calculateModuleAttendance(student.id, student.currentModule);
         
         // Determine current phase (simplified - based on filter or default to 1)
         const currentPhase = currentPhaseFilter !== 'all' ? parseInt(currentPhaseFilter) : 1;
         
-        return `
+        rows.push(`
             <tr data-student-id="${student.id}" class="${alertStatus.level.toLowerCase()}">
                 <td>${index + 1}</td>
                 <td>
@@ -154,54 +160,79 @@ function renderAttendanceList(students, existingRecords) {
                     ${stats.total > 0 ? alertStatus.status : 'Sem dados'}
                 </td>
             </tr>
-        `;
-    }).join('');
+        `);
+    }
     
-    updateAttendanceSummary();
+    tbody.innerHTML = rows.join('');
+    
+    await updateAttendanceSummary();
 }
 
 // Mark attendance for a student
-function markAttendance(studentId, moduleNumber, phaseNumber, present) {
-    DataManager.saveAttendance(studentId, currentDate, moduleNumber, phaseNumber, present);
+async function markAttendance(studentId, moduleNumber, phaseNumber, present) {
+    // Update UI immediately for instant feedback
+    updateButtonState(studentId, present);
     
-    // Recalculate alerts
-    Calculator.checkAlert(studentId, moduleNumber);
+    // Save to DataManager (localStorage first, Firebase background)
+    await DataManager.saveAttendance(studentId, currentDate, moduleNumber, phaseNumber, present);
     
-    // Reload to update UI
-    loadAttendance();
+    // Recalculate alerts in background (don't block UI)
+    Calculator.checkAlert(studentId, moduleNumber).catch(err => 
+        console.warn('Alert calculation delayed:', err)
+    );
+    
+    // Update summary without full reload
+    await updateAttendanceSummary();
+}
+
+// Update button state immediately (optimistic UI update)
+function updateButtonState(studentId, present) {
+    const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+    if (!row) return;
+    
+    const presentBtn = row.querySelector('.btn-present');
+    const absentBtn = row.querySelector('.btn-absent');
+    
+    if (present === true) {
+        presentBtn.classList.add('active');
+        absentBtn.classList.remove('active');
+    } else if (present === false) {
+        presentBtn.classList.remove('active');
+        absentBtn.classList.add('active');
+    }
 }
 
 // Mark all present
-function markAllPresent() {
+async function markAllPresent() {
     const confirmMark = confirm('Marcar todos os alunos como presentes?');
     
     if (!confirmMark) return;
     
-    const students = DataManager.getStudents();
+    const students = await DataManager.getStudents();
     const currentPhase = currentPhaseFilter !== 'all' ? parseInt(currentPhaseFilter) : 1;
     
-    students.forEach(student => {
+    for (const student of students) {
         if (currentModuleFilter === 'all' || student.currentModule === parseInt(currentModuleFilter)) {
-            DataManager.saveAttendance(student.id, currentDate, student.currentModule, currentPhase, true);
-            Calculator.checkAlert(student.id, student.currentModule);
+            await DataManager.saveAttendance(student.id, currentDate, student.currentModule, currentPhase, true);
+            await Calculator.checkAlert(student.id, student.currentModule);
         }
-    });
+    }
     
-    loadAttendance();
+    await loadAttendance();
     showMessage('Todos os alunos marcados como presentes!', 'success');
 }
 
 // Clear all marks
-function clearAllMarks() {
+async function clearAllMarks() {
     const confirmClear = confirm('Limpar todas as marcações de presença desta data?');
     
     if (!confirmClear) return;
     
-    const attendance = DataManager.getAttendance();
+    const attendance = await DataManager.getAttendance();
     const filtered = attendance.filter(a => a.date !== currentDate);
-    DataManager.setData(DataManager.KEYS.ATTENDANCE, filtered);
+    await DataManager.setData(DataManager.KEYS.ATTENDANCE, filtered);
     
-    loadAttendance();
+    await loadAttendance();
     showMessage('Marcações limpas!', 'info');
 }
 
@@ -212,9 +243,9 @@ function saveAttendance() {
 }
 
 // Update attendance summary
-function updateAttendanceSummary() {
-    const existingRecords = DataManager.getAttendanceByDate(currentDate);
-    const students = DataManager.getStudents();
+async function updateAttendanceSummary() {
+    const existingRecords = await DataManager.getAttendanceByDate(currentDate);
+    const students = await DataManager.getStudents();
     
     let filteredStudents = students;
     if (currentModuleFilter !== 'all') {
@@ -279,4 +310,12 @@ function showMessage(message, type = 'info') {
         messageEl.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => messageEl.remove(), 300);
     }, 3000);
+}
+
+// Export functions to window for onclick handlers
+if (typeof window !== 'undefined') {
+    window.markAttendance = markAttendance;
+    window.markAllPresent = markAllPresent;
+    window.clearAllMarks = clearAllMarks;
+    window.saveAttendance = saveAttendance;
 }

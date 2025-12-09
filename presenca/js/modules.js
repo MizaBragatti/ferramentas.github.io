@@ -3,11 +3,14 @@
  * Handles module and phase configuration
  */
 
-// Load modules on page load
-document.addEventListener('DOMContentLoaded', () => {
-    loadModules();
+import DataManager from './data.js';
+
+// Initialize modules page
+export async function initModulesPage() {
+    console.log('Initializing modules page...');
+    await loadModules();
     setupEventListeners();
-});
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -15,8 +18,8 @@ function setupEventListeners() {
 }
 
 // Load and display modules
-function loadModules() {
-    const modules = DataManager.getModules();
+async function loadModules() {
+    const modules = await DataManager.getModules();
     
     modules.forEach(module => {
         const container = document.getElementById(`module${module.number}Phases`);
@@ -45,8 +48,8 @@ function loadModules() {
 }
 
 // Edit phase
-function editPhase(moduleNumber, phaseNumber) {
-    const phase = DataManager.getPhase(moduleNumber, phaseNumber);
+async function editPhase(moduleNumber, phaseNumber) {
+    const phase = await DataManager.getPhase(moduleNumber, phaseNumber);
     
     if (!phase) return;
     
@@ -62,7 +65,7 @@ function editPhase(moduleNumber, phaseNumber) {
 }
 
 // Handle phase edit
-function handlePhaseEdit(e) {
+async function handlePhaseEdit(e) {
     e.preventDefault();
     
     const moduleNumber = parseInt(document.getElementById('editPhaseModule').value);
@@ -72,7 +75,7 @@ function handlePhaseEdit(e) {
     const endDate = document.getElementById('phaseEndDate').value;
     const expectedClasses = parseInt(document.getElementById('phaseExpectedClasses').value);
     
-    DataManager.updatePhase(moduleNumber, phaseNumber, {
+    await DataManager.updatePhase(moduleNumber, phaseNumber, {
         name,
         startDate,
         endDate,
@@ -80,7 +83,7 @@ function handlePhaseEdit(e) {
     });
     
     closePhaseEdit();
-    loadModules();
+    await loadModules();
     showMessage('Fase atualizada com sucesso!', 'success');
 }
 
@@ -96,28 +99,28 @@ function toggleModuleEdit(moduleNumber) {
 }
 
 // Initialize default modules
-function initializeDefaultModules() {
+async function initializeDefaultModules() {
     const confirm = window.confirm(
         'Isto irá criar/resetar a estrutura padrão de 4 módulos com 4 fases cada. Deseja continuar?'
     );
     
     if (!confirm) return;
     
-    DataManager.initializeDefaultModules();
-    loadModules();
+    await DataManager.initializeDefaultModules();
+    await loadModules();
     showMessage('Estrutura padrão inicializada!', 'success');
 }
 
 // Reset all modules
-function resetModules() {
+async function resetModules() {
     const confirm = window.confirm(
         'ATENÇÃO: Isto irá resetar TODOS os módulos e fases, mas não afetará os dados de alunos e presença. Deseja continuar?'
     );
     
     if (!confirm) return;
     
-    DataManager.initializeDefaultModules();
-    loadModules();
+    await DataManager.initializeDefaultModules();
+    await loadModules();
     showMessage('Módulos resetados!', 'info');
 }
 
@@ -160,3 +163,11 @@ window.onclick = function(event) {
         closePhaseEdit();
     }
 };
+
+// Export functions to window for onclick handlers
+if (typeof window !== 'undefined') {
+    window.editPhase = editPhase;
+    window.closePhaseEdit = closePhaseEdit;
+    window.initializeDefaultModules = initializeDefaultModules;
+    window.resetModules = resetModules;
+}

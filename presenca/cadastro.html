@@ -31,6 +31,9 @@
                     </nav>
                 </div>
                 <div class="user-menu" id="userMenu" style="display: none;">
+                    <span id="syncStatus" style="margin-right: 15px; font-size: 0.9rem; color: #4caf50;">
+                        ☁️ Sincronizado
+                    </span>
                     <span id="userName"></span>
                     <button onclick="handleLogout()" class="btn-logout">Sair</button>
                 </div>
@@ -184,6 +187,7 @@
     <script type="module">
         import { requireAuth, logout } from './js/auth.js';
         import DataManager from './js/data.js';
+        import { initStudentsPage } from './js/students.js';
 
         // Require authentication
         requireAuth().then(async (user) => {
@@ -193,13 +197,33 @@
             
             document.getElementById('userMenu').style.display = 'flex';
             document.getElementById('userName').textContent = user.displayName || user.email;
+            
+            // Initialize DataManager
             await DataManager.init();
             
-            // Load students script after auth
-            const script = document.createElement('script');
-            script.src = 'js/students.js';
-            script.type = 'module';
-            document.body.appendChild(script);
+            // Initialize students page
+            await initStudentsPage();
+            
+            // Listen for sync status updates
+            window.addEventListener('firebase-sync', (event) => {
+                const statusEl = document.getElementById('syncStatus');
+                if (!statusEl) return;
+                
+                switch(event.detail.status) {
+                    case 'syncing':
+                        statusEl.innerHTML = '🔄 Sincronizando...';
+                        statusEl.style.color = '#2196f3';
+                        break;
+                    case 'synced':
+                        statusEl.innerHTML = '☁️ Sincronizado';
+                        statusEl.style.color = '#4caf50';
+                        break;
+                    case 'error':
+                        statusEl.innerHTML = '⚠️ Offline';
+                        statusEl.style.color = '#ff9800';
+                        break;
+                }
+            });
         });
 
         window.handleLogout = async () => {

@@ -3,10 +3,12 @@
  * Handles attendance percentage calculations and alert generation
  */
 
+import DataManager from './data.js';
+
 const Calculator = {
     // Calculate attendance statistics for a student in a specific module
-    calculateModuleAttendance(studentId, moduleNumber) {
-        const attendance = DataManager.getAttendanceByStudent(studentId)
+    async calculateModuleAttendance(studentId, moduleNumber) {
+        const attendance = (await DataManager.getAttendanceByStudent(studentId))
             .filter(a => a.moduleNumber === moduleNumber);
 
         const total = attendance.length;
@@ -23,8 +25,8 @@ const Calculator = {
     },
 
     // Calculate attendance for a specific phase
-    calculatePhaseAttendance(studentId, moduleNumber, phaseNumber) {
-        const attendance = DataManager.getAttendanceByStudent(studentId)
+    async calculatePhaseAttendance(studentId, moduleNumber, phaseNumber) {
+        const attendance = (await DataManager.getAttendanceByStudent(studentId))
             .filter(a => a.moduleNumber === moduleNumber && a.phaseNumber === phaseNumber);
 
         const total = attendance.length;
@@ -41,8 +43,8 @@ const Calculator = {
     },
 
     // Calculate overall attendance for a student
-    calculateOverallAttendance(studentId) {
-        const attendance = DataManager.getAttendanceByStudent(studentId);
+    async calculateOverallAttendance(studentId) {
+        const attendance = await DataManager.getAttendanceByStudent(studentId);
 
         const total = attendance.length;
         const present = attendance.filter(a => a.present).length;
@@ -58,11 +60,11 @@ const Calculator = {
     },
 
     // Check and generate alert for a student in a module
-    checkAlert(studentId, moduleNumber) {
-        const stats = this.calculateModuleAttendance(studentId, moduleNumber);
+    async checkAlert(studentId, moduleNumber) {
+        const stats = await this.calculateModuleAttendance(studentId, moduleNumber);
 
         // Clear previous alerts for this student/module
-        DataManager.clearAlertsForStudent(studentId, moduleNumber);
+        await DataManager.clearAlertsForStudent(studentId, moduleNumber);
 
         let alert = null;
 
@@ -81,7 +83,7 @@ const Calculator = {
                 absenceRate: stats.absencePercentage
             };
             
-            DataManager.saveAlert({
+            await DataManager.saveAlert({
                 studentId,
                 moduleNumber,
                 type: 'critical',
@@ -98,7 +100,7 @@ const Calculator = {
                 absenceRate: stats.absencePercentage
             };
             
-            DataManager.saveAlert({
+            await DataManager.saveAlert({
                 studentId,
                 moduleNumber,
                 type: 'warning',
@@ -110,8 +112,8 @@ const Calculator = {
     },
 
     // Get alert status for student
-    getAlertStatus(studentId, moduleNumber) {
-        const stats = this.calculateModuleAttendance(studentId, moduleNumber);
+    async getAlertStatus(studentId, moduleNumber) {
+        const stats = await this.calculateModuleAttendance(studentId, moduleNumber);
 
         if (stats.total === 0) {
             return {
@@ -151,16 +153,16 @@ const Calculator = {
     },
 
     // Get all students with alerts
-    getAllAlerts() {
-        const students = DataManager.getStudents();
+    async getAllAlerts() {
+        const students = await DataManager.getStudents();
         const alerts = {
             critical: [],
             warning: [],
             ok: []
         };
 
-        students.forEach(student => {
-            const stats = this.calculateModuleAttendance(student.id, student.currentModule);
+        for (const student of students) {
+            const stats = await this.calculateModuleAttendance(student.id, student.currentModule);
             
             if (stats.total > 0) {
                 const alertData = {
@@ -177,23 +179,24 @@ const Calculator = {
                     alerts.ok.push(alertData);
                 }
             }
-        });
+        }
 
         return alerts;
     },
 
     // Calculate statistics for all modules
-    getModuleStatistics() {
-        const modules = DataManager.getModules();
+    async getModuleStatistics() {
+        const modules = await DataManager.getModules();
         const stats = [];
 
-        modules.forEach(module => {
-            const studentsInModule = DataManager.getStudents()
+        for (const module of modules) {
+            const studentsInModule = (await DataManager.getStudents())
                 .filter(s => s.currentModule === module.number);
 
-            const attendances = studentsInModule.map(student => 
-                this.calculateModuleAttendance(student.id, module.number)
-            );
+            const attendances = [];
+            for (const student of studentsInModule) {
+                attendances.push(await this.calculateModuleAttendance(student.id, module.number));
+            }
 
             const avgAttendance = attendances.length > 0
                 ? Math.round(
@@ -212,17 +215,17 @@ const Calculator = {
                 criticalCount,
                 warningCount
             });
-        });
+        }
 
         return stats;
     },
 
     // Calculate phase-by-phase breakdown for a student
-    getPhaseBreakdown(studentId, moduleNumber) {
+    async getPhaseBreakdown(studentId, moduleNumber) {
         const phases = [];
 
         for (let i = 1; i <= 4; i++) {
-            const stats = this.calculatePhaseAttendance(studentId, moduleNumber, i);
+            const stats = await this.calculatePhaseAttendance(studentId, moduleNumber, i);
             phases.push({
                 phaseNumber: i,
                 ...stats
@@ -238,14 +241,14 @@ const Calculator = {
     },
 
     // Get student progress across all modules
-    getStudentProgress(studentId) {
+    async getStudentProgress(studentId) {
         const modules = [1, 2, 3, 4];
         const progress = [];
 
-        modules.forEach(moduleNum => {
-            const stats = this.calculateModuleAttendance(studentId, moduleNum);
-            const phases = this.getPhaseBreakdown(studentId, moduleNum);
-            const alert = this.checkAlert(studentId, moduleNum);
+        for (const moduleNum of modules) {
+            const stats = await this.calculateModuleAttendance(studentId, moduleNum);
+            const phases = await this.getPhaseBreakdown(studentId, moduleNum);
+            const alert = await this.checkAlert(studentId, moduleNum);
 
             progress.push({
                 moduleNumber: moduleNum,
@@ -254,8 +257,16 @@ const Calculator = {
                 alert,
                 status: stats.total > 0 ? 'in-progress' : 'not-started'
             });
-        });
+        }
 
         return progress;
     }
 };
+
+// Export for module use
+export default Calculator;
+
+// Also make available globally for non-module scripts
+if (typeof window !== 'undefined') {
+    window.Calculator = Calculator;
+}

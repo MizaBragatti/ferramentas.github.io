@@ -3,11 +3,15 @@
  * Handles reports generation and display
  */
 
-// Load reports on page load
-document.addEventListener('DOMContentLoaded', () => {
+import DataManager from './data.js';
+import Calculator from './calculations.js';
+
+// Initialize reports page
+export async function initReportsPage() {
+    console.log('Initializing reports page...');
     setDefaultDates();
-    loadReports();
-});
+    await loadReports();
+}
 
 // Set default date range (current year)
 function setDefaultDates() {
@@ -20,16 +24,16 @@ function setDefaultDates() {
 }
 
 // Load all reports
-function loadReports() {
-    loadAlerts();
-    loadOverview();
-    loadModuleStats();
-    loadStudentReports();
+async function loadReports() {
+    await loadAlerts();
+    await loadOverview();
+    await loadModuleStats();
+    await loadStudentReports();
 }
 
 // Load and display alerts
-function loadAlerts() {
-    const alerts = Calculator.getAllAlerts();
+async function loadAlerts() {
+    const alerts = await Calculator.getAllAlerts();
     
     // Critical alerts
     const criticalList = document.getElementById('criticalAlertsList');
@@ -84,20 +88,20 @@ function loadAlerts() {
 }
 
 // Load overview statistics
-function loadOverview() {
-    const students = DataManager.getStudents();
-    const attendance = DataManager.getAttendance();
-    const alerts = Calculator.getAllAlerts();
+async function loadOverview() {
+    const students = await DataManager.getStudents();
+    const attendance = await DataManager.getAttendance();
+    const alerts = await Calculator.getAllAlerts();
     
     // Get unique dates
     const uniqueDates = [...new Set(attendance.map(a => a.date))];
     
     // Calculate average attendance
     let totalAttendancePercentage = 0;
-    students.forEach(student => {
-        const stats = Calculator.calculateOverallAttendance(student.id);
+    for (const student of students) {
+        const stats = await Calculator.calculateOverallAttendance(student.id);
         totalAttendancePercentage += stats.attendancePercentage;
-    });
+    }
     const avgAttendance = students.length > 0 
         ? Math.round(totalAttendancePercentage / students.length) 
         : 0;
@@ -110,8 +114,8 @@ function loadOverview() {
 }
 
 // Load module statistics
-function loadModuleStats() {
-    const moduleStats = Calculator.getModuleStatistics();
+async function loadModuleStats() {
+    const moduleStats = await Calculator.getModuleStatistics();
     const container = document.getElementById('moduleStatsContainer');
     
     container.innerHTML = moduleStats.map(stat => {
@@ -144,8 +148,8 @@ function loadModuleStats() {
 }
 
 // Load student reports
-function loadStudentReports() {
-    const students = DataManager.getStudents();
+async function loadStudentReports() {
+    const students = await DataManager.getStudents();
     const container = document.getElementById('studentReportsContainer');
     
     if (students.length === 0) {
@@ -153,12 +157,13 @@ function loadStudentReports() {
         return;
     }
     
-    container.innerHTML = students.map(student => {
-        const overallStats = Calculator.calculateOverallAttendance(student.id);
-        const currentModuleStats = Calculator.calculateModuleAttendance(student.id, student.currentModule);
-        const alertStatus = Calculator.getAlertStatus(student.id, student.currentModule);
+    const reportsHTML = [];
+    for (const student of students) {
+        const overallStats = await Calculator.calculateOverallAttendance(student.id);
+        const currentModuleStats = await Calculator.calculateModuleAttendance(student.id, student.currentModule);
+        const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
         
-        return `
+        reportsHTML.push(`
             <div class="student-report-card ${alertStatus.level.toLowerCase()}" data-student-name="${student.name.toLowerCase()}">
                 <div class="student-report-header">
                     <div class="student-info">
@@ -187,16 +192,17 @@ function loadStudentReports() {
                     </div>
                 </div>
             </div>
-        `;
-    }).join('');
+        `);
+    }
+    container.innerHTML = reportsHTML.join('');
 }
 
 // Show student detail modal
-function showStudentDetail(studentId) {
-    const student = DataManager.getStudent(studentId);
+async function showStudentDetail(studentId) {
+    const student = await DataManager.getStudent(studentId);
     if (!student) return;
     
-    const progress = Calculator.getStudentProgress(studentId);
+    const progress = await Calculator.getStudentProgress(studentId);
     
     document.getElementById('modalStudentName').textContent = `${student.name} - Histórico Completo`;
     
@@ -278,8 +284,8 @@ function filterStudentReports() {
 }
 
 // Export to JSON
-function exportToJSON() {
-    const data = DataManager.exportAllData();
+async function exportToJSON() {
+    const data = await DataManager.exportAllData();
     const dataStr = JSON.stringify(data, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -294,18 +300,18 @@ function exportToJSON() {
 }
 
 // Export to CSV
-function exportToCSV() {
-    const students = DataManager.getStudents();
-    const attendance = DataManager.getAttendance();
+async function exportToCSV() {
+    const students = await DataManager.getStudents();
+    const attendance = await DataManager.getAttendance();
     
     // Create CSV header
     let csv = 'ID,Nome,Telefone,Módulo Atual,Presença Geral,Faltas Geral,Taxa de Presença\n';
     
     // Add student rows
-    students.forEach(student => {
-        const stats = Calculator.calculateOverallAttendance(student.id);
+    for (const student of students) {
+        const stats = await Calculator.calculateOverallAttendance(student.id);
         csv += `${student.id},"${student.name}","${student.phone}",${student.currentModule},${stats.present},${stats.absent},${stats.attendancePercentage}%\n`;
-    });
+    }
     
     // Create blob and download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -321,8 +327,8 @@ function exportToCSV() {
 }
 
 // Export reports to PDF
-function exportReportsPDF() {
-    const students = DataManager.getStudents();
+async function exportReportsPDF() {
+    const students = await DataManager.getStudents();
     
     if (students.length === 0) {
         alert('Nenhum dado para exportar.');
@@ -331,7 +337,7 @@ function exportReportsPDF() {
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const alerts = Calculator.getAllAlerts();
+    const alerts = await Calculator.getAllAlerts();
     
     // Calculate students per module
     const module1Count = students.filter(s => s.currentModule === 1).length;
@@ -389,24 +395,25 @@ function exportReportsPDF() {
     yPosition += 8;
     
     // Table data
-    const tableData = students.map(student => {
-        const overallStats = Calculator.calculateOverallAttendance(student.id);
-        const currentModuleStats = Calculator.calculateModuleAttendance(student.id, student.currentModule);
-        const alertStatus = Calculator.getAlertStatus(student.id, student.currentModule);
+    const tableData = [];
+    for (const student of students) {
+        const overallStats = await Calculator.calculateOverallAttendance(student.id);
+        const currentModuleStats = await Calculator.calculateModuleAttendance(student.id, student.currentModule);
+        const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
         
         let status = 'Regular';
         if (alertStatus.level === 'CRITICAL') status = 'CRÍTICO';
         else if (alertStatus.level === 'WARNING') status = 'AVISO';
         
-        return [
+        tableData.push([
             student.id,
             student.name,
             `M${student.currentModule}`,
             `${overallStats.attendancePercentage}%`,
             `${currentModuleStats.attendancePercentage}%`,
             status
-        ];
-    });
+        ]);
+    }
     
     // Generate table
     doc.autoTable({
@@ -496,3 +503,14 @@ window.onclick = function(event) {
         closeStudentDetail();
     }
 };
+
+// Export functions to window for onclick handlers
+if (typeof window !== 'undefined') {
+    window.showStudentDetail = showStudentDetail;
+    window.closeStudentDetail = closeStudentDetail;
+    window.exportReportsPDF = exportReportsPDF;
+    window.exportToJSON = exportToJSON;
+    window.exportToCSV = exportToCSV;
+    window.filterStudentReports = filterStudentReports;
+    window.loadReports = loadReports;
+}

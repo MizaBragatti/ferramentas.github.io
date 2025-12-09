@@ -186,28 +186,35 @@
     <script type="module">
         import { requireAuth, logout } from './js/auth.js';
         import DataManager from './js/data.js';
+        import { initReportsPage } from './js/reports.js';
 
         // Require authentication
         requireAuth().then(async (user) => {
-            // Hide loading, show content
-            document.getElementById('authLoading').style.display = 'none';
-            document.getElementById('mainContent').style.display = 'block';
+            console.log('Reports: User authenticated', user.email);
             
-            document.getElementById('userMenu').style.display = 'flex';
-            document.getElementById('userName').textContent = user.displayName || user.email;
-            await DataManager.init();
-            
-            // Load reports scripts after auth
-            const script1 = document.createElement('script');
-            script1.src = 'js/calculations.js';
-            document.body.appendChild(script1);
-            
-            script1.onload = () => {
-                const script2 = document.createElement('script');
-                script2.src = 'js/reports.js';
-                script2.type = 'module';
-                document.body.appendChild(script2);
-            };
+            try {
+                // Hide loading, show content
+                document.getElementById('authLoading').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+                document.getElementById('userMenu').style.display = 'flex';
+                document.getElementById('userName').textContent = user.displayName || user.email;
+                
+                // Initialize DataManager
+                console.log('Reports: Initializing DataManager...');
+                await DataManager.init();
+                console.log('Reports: DataManager initialized');
+                
+                // Initialize reports page
+                console.log('Reports: Initializing reports page...');
+                await initReportsPage();
+                console.log('Reports: Reports page initialized');
+            } catch (error) {
+                console.error('Reports: Error during initialization:', error);
+                alert('Erro ao carregar relatórios: ' + error.message);
+            }
+        }).catch(error => {
+            console.error('Reports: Authentication failed:', error);
         });
 
         window.handleLogout = async () => {

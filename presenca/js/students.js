@@ -5,11 +5,12 @@
 
 import DataManager from './data.js';
 
-// Load students on page load
-document.addEventListener('DOMContentLoaded', async () => {
+// Initialize students page
+export async function initStudentsPage() {
+    console.log('Initializing students page...');
     await loadStudents();
     setupEventListeners();
-});
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -74,16 +75,18 @@ async function handleEditStudent(e) {
 
 // Load and display students
 async function loadStudents() {
+    console.log('Loading students...');
     const students = await DataManager.getStudents();
+    console.log('Students loaded:', students);
     const tbody = document.getElementById('studentsTableBody');
     
-    if (students.length === 0) {
+    if (!students || students.length === 0) {
         tbody.innerHTML = `
             <tr class="empty-state">
                 <td colspan="6">Nenhum aluno cadastrado ainda. Adicione o primeiro aluno acima.</td>
             </tr>
         `;
-        updateStats(students);
+        updateStats([]);
         return;
     }
     
@@ -114,6 +117,7 @@ async function loadStudents() {
 
 // Update statistics
 function updateStats(students) {
+    if (!students) students = [];
     document.getElementById('totalStudents').textContent = students.length;
     
     for (let i = 1; i <= 4; i++) {
@@ -230,24 +234,25 @@ window.onclick = function(event) {
 };
 
 // Handle import file
-function handleImportFile(event) {
+async function handleImportFile(event) {
     const file = event.target.files[0];
     if (!file) return;
     
     const fileExtension = file.name.split('.').pop().toLowerCase();
     
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             if (fileExtension === 'json') {
-                importStudentsJSON(e.target.result);
+                await importStudentsJSON(e.target.result);
             } else if (fileExtension === 'csv') {
-                importStudentsCSV(e.target.result);
+                await importStudentsCSV(e.target.result);
             } else {
                 alert('Formato de arquivo não suportado. Use JSON ou CSV.');
             }
         } catch (error) {
             alert('Erro ao importar arquivo: ' + error.message);
+            console.error('Import error:', error);
         }
         // Reset input
         event.target.value = '';
@@ -256,7 +261,7 @@ function handleImportFile(event) {
 }
 
 // Import students from JSON
-function importStudentsJSON(jsonString) {
+async function importStudentsJSON(jsonString) {
     const data = JSON.parse(jsonString);
     
     let studentsToImport = [];
@@ -285,7 +290,7 @@ function importStudentsJSON(jsonString) {
     if (!confirmImport) return;
     
     // Validate and import students
-    const currentStudents = DataManager.getStudents();
+    const currentStudents = await DataManager.getStudents();
     const maxId = currentStudents.length > 0 ? Math.max(...currentStudents.map(s => s.id)) : 0;
     
     const validStudents = [];
@@ -310,13 +315,13 @@ function importStudentsJSON(jsonString) {
     }
     
     // Replace students
-    DataManager.setData(DataManager.KEYS.STUDENTS, validStudents);
-    loadStudents();
+    await DataManager.setData(DataManager.KEYS.STUDENTS, validStudents);
+    await loadStudents();
     showMessage(`${validStudents.length} aluno(s) importado(s) com sucesso!`, 'success');
 }
 
 // Import students from CSV
-function importStudentsCSV(csvString) {
+async function importStudentsCSV(csvString) {
     const lines = csvString.split('\n').filter(line => line.trim());
     
     if (lines.length < 2) {
@@ -369,7 +374,7 @@ function importStudentsCSV(csvString) {
     if (!confirmImport) return;
     
     // Reassign IDs if needed
-    const currentStudents = DataManager.getStudents();
+    const currentStudents = await DataManager.getStudents();
     const maxId = currentStudents.length > 0 ? Math.max(...currentStudents.map(s => s.id)) : 0;
     let nextId = maxId + 1;
     
@@ -380,8 +385,8 @@ function importStudentsCSV(csvString) {
     });
     
     // Replace students
-    DataManager.setData(DataManager.KEYS.STUDENTS, students);
-    loadStudents();
+    await DataManager.setData(DataManager.KEYS.STUDENTS, students);
+    await loadStudents();
     showMessage(`${students.length} aluno(s) importado(s) com sucesso!`, 'success');
 }
 
