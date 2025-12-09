@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Sistema de Presença</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 1.2rem;
+            color: #8c8c8c;
+        }
+        .auth-protected { display: none; }
+    </style>
+</head>
+<body>
+    <div id="authLoading" class="auth-loading">
+        <div>🔒 Verificando autenticação...</div>
+    </div>
+    <div class="container auth-protected" id="mainContent">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>📊 Relatórios de Presença</h1>
+                    <nav class="breadcrumb">
+                        <a href="index.html">Início</a> &gt; Relatórios
+                    </nav>
+                </div>
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <span id="userName"></span>
+                    <button onclick="handleLogout()" class="btn-logout">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="report-controls">
+                <div class="filter-group">
+                    <label for="reportModule">Módulo:</label>
+                    <select id="reportModule" onchange="loadReports()">
+                        <option value="all">Todos os Módulos</option>
+                        <option value="1">Módulo 1</option>
+                        <option value="2">Módulo 2</option>
+                        <option value="3">Módulo 3</option>
+                        <option value="4">Módulo 4</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="reportPhase">Fase:</label>
+                    <select id="reportPhase" onchange="loadReports()">
+                        <option value="all">Todas as Fases</option>
+                        <option value="1">Fase 1</option>
+                        <option value="2">Fase 2</option>
+                        <option value="3">Fase 3</option>
+                        <option value="4">Fase 4</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="reportPeriodStart">Período:</label>
+                    <input type="date" id="reportPeriodStart" onchange="loadReports()">
+                    <span>até</span>
+                    <input type="date" id="reportPeriodEnd" onchange="loadReports()">
+                </div>
+
+                <div class="export-buttons">
+                    <button class="btn btn-secondary btn-small" onclick="exportToJSON()">
+                        📥 Exportar JSON
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="exportToCSV()">
+                        📊 Exportar CSV
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="exportReportsPDF()">
+                        📄 Exportar PDF
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="window.print()">
+                        🖨️ Imprimir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="alerts-section">
+                <div class="alert-card critical-alerts" id="criticalAlerts">
+                    <h3>🚨 ALERTAS CRÍTICOS (40% ou mais de faltas)</h3>
+                    <div id="criticalAlertsList">
+                        <p class="no-alerts">Nenhum alerta crítico no momento.</p>
+                    </div>
+                </div>
+
+                <div class="alert-card warning-alerts" id="warningAlerts">
+                    <h3>⚠️ AVISOS (25% a 39% de faltas)</h3>
+                    <div id="warningAlertsList">
+                        <p class="no-alerts">Nenhum aviso no momento.</p>
+                    </div>
+                </div>
+
+                <div class="alert-card success-alerts" id="successAlerts">
+                    <h3>✅ SITUAÇÃO REGULAR (menos de 25% de faltas)</h3>
+                    <div id="successAlertsList">
+                        <p class="no-alerts">Nenhum aluno em situação regular.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overview Statistics -->
+            <div class="overview-section">
+                <h2>📈 Visão Geral</h2>
+                <div class="overview-cards">
+                    <div class="overview-card">
+                        <div class="card-icon">👥</div>
+                        <div class="card-content">
+                            <div class="card-value" id="overviewTotalStudents">0</div>
+                            <div class="card-label">Total de Alunos</div>
+                        </div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="card-icon">📅</div>
+                        <div class="card-content">
+                            <div class="card-value" id="overviewTotalClasses">0</div>
+                            <div class="card-label">Aulas Registradas</div>
+                        </div>
+                    </div>
+                    <div class="overview-card">
+                        <div class="card-icon">✓</div>
+                        <div class="card-content">
+                            <div class="card-value" id="overviewAvgAttendance">0%</div>
+                            <div class="card-label">Taxa Média de Presença</div>
+                        </div>
+                    </div>
+                    <div class="overview-card critical">
+                        <div class="card-icon">🚨</div>
+                        <div class="card-content">
+                            <div class="card-value" id="overviewCriticalCount">0</div>
+                            <div class="card-label">Alertas Críticos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Statistics -->
+            <div class="module-stats-section">
+                <h2>📋 Estatísticas por Módulo</h2>
+                <div id="moduleStatsContainer">
+                    <!-- Module stats will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Student Details -->
+            <div class="student-details-section">
+                <h2>👥 Detalhes por Aluno</h2>
+                <div class="search-box">
+                    <input type="text" id="searchReport" placeholder="🔍 Buscar aluno..." onkeyup="filterStudentReports()">
+                </div>
+                <div id="studentReportsContainer">
+                    <!-- Student reports will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <a href="index.html" class="btn btn-secondary">⬅️ Voltar ao Início</a>
+        </footer>
+    </div>
+
+    <!-- Student Detail Modal -->
+    <div id="studentDetailModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="modalStudentName">Detalhes do Aluno</h3>
+                <button class="close-btn" onclick="closeStudentDetail()">&times;</button>
+            </div>
+            <div id="studentDetailContent">
+                <!-- Detailed student info will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script type="module">
+        import { requireAuth, logout } from './js/auth.js';
+        import DataManager from './js/data.js';
+
+        // Require authentication
+        requireAuth().then(async (user) => {
+            // Hide loading, show content
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            document.getElementById('userMenu').style.display = 'flex';
+            document.getElementById('userName').textContent = user.displayName || user.email;
+            await DataManager.init();
+            
+            // Load reports scripts after auth
+            const script1 = document.createElement('script');
+            script1.src = 'js/calculations.js';
+            document.body.appendChild(script1);
+            
+            script1.onload = () => {
+                const script2 = document.createElement('script');
+                script2.src = 'js/reports.js';
+                script2.type = 'module';
+                document.body.appendChild(script2);
+            };
+        });
+
+        window.handleLogout = async () => {
+            if (confirm('Deseja realmente sair?')) await logout();
+        };
+    </script>
+</body>
+</html>

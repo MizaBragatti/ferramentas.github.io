@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marcar Presença - Sistema de Presença</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 1.2rem;
+            color: #8c8c8c;
+        }
+        .auth-protected { display: none; }
+    </style>
+</head>
+<body>
+    <div id="authLoading" class="auth-loading">
+        <div>🔒 Verificando autenticação...</div>
+    </div>
+    <div class="container auth-protected" id="mainContent">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>📋 Marcar Presença</h1>
+                    <nav class="breadcrumb">
+                        <a href="index.html">Início</a> &gt; Marcar Presença
+                    </nav>
+                </div>
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <span id="userName"></span>
+                    <button onclick="handleLogout()" class="btn-logout">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="attendance-controls">
+                <div class="date-selector">
+                    <label for="attendanceDate">📅 Data da Aula:</label>
+                    <input type="date" id="attendanceDate">
+                    <button class="btn btn-small btn-secondary" onclick="setToday()">Hoje</button>
+                </div>
+
+                <div class="module-selector">
+                    <label for="moduleFilter">Módulo:</label>
+                    <select id="moduleFilter">
+                        <option value="all">Todos os Módulos</option>
+                        <option value="1">Módulo 1</option>
+                        <option value="2">Módulo 2</option>
+                        <option value="3">Módulo 3</option>
+                        <option value="4">Módulo 4</option>
+                    </select>
+                </div>
+
+                <div class="phase-selector">
+                    <label for="phaseFilter">Fase:</label>
+                    <select id="phaseFilter">
+                        <option value="all">Todas as Fases</option>
+                        <option value="1">Fase 1</option>
+                        <option value="2">Fase 2</option>
+                        <option value="3">Fase 3</option>
+                        <option value="4">Fase 4</option>
+                    </select>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="searchAttendance" placeholder="🔍 Buscar aluno...">
+                </div>
+            </div>
+
+            <div id="alertsSummary" class="alerts-summary" style="display: none;">
+                <!-- Alerts will be shown here -->
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn btn-secondary btn-small" onclick="markAllPresent()">
+                    ✓ Marcar Todos Presentes
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="clearAllMarks()">
+                    🔄 Limpar Marcações
+                </button>
+                <button class="btn btn-primary" onclick="saveAttendance()">
+                    💾 Salvar Presença
+                </button>
+            </div>
+
+            <div class="attendance-list" id="attendanceList">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nome</th>
+                            <th>Módulo</th>
+                            <th>Fase Atual</th>
+                            <th>Presença</th>
+                            <th>Status Atual</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <tr class="empty-state">
+                            <td colspan="6">Nenhum aluno encontrado. Cadastre alunos primeiro.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="attendance-summary" id="attendanceSummary" style="display: none;">
+                <h3>Resumo da Presença</h3>
+                <div class="summary-stats">
+                    <div class="summary-item">
+                        <span class="summary-label">Total de Alunos:</span>
+                        <span class="summary-value" id="totalCount">0</span>
+                    </div>
+                    <div class="summary-item present">
+                        <span class="summary-label">Presentes:</span>
+                        <span class="summary-value" id="presentCount">0</span>
+                    </div>
+                    <div class="summary-item absent">
+                        <span class="summary-label">Faltaram:</span>
+                        <span class="summary-value" id="absentCount">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Não Marcados:</span>
+                        <span class="summary-value" id="unmarkedCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <a href="index.html" class="btn btn-secondary">⬅️ Voltar ao Início</a>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { requireAuth, logout } from './js/auth.js';
+        import DataManager from './js/data.js';
+
+        // Require authentication
+        requireAuth().then(async (user) => {
+            // Hide loading, show content
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            document.getElementById('userMenu').style.display = 'flex';
+            document.getElementById('userName').textContent = user.displayName || user.email;
+            await DataManager.init();
+            
+            // Load attendance scripts after auth
+            const script1 = document.createElement('script');
+            script1.src = 'js/calculations.js';
+            document.body.appendChild(script1);
+            
+            script1.onload = () => {
+                const script2 = document.createElement('script');
+                script2.src = 'js/attendance.js';
+                script2.type = 'module';
+                document.body.appendChild(script2);
+            };
+        });
+
+        window.handleLogout = async () => {
+            if (confirm('Deseja realmente sair?')) await logout();
+        };
+    </script>
+</body>
+</html>

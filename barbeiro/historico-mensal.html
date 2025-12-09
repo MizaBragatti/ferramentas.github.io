@@ -547,12 +547,19 @@
             let ganhoHelioTotal = 0;
             let diasComServicos = 0;
 
+            // Variáveis para totalização semanal
+            let totalSergioSemana = 0;
+            let totalHelioSemana = 0;
+            let ganhoSergioSemana = 0;
+            let ganhoHelioSemana = 0;
+            let ganhoHelioTotalSemana = 0;
+
             // Ordenar dias (mais recente primeiro)
             const diasOrdenados = Object.keys(diasDoMes).sort().reverse();
 
             let linhas = '';
 
-            diasOrdenados.forEach(dia => {
+            diasOrdenados.forEach((dia, index) => {
                 const dadosDia = diasDoMes[dia];
                 
                 // Pular se não for um objeto válido
@@ -612,6 +619,18 @@
                 // Incrementar contador de dias com serviços
                 diasComServicos++;
 
+                // Acumular totais da semana
+                totalSergioSemana += totalSergioHoje;
+                totalHelioSemana += totalHelioHoje;
+                ganhoSergioSemana += ganhoSergioHoje;
+                ganhoHelioSemana += ganhoHelioHoje;
+                ganhoHelioTotalSemana += ganhoHelioTotalHoje;
+
+                // Verificar se é sábado (dia da semana 6)
+                const [ano, mes, diaNum] = dia.split('-');
+                const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(diaNum));
+                const ehSabado = data.getDay() === 6;
+
                 // Linha da tabela
                 linhas += `
                     <tr>
@@ -625,6 +644,32 @@
                         <td class="col-dinheiro col-total">${formatarDinheiro(ganhoDia)}</td>
                     </tr>
                 `;
+
+                // Se for sábado, adicionar linha de totalização semanal
+                if (ehSabado) {
+                    const totalSemana = totalSergioSemana + totalHelioSemana;
+                    const ganhoSemana = ganhoSergioSemana + ganhoHelioSemana;
+
+                    linhas += `
+                        <tr style="background: rgba(212, 175, 55, 0.15); font-weight: bold; border-top: 2px solid var(--dourado); border-bottom: 2px solid var(--dourado);">
+                            <td class="col-data" style="color: var(--dourado);">📅 TOTAL SEMANAL</td>
+                            <td class="col-numero col-sergio">${totalSergioSemana}</td>
+                            <td class="col-dinheiro">${formatarDinheiro(ganhoSergioSemana)}</td>
+                            <td class="col-numero col-helio">${totalHelioSemana}</td>
+                            <td class="col-dinheiro" style="color: #FFA726;">${formatarDinheiro(ganhoHelioTotalSemana)}</td>
+                            <td class="col-dinheiro" style="background: rgba(76, 175, 80, 0.2); color: #4CAF50; font-size: 1.05rem;">${formatarDinheiro(ganhoHelioSemana)}</td>
+                            <td class="col-numero col-total">${totalSemana}</td>
+                            <td class="col-dinheiro col-total">${formatarDinheiro(ganhoSemana)}</td>
+                        </tr>
+                    `;
+
+                    // Resetar contadores semanais
+                    totalSergioSemana = 0;
+                    totalHelioSemana = 0;
+                    ganhoSergioSemana = 0;
+                    ganhoHelioSemana = 0;
+                    ganhoHelioTotalSemana = 0;
+                }
             });
 
             // Verificar se há dados para exibir

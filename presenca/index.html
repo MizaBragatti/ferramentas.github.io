@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Presença - Aulas Musicais</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 1.2rem;
+            color: #8c8c8c;
+        }
+        .auth-protected { display: none; }
+    </style>
+</head>
+<body>
+    <div id="authLoading" class="auth-loading">
+        <div>🔒 Verificando autenticação...</div>
+    </div>
+    <div class="container auth-protected" id="mainContent">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>🎵 Sistema de Presença</h1>
+                    <p class="subtitle">Gestão de Aulas Musicais aos Sábados</p>
+                </div>
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <span id="userName"></span>
+                    <button onclick="handleLogout()" class="btn-logout">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="main-nav">
+            <a href="presenca.html" class="nav-button">
+                <span class="icon">📋</span>
+                <span>Marcar Presença</span>
+            </a>
+            <a href="cadastro.html" class="nav-button">
+                <span class="icon">👥</span>
+                <span>Cadastro de Alunos</span>
+            </a>
+            <a href="reports.html" class="nav-button">
+                <span class="icon">📊</span>
+                <span>Relatórios</span>
+            </a>
+            <a href="modulos.html" class="nav-button">
+                <span class="icon">📚</span>
+                <span>Gestão de Módulos</span>
+            </a>
+        </nav>
+
+        <div class="welcome-section">
+            <h2>Bem-vindo ao Sistema de Controle de Presença</h2>
+            <p>Sistema para gerenciar presença em aulas musicais com controle modular.</p>
+            
+            <div class="info-cards">
+                <div class="info-card">
+                    <h3>📅 Estrutura do Curso</h3>
+                    <ul>
+                        <li><strong>4 Módulos por ano</strong></li>
+                        <li><strong>4 Fases por módulo</strong></li>
+                        <li>Aulas todos os sábados</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h3>⚠️ Sistema de Alertas</h3>
+                    <ul>
+                        <li><strong class="warning">25% de faltas:</strong> Aviso preventivo</li>
+                        <li><strong class="critical">40% de faltas:</strong> Deve repetir módulo</li>
+                        <li>Cálculo automático por módulo</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <h3>📊 Funcionalidades</h3>
+                    <ul>
+                        <li>Cadastro de alunos com ID automático</li>
+                        <li>Registro de presença por módulo/fase</li>
+                        <li>Relatórios detalhados de frequência</li>
+                        <li>Exportação de dados</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Sistema de Presença - Aulas Musicais &copy; 2025</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { requireAuth, logout } from './js/auth.js';
+        import DataManager from './js/data.js';
+
+        // Require authentication
+        requireAuth().then(async (user) => {
+            // Hide loading, show content
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            // Show user menu
+            document.getElementById('userMenu').style.display = 'flex';
+            document.getElementById('userName').textContent = user.displayName || user.email;
+            
+            // Initialize data
+            await DataManager.init();
+
+            // Check if there's local data to migrate
+            const hasLocalData = await DataManager.hasLocalDataToMigrate();
+            if (hasLocalData) {
+                const shouldMigrate = confirm(
+                    '🔄 Detectamos dados no armazenamento local!\n\n' +
+                    'Deseja migrar seus dados para a nuvem (Firebase)?\n\n' +
+                    'Isso permitirá acessar seus dados de qualquer dispositivo.\n\n' +
+                    'Clique OK para migrar ou Cancelar para manter apenas local.'
+                );
+
+                if (shouldMigrate) {
+                    const result = await DataManager.migrateToFirebase();
+                    if (result.success) {
+                        alert('✅ ' + result.message + '\n\nSeus dados agora estão na nuvem!');
+                    } else {
+                        alert('❌ ' + result.message);
+                    }
+                }
+            }
+        }).catch(() => {
+            // Redirects to login automatically
+        });
+
+        // Logout handler
+        window.handleLogout = async () => {
+            if (confirm('Deseja realmente sair?')) {
+                await logout();
+            }
+        };
+    </script>
+</body>
+</html>

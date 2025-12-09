@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Presença</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(140, 140, 140, 0.1);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #7a7a7a, var(--primary-color));
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .btn-login:hover {
+            background: linear-gradient(135deg, #6b6b6b, #7a7a7a);
+        }
+        
+        .btn-login:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .form-footer {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .form-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="login-header">
+                    <h1>Sistema de Presença</h1>
+                    <p>Entre com sua conta de professor</p>
+                </div>
+                
+                <div id="loginError" class="error-message"></div>
+                
+                <form id="loginFormElement" onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required autocomplete="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" id="loginPassword" required autocomplete="current-password">
+                    </div>
+                    
+                    <button type="submit" class="btn-login" id="loginButton">Entrar</button>
+                </form>
+                
+                <div class="form-footer">
+                    <a href="#" id="showRegister">Criar nova conta</a>
+                    <span style="margin: 0 10px; color: #ddd;">|</span>
+                    <a href="#" id="showReset">Esqueci minha senha</a>
+                </div>
+            </div>
+            
+            <!-- Register Form -->
+            <div id="registerForm" class="hidden">
+                <div class="login-header">
+                    <h1>Criar Conta</h1>
+                    <p>Registre-se como professor</p>
+                </div>
+                
+                <div id="registerError" class="error-message"></div>
+                <div id="registerSuccess" class="success-message"></div>
+                
+                <form id="registerFormElement" onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="registerName">Nome</label>
+                        <input type="text" id="registerName" required autocomplete="name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" required autocomplete="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerPassword">Senha</label>
+                        <input type="password" id="registerPassword" required autocomplete="new-password" minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerPasswordConfirm">Confirmar Senha</label>
+                        <input type="password" id="registerPasswordConfirm" required autocomplete="new-password" minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="btn-login" id="registerButton">Criar Conta</button>
+                </form>
+                
+                <div class="form-footer">
+                    <a href="#" id="backToLogin">Voltar para login</a>
+                </div>
+            </div>
+            
+            <!-- Reset Password Form -->
+            <div id="resetForm" class="hidden">
+                <div class="login-header">
+                    <h1>Recuperar Senha</h1>
+                    <p>Digite seu email para receber instruções</p>
+                </div>
+                
+                <div id="resetError" class="error-message"></div>
+                <div id="resetSuccess" class="success-message"></div>
+                
+                <form id="resetFormElement" onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="resetEmail">Email</label>
+                        <input type="email" id="resetEmail" required autocomplete="email">
+                    </div>
+                    
+                    <button type="submit" class="btn-login" id="resetButton">Enviar Email</button>
+                </form>
+                
+                <div class="form-footer">
+                    <a href="#" id="backToLoginFromReset">Voltar para login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { signIn, signUp, resetPassword } from './js/auth.js';
+        
+        // Form switching
+        document.getElementById('showRegister').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('resetForm').classList.add('hidden');
+        });
+        
+        document.getElementById('backToLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('resetForm').classList.add('hidden');
+        });
+        
+        document.getElementById('showReset').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('resetForm').classList.remove('hidden');
+        });
+        
+        document.getElementById('backToLoginFromReset').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('resetForm').classList.add('hidden');
+        });
+        
+        // Login handler
+        document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const button = document.getElementById('loginButton');
+            const errorDiv = document.getElementById('loginError');
+            
+            button.disabled = true;
+            button.textContent = 'Entrando...';
+            errorDiv.style.display = 'none';
+            
+            try {
+                await signIn(email, password);
+                window.location.href = 'index.html';
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                button.disabled = false;
+                button.textContent = 'Entrar';
+            }
+        });
+        
+        // Register handler
+        document.getElementById('registerFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+            const button = document.getElementById('registerButton');
+            const errorDiv = document.getElementById('registerError');
+            const successDiv = document.getElementById('registerSuccess');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (password !== passwordConfirm) {
+                errorDiv.textContent = 'As senhas não coincidem';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            button.disabled = true;
+            button.textContent = 'Criando conta...';
+            
+            try {
+                await signUp(email, password, name);
+                successDiv.textContent = 'Conta criada com sucesso! Redirecionando...';
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                button.disabled = false;
+                button.textContent = 'Criar Conta';
+            }
+        });
+        
+        // Reset password handler
+        document.getElementById('resetFormElement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('resetEmail').value;
+            const button = document.getElementById('resetButton');
+            const errorDiv = document.getElementById('resetError');
+            const successDiv = document.getElementById('resetSuccess');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            button.disabled = true;
+            button.textContent = 'Enviando...';
+            
+            try {
+                await resetPassword(email);
+                successDiv.textContent = 'Email de recuperação enviado! Verifique sua caixa de entrada.';
+                successDiv.style.display = 'block';
+                button.disabled = false;
+                button.textContent = 'Enviar Email';
+                document.getElementById('resetEmail').value = '';
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                button.disabled = false;
+                button.textContent = 'Enviar Email';
+            }
+        });
+    </script>
+</body>
+</html>

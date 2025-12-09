@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Alunos - Sistema de Presença</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 1.2rem;
+            color: #8c8c8c;
+        }
+        .auth-protected { display: none; }
+    </style>
+</head>
+<body>
+    <div id="authLoading" class="auth-loading">
+        <div>🔒 Verificando autenticação...</div>
+    </div>
+    <div class="container auth-protected" id="mainContent">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>👥 Cadastro de Alunos</h1>
+                    <nav class="breadcrumb">
+                        <a href="index.html">Início</a> &gt; Cadastro de Alunos
+                    </nav>
+                </div>
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <span id="userName"></span>
+                    <button onclick="handleLogout()" class="btn-logout">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="form-section">
+                <h2>Adicionar Novo Aluno</h2>
+                <form id="studentForm">
+                    <div class="form-group">
+                        <label for="studentName">Nome do Aluno *</label>
+                        <input type="text" id="studentName" required placeholder="Digite o nome completo">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentPhone">Telefone *</label>
+                        <input type="tel" id="studentPhone" required placeholder="(00) 00000-0000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="studentModule">Módulo Inicial *</label>
+                        <select id="studentModule" required>
+                            <option value="1">Módulo 1</option>
+                            <option value="2">Módulo 2</option>
+                            <option value="3">Módulo 3</option>
+                            <option value="4">Módulo 4</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <span class="icon">➕</span> Adicionar Aluno
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                            <span class="icon">🔄</span> Limpar
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="list-section">
+                <div class="section-header">
+                    <h2>Alunos Cadastrados</h2>
+                    <div class="header-actions">
+                        <div class="import-export-buttons">
+                            <button class="btn btn-primary btn-small" onclick="document.getElementById('importFileInput').click()">
+                                📤 Importar Alunos
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="exportStudentsJSON()">
+                                📥 Exportar JSON
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="exportStudentsCSV()">
+                                📊 Exportar CSV
+                            </button>
+                            <button class="btn btn-secondary btn-small" onclick="exportStudentsPDF()">
+                                📄 Exportar PDF
+                            </button>
+                            <input type="file" id="importFileInput" accept=".json,.csv" style="display: none;" onchange="handleImportFile(event)">
+                        </div>
+                        <div class="search-box">
+                            <input type="text" id="searchStudent" placeholder="🔍 Buscar aluno...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-summary" id="studentStats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total de Alunos:</span>
+                        <span class="stat-value" id="totalStudents">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Módulo 1:</span>
+                        <span class="stat-value" id="module1Count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Módulo 2:</span>
+                        <span class="stat-value" id="module2Count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Módulo 3:</span>
+                        <span class="stat-value" id="module3Count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Módulo 4:</span>
+                        <span class="stat-value" id="module4Count">0</span>
+                    </div>
+                </div>
+
+                <table class="students-table" id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Módulo Atual</th>
+                            <th>Data de Cadastro</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        <tr class="empty-state">
+                            <td colspan="6">Nenhum aluno cadastrado ainda. Adicione o primeiro aluno acima.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <a href="index.html" class="btn btn-secondary">⬅️ Voltar ao Início</a>
+        </footer>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Aluno</h3>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editStudentForm">
+                <input type="hidden" id="editStudentId">
+                <div class="form-group">
+                    <label for="editStudentName">Nome do Aluno *</label>
+                    <input type="text" id="editStudentName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editStudentPhone">Telefone *</label>
+                    <input type="tel" id="editStudentPhone" required>
+                </div>
+                <div class="form-group">
+                    <label for="editStudentModule">Módulo Atual *</label>
+                    <select id="editStudentModule" required>
+                        <option value="1">Módulo 1</option>
+                        <option value="2">Módulo 2</option>
+                        <option value="3">Módulo 3</option>
+                        <option value="4">Módulo 4</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script type="module">
+        import { requireAuth, logout } from './js/auth.js';
+        import DataManager from './js/data.js';
+
+        // Require authentication
+        requireAuth().then(async (user) => {
+            // Hide loading, show content
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            document.getElementById('userMenu').style.display = 'flex';
+            document.getElementById('userName').textContent = user.displayName || user.email;
+            await DataManager.init();
+            
+            // Load students script after auth
+            const script = document.createElement('script');
+            script.src = 'js/students.js';
+            script.type = 'module';
+            document.body.appendChild(script);
+        });
+
+        window.handleLogout = async () => {
+            if (confirm('Deseja realmente sair?')) await logout();
+        };
+    </script>
+</body>
+</html>

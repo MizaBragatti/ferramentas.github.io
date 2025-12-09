@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Módulos - Sistema de Presença</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 1.2rem;
+            color: #8c8c8c;
+        }
+        .auth-protected { display: none; }
+    </style>
+</head>
+<body>
+    <div id="authLoading" class="auth-loading">
+        <div>🔒 Verificando autenticação...</div>
+    </div>
+    <div class="container auth-protected" id="mainContent">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>📚 Gestão de Módulos e Fases</h1>
+                    <nav class="breadcrumb">
+                        <a href="index.html">Início</a> &gt; Gestão de Módulos
+                    </nav>
+                </div>
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <span id="userName"></span>
+                    <button onclick="handleLogout()" class="btn-logout">Sair</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>ℹ️ Sobre a Estrutura de Módulos</h3>
+                <p>O ano letivo é dividido em <strong>4 Módulos</strong>, cada um contendo <strong>4 Fases</strong>. Configure as datas de início e fim de cada fase para melhor organização.</p>
+            </div>
+
+            <div class="modules-container">
+                <div class="module-card" data-module="1">
+                    <div class="module-header">
+                        <h2>Módulo 1</h2>
+                        <button class="btn btn-small btn-secondary" onclick="toggleModuleEdit(1)">✏️ Editar</button>
+                    </div>
+                    <div class="phases-list" id="module1Phases">
+                        <!-- Phases will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="module-card" data-module="2">
+                    <div class="module-header">
+                        <h2>Módulo 2</h2>
+                        <button class="btn btn-small btn-secondary" onclick="toggleModuleEdit(2)">✏️ Editar</button>
+                    </div>
+                    <div class="phases-list" id="module2Phases">
+                        <!-- Phases will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="module-card" data-module="3">
+                    <div class="module-header">
+                        <h2>Módulo 3</h2>
+                        <button class="btn btn-small btn-secondary" onclick="toggleModuleEdit(3)">✏️ Editar</button>
+                    </div>
+                    <div class="phases-list" id="module3Phases">
+                        <!-- Phases will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="module-card" data-module="4">
+                    <div class="module-header">
+                        <h2>Módulo 4</h2>
+                        <button class="btn btn-small btn-secondary" onclick="toggleModuleEdit(4)">✏️ Editar</button>
+                    </div>
+                    <div class="phases-list" id="module4Phases">
+                        <!-- Phases will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions-section">
+                <button class="btn btn-primary" onclick="initializeDefaultModules()">
+                    🔄 Inicializar Estrutura Padrão
+                </button>
+                <button class="btn btn-secondary" onclick="resetModules()">
+                    ⚠️ Resetar Todos os Módulos
+                </button>
+            </div>
+        </div>
+
+        <footer>
+            <a href="index.html" class="btn btn-secondary">⬅️ Voltar ao Início</a>
+        </footer>
+    </div>
+
+    <!-- Phase Edit Modal -->
+    <div id="phaseEditModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="phaseModalTitle">Editar Fase</h3>
+                <button class="close-btn" onclick="closePhaseEdit()">&times;</button>
+            </div>
+            <form id="phaseEditForm">
+                <input type="hidden" id="editPhaseModule">
+                <input type="hidden" id="editPhaseNumber">
+                
+                <div class="form-group">
+                    <label for="phaseName">Nome da Fase</label>
+                    <input type="text" id="phaseName" required placeholder="Ex: Fundamentos Musicais">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phaseStartDate">Data de Início</label>
+                    <input type="date" id="phaseStartDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phaseEndDate">Data de Término</label>
+                    <input type="date" id="phaseEndDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phaseExpectedClasses">Número de Sábados Esperados</label>
+                    <input type="number" id="phaseExpectedClasses" min="1" max="10" value="4" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePhaseEdit()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { requireAuth, logout } from './js/auth.js';
+        import DataManager from './js/data.js';
+
+        // Require authentication
+        requireAuth().then(async (user) => {
+            // Hide loading, show content
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            
+            document.getElementById('userMenu').style.display = 'flex';
+            document.getElementById('userName').textContent = user.displayName || user.email;
+            await DataManager.init();
+            
+            // Load modules script after auth
+            const script = document.createElement('script');
+            script.src = 'js/modules.js';
+            script.type = 'module';
+            document.body.appendChild(script);
+        });
+
+        window.handleLogout = async () => {
+            if (confirm('Deseja realmente sair?')) await logout();
+        };
+    </script>
+</body>
+</html>
