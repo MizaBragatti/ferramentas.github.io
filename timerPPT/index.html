@@ -414,11 +414,16 @@
         }
 
         function removeTopic(index) {
-            if (editingIndex === index) {
-                cancelEdit();
+            const topic = topics[index];
+            const confirmMessage = `Tem certeza que deseja excluir o assunto "${topic.name}"?`;
+            
+            if (confirm(confirmMessage)) {
+                if (editingIndex === index) {
+                    cancelEdit();
+                }
+                topics.splice(index, 1);
+                updateTopicsList();
             }
-            topics.splice(index, 1);
-            updateTopicsList();
         }
 
         function editTopic(index) {
