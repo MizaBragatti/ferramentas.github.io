@@ -354,6 +354,23 @@
         let isPaused = false;
         let editingIndex = -1;
 
+        // Funções de localStorage
+        function saveTopics() {
+            localStorage.setItem('timerTopics', JSON.stringify(topics));
+        }
+
+        function loadTopics() {
+            const saved = localStorage.getItem('timerTopics');
+            if (saved) {
+                try {
+                    topics = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Erro ao carregar assuntos:', e);
+                    topics = [];
+                }
+            }
+        }
+
         function updateTopicsList() {
             const list = document.getElementById('topicsList');
             
@@ -387,6 +404,9 @@
                 // Adicionar eventos de drag and drop
                 addDragAndDropListeners();
             }
+            
+            // Salvar no localStorage sempre que a lista for atualizada
+            saveTopics();
         }
 
         function addTopic() {
@@ -673,7 +693,8 @@
             if (e.key === 'Enter') addTopic();
         });
 
-        // Inicializar
+        // Carregar assuntos salvos e inicializar
+        loadTopics();
         updateTopicsList();
     </script>
 </body>
