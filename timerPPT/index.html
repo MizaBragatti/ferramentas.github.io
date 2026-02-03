@@ -285,6 +285,7 @@
         let remainingSeconds = 0;
         let timerInterval = null;
         let isPaused = false;
+        let editingIndex = -1;
 
         function updateTopicsList() {
             const list = document.getElementById('topicsList');
@@ -304,7 +305,10 @@
                             <div class="topic-name">${topic.name}</div>
                             <div class="topic-time">${formatTime(topic.duration)}</div>
                         </div>
-                        <button class="btn-remove" onclick="removeTopic(${index})">🗑️ Remover</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-remove" style="background: #3b82f6;" onclick="editTopic(${index})">✏️ Editar</button>
+                            <button class="btn-remove" onclick="removeTopic(${index})">🗑️ Remover</button>
+                        </div>
                     </div>
                 `).join('');
                 document.getElementById('startBtn').disabled = false;
@@ -327,10 +331,21 @@
                 return;
             }
 
-            topics.push({
-                name: name,
-                duration: totalSeconds
-            });
+            if (editingIndex >= 0) {
+                // Atualizar assunto existente
+                topics[editingIndex] = {
+                    name: name,
+                    duration: totalSeconds
+                };
+                editingIndex = -1;
+                document.querySelector('.btn-add').textContent = '➕ Adicionar Assunto';
+            } else {
+                // Adicionar novo assunto
+                topics.push({
+                    name: name,
+                    duration: totalSeconds
+                });
+            }
 
             document.getElementById('topicInput').value = '';
             document.getElementById('minutesInput').value = '5';
@@ -341,8 +356,34 @@
         }
 
         function removeTopic(index) {
+            if (editingIndex === index) {
+                cancelEdit();
+            }
             topics.splice(index, 1);
             updateTopicsList();
+        }
+
+        function editTopic(index) {
+            const topic = topics[index];
+            editingIndex = index;
+            
+            document.getElementById('topicInput').value = topic.name;
+            const minutes = Math.floor(topic.duration / 60);
+            const seconds = topic.duration % 60;
+            document.getElementById('minutesInput').value = minutes;
+            document.getElementById('secondsInput').value = seconds;
+            
+            document.querySelector('.btn-add').textContent = '💾 Atualizar Assunto';
+            document.getElementById('topicInput').focus();
+            document.getElementById('topicInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function cancelEdit() {
+            editingIndex = -1;
+            document.getElementById('topicInput').value = '';
+            document.getElementById('minutesInput').value = '5';
+            document.getElementById('secondsInput').value = '0';
+            document.querySelector('.btn-add').textContent = '➕ Adicionar Assunto';
         }
 
         function formatTime(seconds) {
