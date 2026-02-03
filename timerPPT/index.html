@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer para Apresentações</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .setup-section {
+            padding: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group input[type="number"] {
+            flex: 0.5;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-add {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .btn-add:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start {
+            background: #10b981;
+            color: white;
+            width: 100%;
+            font-size: 1.2em;
+            padding: 15px;
+        }
+
+        .btn-start:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-start:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .topics-list {
+            margin-bottom: 20px;
+        }
+
+        .topic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .topic-info {
+            flex: 1;
+        }
+
+        .topic-name {
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+
+        .topic-time {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        .btn-remove {
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .btn-remove:hover {
+            background: #dc2626;
+        }
+
+        .timer-section {
+            display: none;
+            padding: 50px;
+            text-align: center;
+            min-height: 400px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+
+        .timer-section.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .current-topic {
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .countdown {
+            color: #fbbf24;
+            font-size: 8em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            font-family: 'Courier New', monospace;
+        }
+
+        .progress-info {
+            color: white;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-pause {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-pause:hover {
+            background: #d97706;
+        }
+
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #dc2626;
+        }
+
+        .btn-skip {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-skip:hover {
+            background: #4b5563;
+        }
+
+        .finished {
+            color: #10b981;
+            font-size: 4em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏱️ Timer para Apresentações</h1>
+            <p>Adicione seus assuntos e tempos</p>
+        </div>
+
+        <div class="setup-section" id="setupSection">
+            <div class="input-group">
+                <input type="text" id="topicInput" placeholder="Nome do assunto" />
+                <input type="number" id="minutesInput" placeholder="Minutos" min="0" value="5" />
+                <input type="number" id="secondsInput" placeholder="Segundos" min="0" max="59" value="0" />
+            </div>
+            <button class="btn btn-add" onclick="addTopic()">➕ Adicionar Assunto</button>
+
+            <div class="topics-list" id="topicsList"></div>
+
+            <button class="btn btn-start" id="startBtn" onclick="startPresentation()" disabled>
+                🚀 Iniciar Apresentação
+            </button>
+        </div>
+
+        <div class="timer-section" id="timerSection">
+            <div class="current-topic" id="currentTopic"></div>
+            <div class="countdown" id="countdown">00:00</div>
+            <div class="progress-info" id="progressInfo"></div>
+            <div class="control-buttons">
+                <button class="btn btn-pause" id="pauseBtn" onclick="togglePause()">⏸️ Pausar</button>
+                <button class="btn btn-skip" onclick="skipTopic()">⏭️ Pular</button>
+                <button class="btn btn-stop" onclick="stopPresentation()">⏹️ Parar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let topics = [];
+        let currentIndex = 0;
+        let remainingSeconds = 0;
+        let timerInterval = null;
+        let isPaused = false;
+
+        function updateTopicsList() {
+            const list = document.getElementById('topicsList');
+            
+            if (topics.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>Nenhum assunto adicionado ainda</p>
+                    </div>
+                `;
+                document.getElementById('startBtn').disabled = true;
+            } else {
+                list.innerHTML = topics.map((topic, index) => `
+                    <div class="topic-item">
+                        <div class="topic-info">
+                            <div class="topic-name">${topic.name}</div>
+                            <div class="topic-time">${formatTime(topic.duration)}</div>
+                        </div>
+                        <button class="btn-remove" onclick="removeTopic(${index})">🗑️ Remover</button>
+                    </div>
+                `).join('');
+                document.getElementById('startBtn').disabled = false;
+            }
+        }
+
+        function addTopic() {
+            const name = document.getElementById('topicInput').value.trim();
+            const minutes = parseInt(document.getElementById('minutesInput').value) || 0;
+            const seconds = parseInt(document.getElementById('secondsInput').value) || 0;
+
+            if (!name) {
+                alert('Por favor, digite o nome do assunto!');
+                return;
+            }
+
+            const totalSeconds = minutes * 60 + seconds;
+            if (totalSeconds <= 0) {
+                alert('Por favor, defina um tempo maior que zero!');
+                return;
+            }
+
+            topics.push({
+                name: name,
+                duration: totalSeconds
+            });
+
+            document.getElementById('topicInput').value = '';
+            document.getElementById('minutesInput').value = '5';
+            document.getElementById('secondsInput').value = '0';
+            document.getElementById('topicInput').focus();
+
+            updateTopicsList();
+        }
+
+        function removeTopic(index) {
+            topics.splice(index, 1);
+            updateTopicsList();
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function startPresentation() {
+            if (topics.length === 0) return;
+
+            currentIndex = 0;
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('timerSection').classList.add('active');
+            
+            startCurrentTopic();
+        }
+
+        function startCurrentTopic() {
+            if (currentIndex >= topics.length) {
+                finishPresentation();
+                return;
+            }
+
+            const topic = topics[currentIndex];
+            remainingSeconds = topic.duration;
+            
+            document.getElementById('currentTopic').textContent = topic.name;
+            document.getElementById('countdown').textContent = formatTime(remainingSeconds);
+            document.getElementById('progressInfo').textContent = 
+                `Assunto ${currentIndex + 1} de ${topics.length}`;
+
+            isPaused = false;
+            updatePauseButton();
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            timerInterval = setInterval(() => {
+                if (!isPaused) {
+                    remainingSeconds--;
+                    document.getElementById('countdown').textContent = formatTime(remainingSeconds);
+
+                    if (remainingSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        currentIndex++;
+                        setTimeout(() => startCurrentTopic(), 1000);
+                    }
+                }
+            }, 1000);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            updatePauseButton();
+        }
+
+        function updatePauseButton() {
+            const btn = document.getElementById('pauseBtn');
+            if (isPaused) {
+                btn.textContent = '▶️ Continuar';
+            } else {
+                btn.textContent = '⏸️ Pausar';
+            }
+        }
+
+        function skipTopic() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            currentIndex++;
+            startCurrentTopic();
+        }
+
+        function stopPresentation() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            document.getElementById('timerSection').classList.remove('active');
+            document.getElementById('setupSection').style.display = 'block';
+        }
+
+        function finishPresentation() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            document.getElementById('currentTopic').textContent = '';
+            document.getElementById('countdown').innerHTML = '<div class="finished">✅ Concluído!</div>';
+            document.getElementById('progressInfo').textContent = 'Apresentação finalizada';
+            
+            setTimeout(() => {
+                stopPresentation();
+            }, 3000);
+        }
+
+        // Permitir adicionar com Enter
+        document.getElementById('topicInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTopic();
+        });
+        document.getElementById('minutesInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTopic();
+        });
+        document.getElementById('secondsInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTopic();
+        });
+
+        // Inicializar
+        updateTopicsList();
+    </script>
+</body>
+</html>
