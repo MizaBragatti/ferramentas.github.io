@@ -238,6 +238,22 @@
             font-family: 'Courier New', monospace;
         }
 
+        .countdown.warning {
+            animation: blink 1s ease-in-out infinite;
+            color: #ef4444;
+        }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(1.05);
+            }
+        }
+
         .progress-info {
             color: white;
             font-size: 1.5em;
@@ -568,7 +584,9 @@
             remainingSeconds = topic.duration;
             
             document.getElementById('currentTopic').textContent = topic.name;
-            document.getElementById('countdown').textContent = formatTime(remainingSeconds);
+            const countdownElement = document.getElementById('countdown');
+            countdownElement.textContent = formatTime(remainingSeconds);
+            countdownElement.classList.remove('warning');
             document.getElementById('progressInfo').textContent = 
                 `Assunto ${currentIndex + 1} de ${topics.length}`;
 
@@ -582,7 +600,15 @@
             timerInterval = setInterval(() => {
                 if (!isPaused) {
                     remainingSeconds--;
-                    document.getElementById('countdown').textContent = formatTime(remainingSeconds);
+                    const countdownElement = document.getElementById('countdown');
+                    countdownElement.textContent = formatTime(remainingSeconds);
+
+                    // Adicionar aviso visual nos últimos 10 segundos
+                    if (remainingSeconds <= 10 && remainingSeconds > 0) {
+                        countdownElement.classList.add('warning');
+                    } else {
+                        countdownElement.classList.remove('warning');
+                    }
 
                     if (remainingSeconds <= 0) {
                         clearInterval(timerInterval);
