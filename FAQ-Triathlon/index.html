@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Super Action 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .pdf-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .pdf-link:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-box {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .category-btn {
+            padding: 8px 20px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .category-btn:hover,
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .faq-container {
+            padding: 30px;
+        }
+
+        .faq-item {
+            margin-bottom: 15px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .faq-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .faq-question {
+            padding: 20px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #333;
+            transition: background 0.3s;
+        }
+
+        .faq-question:hover {
+            background: #e9ecef;
+        }
+
+        .faq-question::after {
+            content: '+';
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .faq-question.active::after {
+            content: '−';
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            background: white;
+        }
+
+        .faq-answer.active {
+            max-height: 1000px;
+            transition: max-height 0.5s ease-in;
+        }
+
+        .faq-answer-content {
+            padding: 20px;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .faq-answer-content ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .faq-answer-content li {
+            margin-bottom: 8px;
+        }
+
+        .faq-answer-content strong {
+            color: #667eea;
+        }
+
+        .faq-answer-content a {
+            color: #667eea;
+            text-decoration: none;
+            border-bottom: 1px dashed #667eea;
+        }
+
+        .faq-answer-content a:hover {
+            border-bottom: 1px solid #667eea;
+        }
+
+        .reference {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-left: 5px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .reference:hover {
+            background: #bbdefb;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.2em;
+            display: none;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        footer a:hover {
+            color: #8899ff;
+        }
+
+        .footer-links {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .container {
+                border-radius: 10px;
+            }
+
+            .categories {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏊‍♂️ FAQ - Super Action 2026 🚴‍♀️</h1>
+            <p>#AtletasNoComando</p>
+            <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="pdf-link">📄 Regulamento Oficial Completo</a>
+        </header>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar pergunta...">
+        </div>
+
+        <div class="categories">
+            <button class="category-btn active" data-category="todos">Todos</button>
+            <button class="category-btn" data-category="inscricao">Inscrição</button>
+            <button class="category-btn" data-category="natacao">Natação</button>
+            <button class="category-btn" data-category="ciclismo">Ciclismo</button>
+            <button class="category-btn" data-category="corrida">Corrida</button>
+            <button class="category-btn" data-category="transicao">Transição</button>
+            <button class="category-btn" data-category="geral">Geral</button>
+        </div>
+
+        <div class="faq-container" id="faqContainer"></div>
+        
+        <div class="no-results" id="noResults">
+            <p>Nenhuma pergunta encontrada 😕</p>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>Super Action 2026</strong></p>
+        <p>Organizadora: TUBIG SPORTS | Realizadora: INSTITUTO ENDURANCE BRASIL</p>
+        <div class="footer-links">
+            <a href="https://superaction.com.br/" target="_blank">🌐 Site Oficial</a>
+            <a href="https://www.instagram.com/superactionbrasil" target="_blank">📱 Instagram</a>
+            <a href="mailto:contato@tubig.com.br">✉️ contato@tubig.com.br</a>
+            <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank">📄 Regulamento PDF</a>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.85em; color: #aaa;">Este FAQ é baseado no Regulamento Oficial versão 1 (24/11/2025)</p>
+    </footer>
+
+    <script>
+        const faqData = [
+            {
+                category: 'natacao',
+                question: 'O Nadador Anjo precisa fazer cadastro antes? Como funciona?',
+                answer: `Segundo o regulamento <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 58.4</a>, os participantes iniciantes que ainda não se sintam seguros na natação em águas abertas têm a opção de levar um Nadador Anjo, alguém mais experiente para acompanhá-lo durante a natação.<br><br>
+                <strong>Como funciona:</strong><br>
+                • O Nadador Anjo deve ser previamente indicado pelo participante<br>
+                • Deve ser identificado pela organização com touca específica<br>
+                • É recomendado informar à organização com antecedência`
+            },
+            {
+                category: 'natacao',
+                question: 'Pode usar boia individual no Triathlon Sprint?',
+                answer: `<strong>Sim!</strong> De acordo com o <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 58.2</a> do regulamento, é permitido o uso de boia individual.<br><br>
+                <strong>Importante:</strong><br>
+                • O participante deve se posicionar na parte de trás no momento da largada<br>
+                • Isso evita que a boia atrapalhe os outros participantes<br>
+                • Para categorias de Alto Rendimento, o uso de boia individual é proibido <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 59.2</a>`
+            },
+            {
+                category: 'natacao',
+                question: 'Pode fazer reconhecimento do percurso de natação no sábado?',
+                answer: `<strong>Não.</strong> Segundo informações da organização e conforme mencionado nas conversas, não será possível nadar no sábado.<br><br>
+                O reconhecimento do percurso de natação só poderá ser feito no domingo, alguns minutos antes da largada.<br><br>
+                No sábado é possível fazer reconhecimento do percurso da bike e corrida.`
+            },
+            {
+                category: 'natacao',
+                question: 'É obrigatório o uso de wetsuit (roupa de borracha)?',
+                answer: `<strong>Não é obrigatório.</strong> De acordo com o <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 58.1</a> do regulamento, é <strong>permitido</strong> o uso de roupa de borracha (wetsuit), mas não é obrigatório.<br><br>
+                <strong>Observação importante:</strong><br>
+                Para categorias de Alto Rendimento, o uso do wetsuit segue critérios do regulamento internacional e pode ser proibido quando a temperatura da água for superior a 20 graus <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 59.1</a>.`
+            },
+            {
+                category: 'inscricao',
+                question: 'Até quando posso fazer a inscrição?',
+                answer: `Segundo o <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 13</a> do regulamento:<br><br>
+                • As inscrições pela Internet serão encerradas <strong>4 dias antes</strong> da data de realização<br>
+                • Ou em data anterior, caso seja atingido o limite técnico de 500 participantes<br>
+                • A organizadora pode suspender, prorrogar prazos ou limitar o número de inscrições a qualquer momento`
+            },
+            {
+                category: 'inscricao',
+                question: 'Posso transferir minha inscrição para outra pessoa?',
+                answer: `<strong>Sim, com condições.</strong> Conforme o <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 16</a> do regulamento:<br><br>
+                • Solicitações de transferência de titularidade serão aceitas apenas por E-MAIL<br>
+                • Prazo: até <strong>15 dias antes</strong> da data de realização do evento<br>
+                • Ou até que as inscrições se esgotem (caso se esgotem faltando mais de 15 dias)<br>
+                • A inscrição é nominal e pessoal, sendo vetada a transferência sem prévia autorização da organizadora`
+            },
+            {
+                category: 'inscricao',
+                question: 'Tenho 60 anos, tenho desconto na inscrição?',
+                answer: `<strong>Sim!</strong> De acordo com o <a href="https://tubig.com.br/arquivos/super/SUPER_ACTION_REGULAMENTO_OFICIAL_2026.pdf" target="_blank" class="reference">Item 11</a> do regulamento:<br><br>
+                • Participantes com 60 anos ou mais têm <strong>desconto de 50%</strong> na inscrição<br>
+                • O desconto é válido para o <strong>KIT ECONÔMICO</strong><br>
+                • Sempre com base no valor do LOTE FINAL<br>
+                • O desconto não é cumulativo e não incide sobre valores promocionais abaixo do valor do LOTE FINAL<br>
+                • Não incide sobre desconto de pacote, cupom ou grupo`
+            },
+            {
+                category: 'inscricao',
+                question: 'Posso trocar de distância/modalidade depois de inscrito?',
+                answer: `<strong>Sim, dentro do prazo.</strong> Segundo o item 18 do regulamento:<br><br>
+                • Solicitações de troca de distância serão aceitas apenas por E-MAIL<br>
+                • Prazo: até <strong>15 dias antes</strong> da data de realização<br>
+                • Ou até que as inscrições se esgotem<br>
+                • A aprovação e troca depende da disponibilidade de vagas<br>
+                • Quem correr distância diferente sem autorização será penalizado com cartão vermelho (desclassificação)`
+            },
+            {
+                category: 'transicao',
+                question: 'Como funciona a transição? Preciso deixar a touca e óculos no cesto?',
+                answer: `<strong>Sim!</strong> De acordo com os itens 59.5 e regulamento geral:<br><br>
+                <strong>Natação → Transição:</strong><br>
+                • Todo equipamento usado na natação (touca, óculos, roupa de borracha) deve seguir para a área de transição<br>
+                • Deve ser colocado em seu cesto numerado<br>
+                • <strong>NÃO deixe no chão!</strong> Pode ser penalizado<br><br>
+                <strong>Transição para Corrida:</strong><br>
+                • Retire a touca e óculos<br>
+                • Coloque no cesto numerado<br>
+                • Vista o tênis e saia com o número de peito visível`
+            },
+            {
+                category: 'transicao',
+                question: 'Onde fica a área de transição?',
+                answer: `A área de transição normalmente fica entre o percurso de natação e ciclismo, geralmente em área de grama.<br><br>
+                <strong>Horário de acesso (Etapa Indaiatuba - Sprint):</strong><br>
+                • Abertura da transição: 7:45 às 8:45<br>
+                • Check-in deve ser feito até o horário limite estabelecido<br>
+                • Quem não estiver na área até o horário limite será penalizado com cartão amarelo (item 62.1)<br><br>
+                O mapa detalhado está disponível no Guia do Atleta.`
+            },
+            {
+                category: 'transicao',
+                question: 'Quando posso retirar minha bike da transição?',
+                answer: `De acordo com o item 62.11 do regulamento:<br><br>
+                • O bike check-out será liberado pela arbitragem<br>
+                • Será anunciado pelo sistema de som<br>
+                • Se não retirar os equipamentos até <strong>30 minutos após o encerramento</strong> da competição (chegada do último atleta), eles poderão ser transferidos para outro local<br>
+                • Após este prazo, a organização não se responsabiliza mais pelos equipamentos`
+            },
+            {
+                category: 'ciclismo',
+                question: 'Posso usar qualquer tipo de bicicleta?',
+                answer: `<strong>Depende da categoria!</strong> Segundo os itens 60.1 e 60.2 do regulamento:<br><br>
+                <strong>Para CATEGORIAS DE IDADE e REVEZAMENTO:</strong><br>
+                • Será permitido participar com qualquer modelo de bicicleta<br>
+                • Speed (Road), Mountain Bike (MTB) ou Time Trial (TT)<br><br>
+                <strong>Para ALTO RENDIMENTO (vácuo permitido):</strong><br>
+                • Obrigatória a utilização de bicicleta Speed (Road) sem Clip<br><br>
+                <strong>Categoria MTB:</strong><br>
+                • Deve usar bicicleta com pneus de largura superior a 3cm`
+            },
+            {
+                category: 'ciclismo',
+                question: 'Posso pedalar de tênis ou precisa ser sapatilha?',
+                answer: `<strong>Pode pedalar de tênis!</strong> De acordo com o item 60.6 do regulamento:<br><br>
+                • O uso de sapatilha de ciclismo é <strong>opcional</strong><br>
+                • Você pode pedalar tranquilamente com tênis comum<br>
+                • Muitos atletas iniciantes optam por usar o mesmo tênis para pedalar e correr, economizando tempo na transição`
+            },
+            {
+                category: 'ciclismo',
+                question: 'Como funciona a regra do vácuo?',
+                answer: `<strong>Depende da modalidade!</strong><br><br>
+                <strong>VÁCUO PROIBIDO (Triathlon Infantil):</strong><br>
+                • Mínimo de 12 metros de distância da bicicleta à frente (item 60.8.1)<br>
+                • 25 segundos para realizar ultrapassagem (item 60.8.2)<br>
+                • Se não conseguir, deve recuar para 12 metros<br><br>
+                <strong>VÁCUO PERMITIDO (Sprint, Super Sprint, Duathlon):</strong><br>
+                • Pode ficar próximo de outros ciclistas<br>
+                • Não pode ficar "clipado" (posição aerodinâmica) em zona de vácuo (item 60.9.4)<br>
+                • Mãos devem estar no guidom, próximas dos manetes de freio<br>
+                • Penalização com cartão amarelo se não cumprir`
+            },
+            {
+                category: 'ciclismo',
+                question: 'É obrigatório usar capacete?',
+                answer: `<strong>Sim, absolutamente obrigatório!</strong> Segundo o item 60.4 do regulamento:<br><br>
+                • O capacete deve permanecer <strong>afivelado na cabeça</strong> em todo momento em que o participante estiver em contato com a bicicleta<br>
+                • O não cumprimento será penalizado com <strong>cartão amarelo</strong><br><br>
+                <strong>Na transição:</strong><br>
+                • Antes de retirar a bicicleta do cavalete, o capacete já deve estar afivelado (item 62.5)<br>
+                • Só pode desafivelar depois que a bicicleta estiver novamente fixada no cavalete após o ciclismo (item 62.6)`
+            },
+            {
+                category: 'ciclismo',
+                question: 'Pode usar bike TT (contra-relógio) com clip na prova?',
+                answer: `<strong>Depende da categoria!</strong><br><br>
+                <strong>Para CATEGORIAS DE IDADE e REVEZAMENTO (vácuo permitido):</strong><br>
+                • Pode usar bike TT (item 60.9.2)<br>
+                • Porém, NÃO pode ficar clipado em zona de vácuo (item 60.9.4)<br>
+                • Mãos devem estar no guidom próximas dos freios quando próximo de outros ciclistas<br><br>
+                <strong>Para ALTO RENDIMENTO:</strong><br>
+                • Obrigatória bicicleta Speed (Road) SEM Clip (item 60.9.1)`
+            },
+            {
+                category: 'corrida',
+                question: 'É obrigatório usar o número de peito na corrida?',
+                answer: `<strong>Sim, obrigatório!</strong> De acordo com o item 61.1 do regulamento:<br><br>
+                • O uso do número de peito é <strong>obrigatório</strong> na corrida<br>
+                • O número deve estar <strong>à frente do corpo</strong> e em posição visível<br>
+                • Pode usar camiseta com o número fixado ou cinto de número<br><br>
+                <strong>Penalização:</strong><br>
+                • Correr sem número de peito pode gerar desclassificação (item 63.3)`
+            },
+            {
+                category: 'corrida',
+                question: 'Pode correr com o torso nu?',
+                answer: `<strong>Não!</strong> Segundo o item 61.2 do regulamento:<br><br>
+                • É <strong>proibido correr com o torso nu</strong><br>
+                • Também é proibido pedalar com torso nu (item 60.5)<br>
+                • Isso vale para todas as categorias<br><br>
+                Para CATEGORIAS DE IDADE, MTB, INFANTIL e REVEZAMENTO, é permitido nadar com o torso nu (item 59.3), mas nas transições seguintes deve estar vestido.`
+            },
+            {
+                category: 'corrida',
+                question: 'Pode ter alguém correndo junto comigo (pacing)?',
+                answer: `<strong>Não!</strong> De acordo com o item 61.3 do regulamento:<br><br>
+                • O participante que receber ajuda de pessoas externas à competição será penalizado com <strong>cartão amarelo</strong><br>
+                • Isso inclui alguém correndo ao seu lado (pacing)<br>
+                • Também não pode receber materiais de terceiros durante a corrida<br><br>
+                A mesma regra vale para natação (item 58.7) e ciclismo (item 60.7).`
+            },
+            {
+                category: 'geral',
+                question: 'Quais são os horários de largada?',
+                answer: `Os horários de largada variam por etapa e categoria. Para a <strong>Etapa 1 - Indaiatuba</strong>, consulte o Guia do Atleta disponível em:<br><br>
+                <a href="https://www.tubig.com.br/arquivos/super/TUBIG_GUIA_ATLETA_SUPER_INDAIATUBA_FEV26_4x3.pdf" target="_blank" style="color: #667eea;">Guia do Atleta Indaiatuba</a><br><br>
+                <strong>Dica importante:</strong><br>
+                • Chegue pelo menos 15 minutos antes do horário de largada (item 63.2)<br>
+                • Confira sempre a programação no site oficial`
+            },
+            {
+                category: 'geral',
+                question: 'Onde e quando retirar o kit do atleta?',
+                answer: `Segundo os itens 27 a 30 do regulamento:<br><br>
+                <strong>Retirada antecipada:</strong><br>
+                • Local, data e horário serão informados pela organizadora<br>
+                • Para Indaiatuba: sábado das 13h às 19h no Parque do Mirim<br>
+                • Quem não retirar no horário perde o direito ao kit<br><br>
+                <strong>Retirada no dia da prova:</strong><br>
+                • Apenas em casos especiais<br>
+                • Deve solicitar reserva por e-mail até 5 dias antes<br>
+                • Retirar até 30 minutos antes da largada<br>
+                • Sem solicitação prévia, não há entrega no dia`
+            },
+            {
+                category: 'geral',
+                question: 'O que vem no kit do atleta?',
+                answer: `Segundo os itens 34 a 37 do regulamento:<br><br>
+                <strong>KIT ECONÔMICO - Triathlon/Aquathlon/Swim:</strong><br>
+                • Números de identificação<br>
+                • Medalha de participação (entregue após conclusão)<br>
+                • Touca<br><br>
+                <strong>KIT COMPLETO - Triathlon/Aquathlon/Swim:</strong><br>
+                • Tudo do kit econômico<br>
+                • Camiseta<br>
+                • Outros possíveis brindes<br><br>
+                <strong>KIT ECONÔMICO - Duathlon/Run:</strong><br>
+                • Números de identificação<br>
+                • Medalha de participação<br><br>
+                <strong>KIT COMPLETO - Duathlon/Run:</strong><br>
+                • Tudo do kit econômico<br>
+                • Camiseta<br>
+                • Outros possíveis brindes`
+            },
+            {
+                category: 'geral',
+                question: 'Quais são os tempos limite?',
+                answer: `<strong>SUPER TRIATHLON (Sprint - 500m/20km/5km):</strong><br>
+                • Natação: 30 minutos<br>
+                • Natação + Ciclismo: 1h20min<br>
+                • Prova completa: 2 horas<br><br>
+                <strong>SUPER TRIATHLON (Super Sprint - 250m/10km/2.5km):</strong><br>
+                • Natação: 15 minutos<br>
+                • Natação + Ciclismo: 45 minutos<br>
+                • Prova completa: 1h15min<br><br>
+                <strong>SUPER RUN (5km):</strong><br>
+                • Corrida: 50 minutos<br><br>
+                <strong>Obs:</strong> Os tempos limite poderão ser aplicados ou não, dependendo das características da etapa e decisão da direção técnica (item 57.1)`
+            },
+            {
+                category: 'geral',
+                question: 'O que são os cartões amarelo e vermelho?',
+                answer: `<strong>CARTÃO AMARELO (item 64.1):</strong><br>
+                • Penalização de tempo<br>
+                • Deve se apresentar ao Oficial Técnico no Penalty Box<br>
+                • Tempo: 10 segundos (Sprint) ou 5 segundos (Super Sprint)<br>
+                • Pode ter mais de uma penalização<br><br>
+                <strong>Exemplos que geram cartão amarelo:</strong><br>
+                • Capacete não afivelado<br>
+                • Ajuda externa<br>
+                • Descarte inadequado de resíduos<br>
+                • Ficar clipado em zona de vácuo<br><br>
+                <strong>CARTÃO VERMELHO (item 64.2):</strong><br>
+                • Desclassificação da competição<br><br>
+                <strong>Exemplos que geram cartão vermelho:</strong><br>
+                • Não usar chip<br>
+                • Não percorrer percurso completo<br>
+                • Correr distância diferente sem autorização<br>
+                • Atrapalhar outros competidores`
+            },
+            {
+                category: 'geral',
+                question: 'Pode usar fones de ouvido durante a prova?',
+                answer: `<strong>Não!</strong> De acordo com o item 63.7 do regulamento:<br><br>
+                • É <strong>proibido competir utilizando fones de ouvido</strong><br>
+                • Isso vale para todos os segmentos da prova (natação, ciclismo e corrida)`
+            },
+            {
+                category: 'geral',
+                question: 'Tem suporte mecânico durante a prova?',
+                answer: `<strong>Sim!</strong> Segundo informações da organização:<br><br>
+                • Há suporte mecânico básico disponível<br>
+                • Inclui: troca de corrente, reparo de pneu, ajustes simples<br>
+                • É um suporte simples para emergências<br><br>
+                <strong>Importante:</strong><br>
+                • Receber ajuda de pessoas externas (não da organização) será penalizado com cartão amarelo (item 60.7)<br>
+                • Tenha sua bike em bom estado antes da prova`
+            },
+            {
+                category: 'geral',
+                question: 'Como funciona o chip de cronometragem?',
+                answer: `<strong>TRIATHLON, DUATHLON e AQUATHLON:</strong><br>
+                • Chip com tornozeleira retornável (item 42.1)<br>
+                • Estará no cesto numerado na transição<br>
+                • Não devolução ou danificação: cobrança de R$ 200,00 (item 42.2)<br>
+                • Tempo considerado: tempo bruto (da largada até a chegada)<br><br>
+                <strong>CORRIDA (RUN):</strong><br>
+                • Chip fixado no verso do número de peito (item 43.1)<br>
+                • Tempo bruto (largada até chegada)<br>
+                • Com +300 participantes pode ser tempo líquido (quando o chip passa pela linha)<br><br>
+                <strong>NATAÇÃO (SWIM):</strong><br>
+                • Aquachip retornável (item 44.1)<br>
+                • Fixado na presilha dos óculos<br>
+                • Deve estar visível ao sair da água<br>
+                • Não devolução: cobrança de R$ 200,00<br><br>
+                <strong>Importante:</strong> O uso do chip é obrigatório! Não usar gera cartão vermelho (desclassificação) - item 45`
+            },
+            {
+                category: 'geral',
+                question: 'Como faço para contestar resultados?',
+                answer: `De acordo com o item 49 do regulamento:<br><br>
+                • Solicitações de revisão devem ser enviadas exclusivamente por <strong>E-MAIL</strong><br>
+                • Prazo: até <strong>48 horas após o evento</strong><br>
+                • Deve incluir as devidas comprovações<br>
+                • Passado o prazo, não caberá recurso<br><br>
+                E-mail: contato@tubig.com.br`
+            },
+            {
+                category: 'geral',
+                question: 'A prova acontece com chuva?',
+                answer: `<strong>Sim!</strong> De acordo com o item 7 do regulamento:<br><br>
+                • O evento acontecerá com <strong>qualquer condição climática</strong><br>
+                • O horário de largada pode sofrer alterações em razão de fatores externos, caso fortuito e força maior (item 8)`
+            },
+            {
+                category: 'geral',
+                question: 'Onde descartar copos e embalagens durante a prova?',
+                answer: `De acordo com o item 63.8 do regulamento:<br><br>
+                • É <strong>proibido descartar resíduos</strong> (copos, garrafas, embalagens) fora da área de descarte<br>
+                • O descumprimento será penalizado com <strong>cartão amarelo</strong><br><br>
+                <strong>Identificação das áreas:</strong><br>
+                • Geralmente há latas de lixo e placas sinalizando<br>
+                • As áreas costumam ser bem sinalizadas`
+            },
+            {
+                category: 'transicao',
+                question: 'Posso usar cinto de número ou preciso vestir camiseta?',
+                answer: `<strong>Pode usar os dois!</strong> De acordo com as discussões do grupo e regulamento:<br><br>
+                • Pode usar camiseta com número fixado<br>
+                • Ou pode usar cinto de número (race belt)<br>
+                • O cinto é mais prático e economiza tempo na transição<br>
+                • O importante é que o número esteja visível à frente do corpo na corrida (item 61.1)<br><br>
+                <strong>No ciclismo:</strong><br>
+                • Para categorias individuais, o número de peito é opcional (item 60.2)<br>
+                • Para revezamento, é obrigatório nas costas (item 60.3)`
+            },
+            {
+                category: 'geral',
+                question: 'Pode haver separação por idade nas largadas?',
+                answer: `Segundo os itens 5 e 6 do regulamento:<br><br>
+                <strong>Alto Rendimento:</strong><br>
+                • Largadas juntas, podendo ser separadas apenas por gênero<br><br>
+                <strong>Categorias de Idade:</strong><br>
+                • Largadas juntas, separadas apenas por gênero (masculino e feminino)<br><br>
+                Para o Super Sprint de Indaiatuba, segundo discussões do grupo, haverá separação por:<br>
+                • Prova<br>
+                • Gênero<br>
+                • Idade<br>
+                • Modelo de bike (Speed/MTB)`
+            },
+            {
+                category: 'transicao',
+                question: 'O que é a linha de monte e desmonte?',
+                answer: `De acordo com os itens 62.7 e 62.8 do regulamento:<br><br>
+                <strong>Linha de Monte:</strong><br>
+                • Linha que marca onde você pode montar na bicicleta<br>
+                • Só deve montar na bike DEPOIS de ultrapassar esta linha<br>
+                • Antes dela, deve empurrar a bike<br><br>
+                <strong>Linha de Desmonte:</strong><br>
+                • Ao retornar à transição, deve desmontar da bicicleta ANTES desta linha<br>
+                • Depois dela, deve empurrar a bike até o cavalete<br><br>
+                Essas linhas existem para segurança e organização do fluxo de atletas na área de transição.`
+            },
+            {
+                category: 'ciclismo',
+                question: 'O pneu da minha MTB cabe no suporte da transição?',
+                answer: `Segundo discussões do grupo e experiências de atletas:<br><br>
+                • Se o pneu for muito largo e não couber no suporte padrão<br>
+                • Você pode pedir um adaptador para o staff<br>
+                • Eles costumam disponibilizar adaptadores na Copa Interior (área de transição)<br>
+                • Garanta que sua bike está compatível com os suportes ou peça ajuda à organização`
+            },
+            {
+                category: 'geral',
+                question: 'Quantas pessoas podem participar?',
+                answer: `De acordo com o item 13 do regulamento:<br><br>
+                • Limite técnico de <strong>500 participantes</strong><br>
+                • As inscrições podem encerrar ao atingir este limite<br>
+                • A organizadora pode elevar ou limitar o número de inscrições a qualquer momento (item 14)`
+            }
+        ];
+
+        let currentCategory = 'todos';
+
+        function renderFAQ(filteredData = faqData) {
+            const container = document.getElementById('faqContainer');
+            const noResults = document.getElementById('noResults');
+            
+            container.innerHTML = '';
+            
+            if (filteredData.length === 0) {
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            noResults.style.display = 'none';
+            
+            filteredData.forEach((item, index) => {
+                const faqItem = document.createElement('div');
+                faqItem.className = 'faq-item';
+                faqItem.setAttribute('data-category', item.category);
+                
+                faqItem.innerHTML = `
+                    <div class="faq-question" onclick="toggleAnswer(${index})">
+                        <span>${item.question}</span>
+                    </div>
+                    <div class="faq-answer" id="answer-${index}">
+                        <div class="faq-answer-content">
+                            ${item.answer}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(faqItem);
+            });
+        }
+
+        function toggleAnswer(index) {
+            const answer = document.getElementById(`answer-${index}`);
+            const question = answer.previousElementSibling;
+            
+            // Close all other answers
+            document.querySelectorAll('.faq-answer').forEach((item, i) => {
+                if (i !== index) {
+                    item.classList.remove('active');
+                    item.previousElementSibling.classList.remove('active');
+                }
+            });
+            
+            // Toggle current answer
+            answer.classList.toggle('active');
+            question.classList.toggle('active');
+        }
+
+        // Category filter
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentCategory = this.getAttribute('data-category');
+                filterFAQ();
+            });
+        });
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            filterFAQ();
+        });
+
+        function filterFAQ() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = faqData;
+            
+            // Filter by category
+            if (currentCategory !== 'todos') {
+                filtered = filtered.filter(item => item.category === currentCategory);
+            }
+            
+            // Filter by search term
+            if (searchTerm) {
+                filtered = filtered.filter(item => 
+                    item.question.toLowerCase().includes(searchTerm) ||
+                    item.answer.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            renderFAQ(filtered);
+        }
+
+        // Initial render
+        renderFAQ();
+    </script>
+</body>
+</html>
