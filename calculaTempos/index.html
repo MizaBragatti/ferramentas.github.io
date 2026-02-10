@@ -326,6 +326,105 @@
             margin-top: 10px;
         }
 
+        .pace-section {
+            background: #e7f3ff;
+            border: 2px solid #17a2b8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pace-title {
+            text-align: center;
+            font-size: 18px;
+            color: #0c5460;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .pace-distances {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .distance-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .distance-group label {
+            font-size: 14px;
+            color: #856404;
+            font-weight: 600;
+        }
+
+        .distance-group input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #ffc107;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .distance-group span {
+            font-size: 13px;
+            color: #856404;
+            font-weight: 500;
+        }
+
+        .pace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .pace-participant {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #bee5eb;
+        }
+
+        .pace-participant-name {
+            font-weight: 600;
+            color: #0c5460;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .pace-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .pace-item-label {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .pace-item-value {
+            font-family: monospace;
+            color: #0c5460;
+            font-weight: 600;
+        }
+
         .error {
             color: #dc3545;
             font-size: 12px;
@@ -347,6 +446,10 @@
 <body>
     <div class="container">
         <h1>🏊‍♂️🚴‍♂️🏃‍♂️ Comparador de Tempos - Triathlon</h1>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="pace.html" style="display: inline-block; padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; font-size: 14px; transition: all 0.3s;">📊 Calculadora de Pace</a>
+        </div>
         
         <div class="participants">
             <div class="participant" id="participant1">
@@ -472,6 +575,70 @@
             <div class="difference-info" id="difference-info"></div>
         </div>
 
+        <div class="pace-section">
+            <div class="pace-title">📊 Pace e Velocidade por Modalidade</div>
+            
+            <div class="pace-distances">
+                <div class="distance-group">
+                    <label>🏊‍♂️ Natação:</label>
+                    <input type="number" id="swim-dist" value="1500" step="50" onchange="calculate()">
+                    <span>metros</span>
+                </div>
+                <div class="distance-group">
+                    <label>🚴‍♂️ Bike:</label>
+                    <input type="number" id="bike-dist" value="40" step="1" onchange="calculate()">
+                    <span>km</span>
+                </div>
+                <div class="distance-group">
+                    <label>🏃‍♂️ Corrida:</label>
+                    <input type="number" id="run-dist" value="10" step="0.5" onchange="calculate()">
+                    <span>km</span>
+                </div>
+            </div>
+            
+            <div class="pace-grid">
+                <!-- Participante 1 -->
+                <div class="pace-participant">
+                    <div class="pace-participant-name" id="pace-p1-name">Participante 1</div>
+                    
+                    <div class="pace-item">
+                        <span class="pace-item-label">🏊‍♂️ Natação (pace/100m)</span>
+                        <span class="pace-item-value" id="pace-p1-swim">--:--</span>
+                    </div>
+                    
+                    <div class="pace-item">
+                        <span class="pace-item-label">🚴‍♂️ Bike (km/h)</span>
+                        <span class="pace-item-value" id="pace-p1-bike">-- km/h</span>
+                    </div>
+                    
+                    <div class="pace-item">
+                        <span class="pace-item-label">🏃‍♂️ Corrida (pace/km)</span>
+                        <span class="pace-item-value" id="pace-p1-run">--:--</span>
+                    </div>
+                </div>
+
+                <!-- Participante 2 -->
+                <div class="pace-participant">
+                    <div class="pace-participant-name" id="pace-p2-name">Participante 2</div>
+                    
+                    <div class="pace-item">
+                        <span class="pace-item-label">🏊‍♂️ Natação (pace/100m)</span>
+                        <span class="pace-item-value" id="pace-p2-swim">--:--</span>
+                    </div>
+                    
+                    <div class="pace-item">
+                        <span class="pace-item-label">🚴‍♂️ Bike (km/h)</span>
+                        <span class="pace-item-value" id="pace-p2-bike">-- km/h</span>
+                    </div>
+                    
+                    <div class="pace-item">
+                        <span class="pace-item-label">🏃‍♂️ Corrida (pace/km)</span>
+                        <span class="pace-item-value" id="pace-p2-run">--:--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="buttons">
             <button class="btn-calculate" onclick="calculate()">Calcular Vencedor</button>
             <button class="btn-clear" onclick="clearAll()">Limpar</button>
@@ -514,6 +681,58 @@
             // Feedback visual
             const msg = times.length === 6 ? 'Tempos aplicados com sucesso! (Total ignorado) ✓' : 'Tempos aplicados com sucesso! ✓';
             alert(msg);
+        }
+
+        // Função para converter segundos em formato MM:SS
+        function secondsToMinSec(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // Função para calcular pace de cada modalidade
+        function calculatePaces() {
+            const participants = ['p1', 'p2'];
+            
+            // Distâncias compartilhadas
+            const swimDist = parseFloat(document.getElementById('swim-dist').value);
+            const bikeDist = parseFloat(document.getElementById('bike-dist').value);
+            const runDist = parseFloat(document.getElementById('run-dist').value);
+            
+            participants.forEach(p => {
+                const name = document.getElementById(`${p}-name`).value || `Participante ${p === 'p1' ? '1' : '2'}`;
+                document.getElementById(`pace-${p}-name`).textContent = name;
+                
+                // Natação - pace/100m
+                const swimTime = timeToMilliseconds(document.getElementById(`${p}-swim`).value || '0');
+                if (swimTime > 0 && swimDist > 0) {
+                    const swimSeconds = swimTime / 1000;
+                    const swimPace = (swimSeconds / swimDist) * 100;
+                    document.getElementById(`pace-${p}-swim`).textContent = secondsToMinSec(swimPace);
+                } else {
+                    document.getElementById(`pace-${p}-swim`).textContent = '--:--';
+                }
+                
+                // Bike - km/h
+                const bikeTime = timeToMilliseconds(document.getElementById(`${p}-bike`).value || '0');
+                if (bikeTime > 0 && bikeDist > 0) {
+                    const bikeSeconds = bikeTime / 1000;
+                    const bikeSpeed = (bikeDist / bikeSeconds) * 3600;
+                    document.getElementById(`pace-${p}-bike`).textContent = bikeSpeed.toFixed(2) + ' km/h';
+                } else {
+                    document.getElementById(`pace-${p}-bike`).textContent = '-- km/h';
+                }
+                
+                // Corrida - pace/km
+                const runTime = timeToMilliseconds(document.getElementById(`${p}-run`).value || '0');
+                if (runTime > 0 && runDist > 0) {
+                    const runSeconds = runTime / 1000;
+                    const runPace = runSeconds / runDist;
+                    document.getElementById(`pace-${p}-run`).textContent = secondsToMinSec(runPace);
+                } else {
+                    document.getElementById(`pace-${p}-run`).textContent = '--:--';
+                }
+            });
         }
 
         // Função para converter tempo (HH:MM:SS.mmm) em milissegundos
@@ -581,6 +800,9 @@
             // Remover classes de vencedor anteriores
             document.getElementById('participant1').classList.remove('winner');
             document.getElementById('participant2').classList.remove('winner');
+            
+            // Calcular paces
+            calculatePaces();
             
             // Calcular totais
             const total1 = calculateTotal('p1');
@@ -734,8 +956,8 @@
             document.getElementById('difference-section').classList.remove('show');
         }
 
-        // Adicionar auto-formatação nos campos de input (exceto campos de nome e quick-input)
-        document.querySelectorAll('input:not(.name-input):not(.quick-input-field)').forEach(input => {
+        // Adicionar auto-formatação nos campos de input (exceto campos de nome, quick-input e number)
+        document.querySelectorAll('input[type="text"]:not(.name-input):not(.quick-input-field)').forEach(input => {
             input.addEventListener('input', function(e) {
                 let value = e.target.value.replace(/[^0-9]/g, '');
                 

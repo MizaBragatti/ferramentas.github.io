@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Pace - Triathlon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .calculators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .calculator {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .calculator h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3em;
+        }
+
+        .calculator.swim {
+            border-color: #17a2b8;
+            background: #d1ecf1;
+        }
+
+        .calculator.bike {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .calculator.run {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .result-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .result-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
+
+        .btn-calculate {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .btn-calculate:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .helper-text {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 3px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .calculators {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏊‍♂️🚴‍♂️🏃‍♂️ Calculadora de Pace</h1>
+        <p class="subtitle">Calcule o ritmo de cada modalidade do triathlon</p>
+
+        <div class="navigation">
+            <a href="index.html" class="nav-link">← Voltar para Comparação</a>
+        </div>
+
+        <div class="calculators">
+            <!-- NATAÇÃO -->
+            <div class="calculator swim">
+                <h2>🏊‍♂️ Natação</h2>
+                
+                <div class="input-group">
+                    <label for="swim-time">Tempo</label>
+                    <input type="text" id="swim-time" placeholder="00:00:00.000">
+                    <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="swim-distance">Distância (metros)</label>
+                    <input type="number" id="swim-distance" placeholder="1500" value="1500" step="50">
+                    <div class="helper-text">Ex: 750m, 1500m, 3800m</div>
+                </div>
+
+                <button class="btn-calculate" onclick="calculateSwimPace()">Calcular Pace</button>
+
+                <div class="result">
+                    <div class="result-label">Pace (min/100m)</div>
+                    <div class="result-value" id="swim-pace">--:--</div>
+                </div>
+
+                <div class="result" style="margin-top: 10px;">
+                    <div class="result-label">Velocidade Média</div>
+                    <div class="result-value" id="swim-speed" style="font-size: 20px;">-- m/s</div>
+                </div>
+            </div>
+
+            <!-- BIKE -->
+            <div class="calculator bike">
+                <h2>🚴‍♂️ Bike</h2>
+                
+                <div class="input-group">
+                    <label for="bike-time">Tempo</label>
+                    <input type="text" id="bike-time" placeholder="00:00:00.000">
+                    <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="bike-distance">Distância (km)</label>
+                    <input type="number" id="bike-distance" placeholder="40" value="40" step="1">
+                    <div class="helper-text">Ex: 20km, 40km, 90km, 180km</div>
+                </div>
+
+                <button class="btn-calculate" onclick="calculateBikePace()">Calcular Velocidade</button>
+
+                <div class="result">
+                    <div class="result-label">Velocidade Média</div>
+                    <div class="result-value" id="bike-speed">-- km/h</div>
+                </div>
+
+                <div class="result" style="margin-top: 10px;">
+                    <div class="result-label">Pace (min/km)</div>
+                    <div class="result-value" id="bike-pace" style="font-size: 20px;">--:--</div>
+                </div>
+            </div>
+
+            <!-- CORRIDA -->
+            <div class="calculator run">
+                <h2>🏃‍♂️ Corrida</h2>
+                
+                <div class="input-group">
+                    <label for="run-time">Tempo</label>
+                    <input type="text" id="run-time" placeholder="00:00:00.000">
+                    <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="run-distance">Distância (km)</label>
+                    <input type="number" id="run-distance" placeholder="10" value="10" step="0.5">
+                    <div class="helper-text">Ex: 5km, 10km, 21.1km, 42.2km</div>
+                </div>
+
+                <button class="btn-calculate" onclick="calculateRunPace()">Calcular Pace</button>
+
+                <div class="result">
+                    <div class="result-label">Pace (min/km)</div>
+                    <div class="result-value" id="run-pace">--:--</div>
+                </div>
+
+                <div class="result" style="margin-top: 10px;">
+                    <div class="result-label">Velocidade Média</div>
+                    <div class="result-value" id="run-speed" style="font-size: 20px;">-- km/h</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para converter tempo (HH:MM:SS.mmm) em segundos
+        function timeToSeconds(timeStr) {
+            if (!timeStr || timeStr.trim() === '') return 0;
+            
+            const parts = timeStr.split(':');
+            if (parts.length !== 3) return null;
+            
+            const hours = parseInt(parts[0]);
+            const minutes = parseInt(parts[1]);
+            const secondsParts = parts[2].split('.');
+            const seconds = parseInt(secondsParts[0]);
+            const milliseconds = secondsParts[1] ? parseInt(secondsParts[1].padEnd(3, '0')) : 0;
+            
+            if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds)) {
+                return null;
+            }
+            
+            return (hours * 3600) + (minutes * 60) + seconds + (milliseconds / 1000);
+        }
+
+        // Função para converter segundos em formato MM:SS
+        function secondsToMinSec(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // Calcular pace da natação
+        function calculateSwimPace() {
+            const timeStr = document.getElementById('swim-time').value;
+            const distance = parseFloat(document.getElementById('swim-distance').value);
+            
+            const timeInSeconds = timeToSeconds(timeStr);
+            
+            if (timeInSeconds === null || timeInSeconds <= 0) {
+                alert('Por favor, insira um tempo válido.');
+                return;
+            }
+            
+            if (!distance || distance <= 0) {
+                alert('Por favor, insira uma distância válida.');
+                return;
+            }
+            
+            // Pace em segundos por 100m
+            const pacePerHundred = (timeInSeconds / distance) * 100;
+            
+            // Velocidade em m/s
+            const speedMps = distance / timeInSeconds;
+            
+            document.getElementById('swim-pace').textContent = secondsToMinSec(pacePerHundred);
+            document.getElementById('swim-speed').textContent = speedMps.toFixed(2) + ' m/s';
+        }
+
+        // Calcular velocidade da bike
+        function calculateBikePace() {
+            const timeStr = document.getElementById('bike-time').value;
+            const distance = parseFloat(document.getElementById('bike-distance').value);
+            
+            const timeInSeconds = timeToSeconds(timeStr);
+            
+            if (timeInSeconds === null || timeInSeconds <= 0) {
+                alert('Por favor, insira um tempo válido.');
+                return;
+            }
+            
+            if (!distance || distance <= 0) {
+                alert('Por favor, insira uma distância válida.');
+                return;
+            }
+            
+            // Velocidade em km/h
+            const speedKmh = (distance / timeInSeconds) * 3600;
+            
+            // Pace em segundos por km
+            const pacePerKm = timeInSeconds / distance;
+            
+            document.getElementById('bike-speed').textContent = speedKmh.toFixed(2) + ' km/h';
+            document.getElementById('bike-pace').textContent = secondsToMinSec(pacePerKm);
+        }
+
+        // Calcular pace da corrida
+        function calculateRunPace() {
+            const timeStr = document.getElementById('run-time').value;
+            const distance = parseFloat(document.getElementById('run-distance').value);
+            
+            const timeInSeconds = timeToSeconds(timeStr);
+            
+            if (timeInSeconds === null || timeInSeconds <= 0) {
+                alert('Por favor, insira um tempo válido.');
+                return;
+            }
+            
+            if (!distance || distance <= 0) {
+                alert('Por favor, insira uma distância válida.');
+                return;
+            }
+            
+            // Pace em segundos por km
+            const pacePerKm = timeInSeconds / distance;
+            
+            // Velocidade em km/h
+            const speedKmh = (distance / timeInSeconds) * 3600;
+            
+            document.getElementById('run-pace').textContent = secondsToMinSec(pacePerKm);
+            document.getElementById('run-speed').textContent = speedKmh.toFixed(2) + ' km/h';
+        }
+
+        // Auto-formatação de tempo
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                
+                if (value.length > 0) {
+                    if (value.length <= 2) {
+                        e.target.value = value;
+                    } else if (value.length <= 4) {
+                        e.target.value = value.slice(0, 2) + ':' + value.slice(2);
+                    } else if (value.length <= 6) {
+                        e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4);
+                    } else {
+                        e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4, 6) + '.' + value.slice(6, 9);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
