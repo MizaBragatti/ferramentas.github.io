@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparador de Tempos - Triathlon</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .participants {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .differences-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 20px 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .diff-header {
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .diff-item {
+            padding: 12px;
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 5px;
+            text-align: center;
+            min-height: 48px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .diff-label {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 3px;
+        }
+
+        .diff-value {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .diff-value.faster {
+            color: #28a745;
+        }
+
+        .diff-value.slower {
+            color: #dc3545;
+        }
+
+        .diff-arrow {
+            font-size: 12px;
+            margin-right: 3px;
+        }
+
+        .participant {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .participant.winner {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .participant h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .name-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: #5568d3;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .quick-input {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 5px;
+            border: 1px dashed #667eea;
+        }
+
+        .quick-input-label {
+            font-size: 12px;
+            color: #495057;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .quick-input-field {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #667eea;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: monospace;
+            background: white;
+        }
+
+        .quick-input-field:focus {
+            outline: none;
+            border-color: #5568d3;
+        }
+
+        .quick-input-btn {
+            margin-top: 5px;
+            padding: 5px 10px;
+            font-size: 11px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .quick-input-btn:hover {
+            background: #5568d3;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+            font-family: monospace;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .total {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .total-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .total-time {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
+
+        .winner-badge {
+            display: none;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .participant.winner .winner-badge {
+            display: block;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-calculate {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-calculate:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-export {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .difference-section {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            display: none;
+        }
+
+        .difference-section.show {
+            display: block;
+        }
+
+        .difference-title {
+            font-size: 16px;
+            color: #856404;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .difference-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #856404;
+            font-family: monospace;
+        }
+
+        .difference-info {
+            font-size: 14px;
+            color: #856404;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .participants {
+                grid-template-columns: 1fr;
+            }
+
+            .differences-column {
+                order: 3;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏊‍♂️🚴‍♂️🏃‍♂️ Comparador de Tempos - Triathlon</h1>
+        
+        <div class="participants">
+            <div class="participant" id="participant1">
+                <input type="text" class="name-input" id="p1-name" value="Participante 1" placeholder="Nome do participante">
+                
+                <div class="quick-input">
+                    <div class="quick-input-label">⚡ Input Rápido (cole todos os tempos separados por tab ou espaço):</div>
+                    <input type="text" class="quick-input-field" id="p1-quick" placeholder="00:40:55.388 00:05:23.001 00:02:11.465 00:18:28.667 00:01:24.052">
+                    <button class="quick-input-btn" onclick="processQuickInput('p1')">Aplicar</button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="p1-swim">Natação</label>
+                    <input type="text" id="p1-swim" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p1-t1">Transição 1 (T1)</label>
+                    <input type="text" id="p1-t1" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p1-bike">Bike</label>
+                    <input type="text" id="p1-bike" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p1-t2">Transição 2 (T2)</label>
+                    <input type="text" id="p1-t2" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p1-run">Corrida</label>
+                    <input type="text" id="p1-run" placeholder="00:00:00.000">
+                </div>
+
+                <div class="total">
+                    <div class="total-label">Tempo Total</div>
+                    <div class="total-time" id="p1-total">--:--:--.---</div>
+                    <div class="winner-badge">🏆 VENCEDOR!</div>
+                </div>
+            </div>
+
+            <div class="differences-column" id="differences-column">
+                <div class="diff-header">📊 Diferenças</div>
+                
+                <div class="diff-item" id="diff-swim">
+                    <div class="diff-label">Natação</div>
+                    <div class="diff-value">--</div>
+                </div>
+
+                <div class="diff-item" id="diff-t1">
+                    <div class="diff-label">T1</div>
+                    <div class="diff-value">--</div>
+                </div>
+
+                <div class="diff-item" id="diff-bike">
+                    <div class="diff-label">Bike</div>
+                    <div class="diff-value">--</div>
+                </div>
+
+                <div class="diff-item" id="diff-t2">
+                    <div class="diff-label">T2</div>
+                    <div class="diff-value">--</div>
+                </div>
+
+                <div class="diff-item" id="diff-run">
+                    <div class="diff-label">Corrida</div>
+                    <div class="diff-value">--</div>
+                </div>
+
+                <div class="diff-item" style="background: #fff3cd; border: 2px solid #ffc107;" id="diff-total">
+                    <div class="diff-label" style="color: #856404;">TOTAL</div>
+                    <div class="diff-value" style="font-size: 16px; color: #856404;">--</div>
+                </div>
+            </div>
+
+            <div class="participant" id="participant2">
+                <input type="text" class="name-input" id="p2-name" value="Participante 2" placeholder="Nome do participante">
+                
+                <div class="quick-input">
+                    <div class="quick-input-label">⚡ Input Rápido (cole todos os tempos separados por tab ou espaço):</div>
+                    <input type="text" class="quick-input-field" id="p2-quick" placeholder="00:40:55.388 00:05:23.001 00:02:11.465 00:18:28.667 00:01:24.052">
+                    <button class="quick-input-btn" onclick="processQuickInput('p2')">Aplicar</button>
+                </div>
+                
+                <div class="input-group">
+                    <label for="p2-swim">Natação</label>
+                    <input type="text" id="p2-swim" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p2-t1">Transição 1 (T1)</label>
+                    <input type="text" id="p2-t1" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p2-bike">Bike</label>
+                    <input type="text" id="p2-bike" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p2-t2">Transição 2 (T2)</label>
+                    <input type="text" id="p2-t2" placeholder="00:00:00.000">
+                </div>
+
+                <div class="input-group">
+                    <label for="p2-run">Corrida</label>
+                    <input type="text" id="p2-run" placeholder="00:00:00.000">
+                </div>
+
+                <div class="total">
+                    <div class="total-label">Tempo Total</div>
+                    <div class="total-time" id="p2-total">--:--:--.---</div>
+                    <div class="winner-badge">🏆 VENCEDOR!</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="difference-section" id="difference-section">
+            <div class="difference-title">⏱️ Diferença de Tempo</div>
+            <div class="difference-value" id="difference-value">--:--:--.---</div>
+            <div class="difference-info" id="difference-info"></div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-calculate" onclick="calculate()">Calcular Vencedor</button>
+            <button class="btn-clear" onclick="clearAll()">Limpar</button>
+            <button class="btn-export" onclick="exportToPDF()">📄 Exportar PDF</button>
+            <button class="btn-export" onclick="exportToImage()">🖼️ Exportar Imagem</button>
+        </div>
+    </div>
+
+    <script>
+        // Função para processar input rápido
+        function processQuickInput(participantId) {
+            const quickInput = document.getElementById(`${participantId}-quick`).value.trim();
+            
+            if (!quickInput) {
+                alert('Por favor, cole os tempos primeiro.');
+                return;
+            }
+            
+            // Dividir por tabs, espaços múltiplos ou espaços simples
+            const times = quickInput.split(/[\t\s]+/).filter(t => t.length > 0);
+            
+            if (times.length !== 5 && times.length !== 6) {
+                alert(`Por favor, forneça 5 tempos (Natação, T1, Bike, T2, Corrida) ou 6 tempos incluindo o total.\nVocê forneceu ${times.length} tempos.`);
+                return;
+            }
+            
+            const fields = ['swim', 't1', 'bike', 't2', 'run'];
+            
+            // Se tiver 6 tempos, o primeiro é o total (ignora), usa do índice 1 ao 5
+            // Se tiver 5 tempos, usa do índice 0 ao 4
+            const startIndex = times.length === 6 ? 1 : 0;
+            
+            for (let i = 0; i < 5; i++) {
+                document.getElementById(`${participantId}-${fields[i]}`).value = times[startIndex + i];
+            }
+            
+            // Limpar o campo de input rápido
+            document.getElementById(`${participantId}-quick`).value = '';
+            
+            // Feedback visual
+            const msg = times.length === 6 ? 'Tempos aplicados com sucesso! (Total ignorado) ✓' : 'Tempos aplicados com sucesso! ✓';
+            alert(msg);
+        }
+
+        // Função para converter tempo (HH:MM:SS.mmm) em milissegundos
+        function timeToMilliseconds(timeStr) {
+            if (!timeStr || timeStr.trim() === '') return 0;
+            
+            const parts = timeStr.split(':');
+            if (parts.length !== 3) return null;
+            
+            const hours = parseInt(parts[0]);
+            const minutes = parseInt(parts[1]);
+            const secondsParts = parts[2].split('.');
+            const seconds = parseInt(secondsParts[0]);
+            const milliseconds = secondsParts[1] ? parseInt(secondsParts[1].padEnd(3, '0')) : 0;
+            
+            if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) || isNaN(milliseconds)) {
+                return null;
+            }
+            
+            return (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + milliseconds;
+        }
+
+        // Função para converter milissegundos em tempo (HH:MM:SS.mmm)
+        function millisecondsToTime(ms) {
+            const hours = Math.floor(ms / 3600000);
+            ms %= 3600000;
+            const minutes = Math.floor(ms / 60000);
+            ms %= 60000;
+            const seconds = Math.floor(ms / 1000);
+            const milliseconds = ms % 1000;
+            
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+        }
+
+        // Função para calcular o total de um participante
+        function calculateTotal(participantId) {
+            const fields = ['swim', 't1', 'bike', 't2', 'run'];
+            let total = 0;
+            let hasError = false;
+            
+            for (let field of fields) {
+                const input = document.getElementById(`${participantId}-${field}`);
+                const value = input.value.trim();
+                
+                if (value) {
+                    const ms = timeToMilliseconds(value);
+                    if (ms === null) {
+                        hasError = true;
+                        input.style.borderColor = '#dc3545';
+                    } else {
+                        total += ms;
+                        input.style.borderColor = '#ced4da';
+                    }
+                } else {
+                    input.style.borderColor = '#ced4da';
+                }
+            }
+            
+            if (hasError) return null;
+            return total;
+        }
+
+        // Função principal de cálculo
+        function calculate() {
+            // Remover classes de vencedor anteriores
+            document.getElementById('participant1').classList.remove('winner');
+            document.getElementById('participant2').classList.remove('winner');
+            
+            // Calcular totais
+            const total1 = calculateTotal('p1');
+            const total2 = calculateTotal('p2');
+            
+            // Exibir totais
+            if (total1 !== null) {
+                document.getElementById('p1-total').textContent = millisecondsToTime(total1);
+            } else {
+                document.getElementById('p1-total').textContent = 'ERRO';
+            }
+            
+            if (total2 !== null) {
+                document.getElementById('p2-total').textContent = millisecondsToTime(total2);
+            } else {
+                document.getElementById('p2-total').textContent = 'ERRO';
+            }
+            
+            // Calcular e exibir diferenças por modalidade
+            const fields = ['swim', 't1', 'bike', 't2', 'run'];
+            const fieldNames = ['Natação', 'T1', 'Bike', 'T2', 'Corrida'];
+            
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                const time1 = timeToMilliseconds(document.getElementById(`p1-${field}`).value || '0');
+                const time2 = timeToMilliseconds(document.getElementById(`p2-${field}`).value || '0');
+                
+                if (time1 !== null && time2 !== null && (time1 > 0 || time2 > 0)) {
+                    const diff = Math.abs(time1 - time2);
+                    const diffElement = document.querySelector(`#diff-${field} .diff-value`);
+                    
+                    if (time1 === time2) {
+                        diffElement.textContent = '⚖️ Empate';
+                        diffElement.className = 'diff-value';
+                    } else {
+                        const winner = time1 < time2 ? 'P1' : 'P2';
+                        const arrow = time1 < time2 ? '←' : '→';
+                        diffElement.innerHTML = `<span class="diff-arrow">${arrow}</span>${millisecondsToTime(diff)}`;
+                        diffElement.className = 'diff-value';
+                    }
+                } else {
+                    document.querySelector(`#diff-${field} .diff-value`).textContent = '--';
+                }
+            }
+            
+            // Determinar vencedor (menor tempo vence) e calcular diferença total
+            if (total1 !== null && total2 !== null && (total1 > 0 || total2 > 0)) {
+                const difference = Math.abs(total1 - total2);
+                const name1 = document.getElementById('p1-name').value || 'Participante 1';
+                const name2 = document.getElementById('p2-name').value || 'Participante 2';
+                
+                document.getElementById('difference-value').textContent = millisecondsToTime(difference);
+                document.getElementById('difference-section').classList.add('show');
+                
+                // Atualizar diferença total na coluna
+                const diffTotalElement = document.querySelector('#diff-total .diff-value');
+                
+                if (total1 < total2) {
+                    document.getElementById('participant1').classList.add('winner');
+                    document.getElementById('difference-info').textContent = `${name1} foi ${millisecondsToTime(difference)} mais rápido que ${name2}`;
+                    diffTotalElement.innerHTML = `<span class="diff-arrow">←</span>${millisecondsToTime(difference)}`;
+                } else if (total2 < total1) {
+                    document.getElementById('participant2').classList.add('winner');
+                    document.getElementById('difference-info').textContent = `${name2} foi ${millisecondsToTime(difference)} mais rápido que ${name1}`;
+                    diffTotalElement.innerHTML = `<span class="diff-arrow">→</span>${millisecondsToTime(difference)}`;
+                } else {
+                    // Empate
+                    document.getElementById('participant1').classList.add('winner');
+                    document.getElementById('participant2').classList.add('winner');
+                    document.getElementById('difference-info').textContent = 'Empate perfeito!';
+                    diffTotalElement.textContent = '⚖️ Empate';
+                }
+            } else {
+                document.getElementById('difference-section').classList.remove('show');
+                // Limpar diferenças
+                for (let field of fields) {
+                    document.querySelector(`#diff-${field} .diff-value`).textContent = '--';
+                }
+                document.querySelector('#diff-total .diff-value').textContent = '--';
+            }
+        }
+
+        // Função para exportar para PDF
+        async function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const container = document.querySelector('.container');
+            
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                
+                const name1 = document.getElementById('p1-name').value || 'Participante1';
+                const name2 = document.getElementById('p2-name').value || 'Participante2';
+                const date = new Date().toISOString().split('T')[0];
+                
+                pdf.save(`triathlon-${name1}-vs-${name2}-${date}.pdf`);
+            } catch (error) {
+                alert('Erro ao gerar PDF: ' + error.message);
+            }
+        }
+
+        // Função para exportar para imagem
+        async function exportToImage() {
+            const container = document.querySelector('.container');
+            
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const link = document.createElement('a');
+                const name1 = document.getElementById('p1-name').value || 'Participante1';
+                const name2 = document.getElementById('p2-name').value || 'Participante2';
+                const date = new Date().toISOString().split('T')[0];
+                
+                link.download = `triathlon-${name1}-vs-${name2}-${date}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (error) {
+                alert('Erro ao gerar imagem: ' + error.message);
+            }
+        }
+
+        // Função para limpar todos os campos
+        function clearAll() {
+            const inputs = document.querySelectorAll('input:not(.name-input)');
+            inputs.forEach(input => {
+                input.value = '';
+                input.style.borderColor = '#ced4da';
+            });
+            
+            document.getElementById('p1-total').textContent = '--:--:--.---';
+            document.getElementById('p2-total').textContent = '--:--:--.---';
+            document.getElementById('participant1').classList.remove('winner');
+            document.getElementById('participant2').classList.remove('winner');
+            document.getElementById('difference-section').classList.remove('show');
+        }
+
+        // Adicionar auto-formatação nos campos de input (exceto campos de nome e quick-input)
+        document.querySelectorAll('input:not(.name-input):not(.quick-input-field)').forEach(input => {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+                
+                if (value.length > 0) {
+                    // Formatar automaticamente enquanto digita
+                    if (value.length <= 2) {
+                        e.target.value = value;
+                    } else if (value.length <= 4) {
+                        e.target.value = value.slice(0, 2) + ':' + value.slice(2);
+                    } else if (value.length <= 6) {
+                        e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4);
+                    } else {
+                        e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4, 6) + '.' + value.slice(6, 9);
+                    }
+                }
+            });
+        });
+
+        // Adicionar evento de paste nos campos de input rápido para processar automaticamente
+        document.querySelectorAll('.quick-input-field').forEach(input => {
+            input.addEventListener('paste', function(e) {
+                // Pequeno delay para garantir que o valor foi colado
+                setTimeout(() => {
+                    const participantId = input.id.replace('-quick', '');
+                    const pastedValue = input.value.trim();
+                    
+                    if (pastedValue) {
+                        // Processar automaticamente após colar
+                        processQuickInput(participantId);
+                    }
+                }, 10);
+            });
+        });
+    </script>
+</body>
+</html>
