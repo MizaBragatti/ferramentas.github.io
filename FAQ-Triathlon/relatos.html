@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatos - Super Action Indaiatuba 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .voltar-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .voltar-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .relato {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .relato:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateX(5px);
+        }
+
+        .relato-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .autor {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .data {
+            color: #6c757d;
+            font-size: 0.9em;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .texto {
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .categoria {
+            display: inline-block;
+            background: #764ba2;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .filtros {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .filtro-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .filtro-btn:hover,
+        .filtro-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+
+            .relato-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏊‍♂️🚴‍♀️🏃‍♂️ Relatos da Prova</h1>
+            <p>Super Action - Indaiatuba 08/02/2026</p>
+            <a href="index.html" class="voltar-btn">🏠 Voltar ao FAQ</a>
+        </header>
+
+        <div class="content">
+            <div class="filtros">
+                <button class="filtro-btn active" onclick="filtrar('todos')">Todos</button>
+                <button class="filtro-btn" onclick="filtrar('superacao')">Superação</button>
+                <button class="filtro-btn" onclick="filtrar('primeira-vez')">Primeira Vez</button>
+                <button class="filtro-btn" onclick="filtrar('desafios')">Desafios</button>
+            </div>
+
+            <!-- DIA 08/02/2026 -->
+            <div class="relato" data-categoria="primeira-vez superacao">
+                <div class="relato-header">
+                    <span class="autor">Helga Somos tri</span>
+                    <span class="data">08/02/2026 - 04:14</span>
+                </div>
+                <div class="texto">Bom dia meu povo lindo!!! 
+Boa prova para todos!!!
+Já estamos finalizando o café da manhã e bora para o Parque do Mirin pq hoje o dia promete!!!!!</div>
+                <span class="categoria">🎯 Motivação</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">Miza</span>
+                    <span class="data">08/02/2026 - 17:09</span>
+                </div>
+                <div class="texto">Vlw pessoal, fiquei meio desesperado na natação, mas no fim deu certo 😅
+Nunca tinha nadado em represa, vendi minha boia kkk</div>
+                <span class="categoria">🏊‍♂️ Natação</span>
+                <span class="categoria">💪 Superação</span>
+            </div>
+
+            <div class="relato" data-categoria="desafios">
+                <div class="relato-header">
+                    <span class="autor">+55 11 96299-1284</span>
+                    <span class="data">08/02/2026 - 17:30</span>
+                </div>
+                <div class="texto">Boa tarde a todos
+Fiz minha primeira prova de triathlon
+E fiquei decepcionado com as falhas cruciais de organização
+Porém sou competidor há 36 anos de diversas modalidades individuais esportivas
+
+Não me deram a pulseira na na volta da corrida
+E com isso precisei buscar a pulseira vermelha para cruzar a linha de chegada
+Indo de 1° lugar da categoria para 5°</div>
+                <span class="categoria">⚠️ Desafios</span>
+            </div>
+
+            <div class="relato" data-categoria="primeira-vez">
+                <div class="relato-header">
+                    <span class="autor">+55 11 98162-0563</span>
+                    <span class="data">08/02/2026 - 19:56</span>
+                </div>
+                <div class="texto">Pessoal como é meu 1° sou um pouco perdida
+Esse seria o 2° lugar na minha categoria?
+Mas daí é só a medalha né!?! Ou seria um troféu 🏆 kkk
+
+[Descobriu que ganhou 2° lugar]
+Putz eu não peguei o troféu 🏆
+Achei que tinha ficado com um tempo ruim, peguei a medalha e fui embora
+Aiinnn perdi a chance de subir no pódio kkk 😹</div>
+                <span class="categoria">🥈 Pódio</span>
+                <span class="categoria">😊 Primeira Vez</span>
+            </div>
+
+            <div class="relato" data-categoria="primeira-vez desafios">
+                <div class="relato-header">
+                    <span class="autor">+55 11 98162-0563</span>
+                    <span class="data">08/02/2026 - 21:51</span>
+                </div>
+                <div class="texto">Eu não tava vendo nada kkk aquela água turva. Fiquei nadando costas a maior parte do tempo com medo de ingerir aquela água.
+Tava parecendo imprópria para banho kkk
+Eu só tinha treinado em piscina. Fiquei com medo mas foi com medo mesmo
+
+Nem fale…. Eu sem boia rs, sem dar pé, aquela água escura eu pensava se eu desmaiar aqui ninguém me vê kkk</div>
+                <span class="categoria">🏊‍♂️ Natação</span>
+                <span class="categoria">😰 Desafios</span>
+            </div>
+
+            <div class="relato" data-categoria="primeira-vez">
+                <div class="relato-header">
+                    <span class="autor">+55 11 99257-6937</span>
+                    <span class="data">08/02/2026 - 22:00</span>
+                </div>
+                <div class="texto">Somos dois kkkk
+Primeira vez que entro em uma represa na vida… mas foi com medo mesmo kkkk</div>
+                <span class="categoria">😰 Desafios</span>
+            </div>
+
+            <div class="relato" data-categoria="desafios">
+                <div class="relato-header">
+                    <span class="autor">Miza</span>
+                    <span class="data">08/02/2026 - 22:14</span>
+                </div>
+                <div class="texto">Falou tudo 😣
+A hr q liberou pra aquecer ja Bateu desespero kkk</div>
+                <span class="categoria">😰 Desafios</span>
+            </div>
+
+            <!-- DIA 09/02/2026 -->
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">Miza</span>
+                    <span class="data">09/02/2026 - 08:09</span>
+                </div>
+                <div class="texto">Contornei a boia amarela de costas...</div>
+                <span class="categoria">🏊‍♂️ Natação</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao desafios">
+                <div class="relato-header">
+                    <span class="autor">Miza</span>
+                    <span class="data">09/02/2026 - 08:11</span>
+                </div>
+                <div class="texto">Teve uma hr que eu comecei a nadar...deslanchar depois da boia amarela...que tinham menos pessoas...quando levantei a cabeça para ver as boias vermelhas...tinha uma rapaz nadando de costas...acabei passando por cima dele kkkk
+vendi a minha kkkk</div>
+                <span class="categoria">🏊‍♂️ Natação</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 99614-2587</span>
+                    <span class="data">09/02/2026 - 08:15</span>
+                </div>
+                <div class="texto">Eu fiz o Legend e a pior parte, pelo menos pra mim, foi depois de um duathlon com ritmo intenso, um triathlon com ritmo absurdo, entrar na represa com água pesada sem roupa de borracha e bóia pra nadar, então a parte do Aquathlon eu realmente nadei economizando máximo de energia, esqueci competição, ali foi modo sobrevivência kkkkkkk</div>
+                <span class="categoria">🔥 Legend</span>
+                <span class="categoria">💪 Superação</span>
+            </div>
+
+            <div class="relato" data-categoria="desafios primeira-vez">
+                <div class="relato-header">
+                    <span class="autor">+55 19 99683-5272</span>
+                    <span class="data">09/02/2026 - 08:34</span>
+                </div>
+                <div class="texto">Bom dia, pessoal!
+Foi minha primeira prova e primeira experiencia nadando em aguas abertas, e é absurda a diferença kkk infelizmente n consegui concluir, bateu o desespero, ansiedade, parei na boia umas vezes, mas, a respiração n recuperava, agua barrenta n dava pra ver nada kk 
+
+Ver vcs que são experientes falando dos medos é muito legal pra ver q bate em todo mundo isso.
+
+Essa estratégia de nadar de costas é sensacional, devia ter pensado nisso na hora kk
+
+Apesar de tudo eu fiquei feliz pq ter me inscrito na prova me incentivou a treinar e evolui muito na natação pra quem começou n tem nem 1 ano.
+
+Chateado por n concluir a prova, mas, n vou desistir, treinar em aguas abertas pra tentar de novo mais pra frente!
+
+Tem uma moça aqui do grupo que me viu e incentivou na hora q eu tava calçando o tênis, n sei seu nome mas muito obrigado! Aquela hora ja tinha dado ruim kkk
+
+Parabéns a todos! Essa comunidade é fera! Um dia vou estar vindo aqui falar da minha conclusão! Vlw galera!</div>
+                <span class="categoria">😊 Primeira Vez</span>
+                <span class="categoria">😰 Desafios</span>
+                <span class="categoria">💪 Superação</span>
+            </div>
+
+            <div class="relato" data-categoria="primeira-vez">
+                <div class="relato-header">
+                    <span class="autor">+55 19 99498-7007</span>
+                    <span class="data">09/02/2026 - 08:41</span>
+                </div>
+                <div class="texto">Foi a minha primeira também. Comecei a treinar em novembro. Águas abertas é totalmente diferente. Me senti como um aluno que estuda 5 anos de inglês no Brasil e quando chega nos EUA descobre que não sabe nada.
+A boia de sinalização me salvou. Fiquei muito assustando. Minha natação foi pessima. Consegui recuperar na bike e corrida, apesar de estar de MTB.
+Valeu a experiência e agora é treinar e partir para o próximo.</div>
+                <span class="categoria">😊 Primeira Vez</span>
+                <span class="categoria">💪 Superação</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 98162-0563</span>
+                    <span class="data">09/02/2026 - 08:58</span>
+                </div>
+                <div class="texto">Eu senti isso tb Rafa, um desespero absurdo. Mas na hora eu pensei, vou nadar de costas, estou passeando e o dia está lindo. Percebi que controlar meu psicológico estava me dando mais trabalho do que fazer a parte física. Segue em frente! Você já superou muita coisa só em ter tentado 💪🏼💪🏼💪🏼</div>
+                <span class="categoria">💪 Superação</span>
+                <span class="categoria">🧠 Psicológico</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 93006-7968</span>
+                    <span class="data">09/02/2026 - 09:41</span>
+                </div>
+                <div class="texto">Eu já tinha o hábito de nadar em represa, mas achei ontem bem mais pesado que o de costume. As braçadas não rendiam, tomei uma cotovelada no nariz logo no começo que sangrou o nariz. O que salvou foi nadar de costas boa parte. Quando bateu o pânico eu flutuei e lembrei que já sabia que esse momento ia acontecer. O bombeiro ainda tentou me tirar da água e eu não quis, o rapaz do caiaque viu que estava determinada a terminar e não me deixou desistir. O apoio dos staff da água faz todo a diferença. 
+A bike eu não estava preocupada, é meu esporte de descanso kkk fiz ele aproveitando pra respirar com calma. E morri na corrida, precisei fazer intervalo de começo a fim. Não dei conta de correr o percurso todo. O desgaste mental me pegando a todo momento, o conflito com o corpo que ainda aguentava. Quando vi o pórtico de chegada já comecei a chorar. 
+Eu treinei dois meses só pra essa insanidade. Não corria nada, nadava por lazer na piscina do condomínio. Precisei estruturar todo treino sozinha. Tudo isso ainda acima do peso, controlando a ansiedade pra não descontar na comida.
+To relatando pra vocês, pq primeiro vcs deram tantas dicas que salvaram na hora. E pq no final das contas, todos querem pódio, mas nada tira o gosto de vencer a própria mente. Fiquei em 6º na minha categoria. Com transições demoradas pra caramba, mas com gosto de 1º lugar. Pq só eu sei o quanto foi desafiador. 
+🙏</div>
+                <span class="categoria">💪 Superação</span>
+                <span class="categoria">🧠 Psicológico</span>
+                <span class="categoria">😊 Primeira Vez</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 97839-0747</span>
+                    <span class="data">09/02/2026 - 09:52</span>
+                </div>
+                <div class="texto">Bom dia
+Vou te mandar um post que fiz ontem
+Em novembro aconteceu a mesma coisa cmg
+Nao consegui concluir e me senti super mal com isso
+Tb nunca tinha nadado em águas abertas e foi desesperador
+Dessa vez achei que estava pior a condição da agua, mas só o fato de estar mais preparada e trabalhar o psicológico deu bom, consegui concluir
+O que é fundamental é não desistir 
+Tenho ctzz que na proxima vc consegue
+
+---
+
+Nem todo mundo se move pelo pace. 
+No meu caso, eu me movo pela superação. Pelo desafio. Pela vontade de provar pra mim mesma que eu posso ir além.
+
+Ano passado, tentei esse mesmo triathlon em Indaiatuba, um dia depois do meu aniversário. E, por uma série de fatores, não consegui completar a natação — logo a primeira etapa. 
+Fui tomada por um sentimento pesado: decepção, incapacidade, frustração. 
+Mas, no fundo, eu sabia que podia fazer mais.
+
+Então eu treinei mais. 
+Me esforcei mais. 
+Me entreguei mais.
+
+Mesmo quando meu corpo e minha mente gritavam que eu não ia conseguir, havia sempre um pedacinho de mim que dizia: vai dar certo. E deu.
+
+Fiquei em 7º lugar na categoria, 19º no feminino e 65º no geral. 
+Por isso, pra mim, não é sobre pace. 
+É sobre me superar.</div>
+                <span class="categoria">💪 Superação</span>
+                <span class="categoria">🎯 Motivação</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 99614-2587</span>
+                    <span class="data">09/02/2026 - 09:01</span>
+                </div>
+                <div class="texto">Não sei porque isso acontece, mas a prova ontem foi duríssima, então durante a prova, eu pensei "vou fazer o meu melhor, porque não sei se vou querer fazer isso de novo", mas já estou admitindo a ideia Loka de me meter nessa confusão de novo kkkkkkkk</div>
+                <span class="categoria">😂 Humor</span>
+                <span class="categoria">💪 Superação</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 93006-7968</span>
+                    <span class="data">09/02/2026 - 10:46</span>
+                </div>
+                <div class="texto">Eu venha tratando crises de pânico a um ano. Sem remédio pq eles me deram uma piora. Vai entender. Então eu já sabia que em algum parte do desafio a crise ia rolar e eu fui me preparando pra ela. Durante a corrida eu disse várias vezes. Nunca mais eu faço isso! Na real já to escolhendo a próxima pra me inscrever 😂</div>
+                <span class="categoria">💪 Superação</span>
+                <span class="categoria">😂 Humor</span>
+            </div>
+
+            <div class="relato" data-categoria="primeira-vez superacao">
+                <div class="relato-header">
+                    <span class="autor">Miza</span>
+                    <span class="data">09/02/2026 - 19:01</span>
+                </div>
+                <div class="texto">Esse foi meu primeiro triathlon, minha primeira vez nadando em represa, água turva, sem boia, sem dar pé, treinei bastante em piscina normal e até sem dar pé, mas não chega nem aos pés, foi muito desafiador, sai totalmente da minha zona de conforto e teve o agravante de trombar nas pessoas e trombarem em mim, o que me deixou mais tranquilo foi saber que tinham salva vidas prontos a socorrer, mas nadei muito mal, respirei tudo errado, nadei umas 3x de costas para recuperar o folego e acalmar, mas no final consegui concluir, isso que eram 250 metros somente, mas já me sinto vitorioso e corajoso de encarar esse desafio, na bike fui muito bem, fiquei em primeiro geral da modalidade e na corrida por ter respirado tudo errado na natação tive dores abdominais absurdas que impactaram meu desempenho, mas no final deu certo e ainda rendeu um pódio! Agora é treinar mais em águas abertas e pegar uma assessoria para orientar e ajustar para desafios maiores e ir mais confiante!!! Um agradecimento especial a minha esposa que sempre me apoiou e sempre esteve ao meu lado...Te amo ❤️</div>
+                <span class="categoria">😊 Primeira Vez</span>
+                <span class="categoria">💪 Superação</span>
+                <span class="categoria">🥇 Pódio</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao desafios">
+                <div class="relato-header">
+                    <span class="autor">+55 11 99614-2587 (Ricardo Bezerra)</span>
+                    <span class="data">09/02/2026 - 19:39</span>
+                </div>
+                <div class="texto">Desafio Legend, fui desclassificado!
+
+Recebi um email da organizadora, informando que fui desclassificado por ter feito apenas uma volta no triathlon, ainda informaram que se eu tivesse como comprovar através do strava ou qualquer outro aplicativo, eu poderia enviar.
+
+Eu prontamente respondi informando que o dado estava correto, eu realmente fiz 1 volta apenas
+Quando terminei primeira volta ao passar pela entrada que tinha direção à chegada, fiquei confuso
+E obviamente a xuxinha você pega depois da entrada, para iniciar a segunda volta
+Perguntei a moça da organização que ficava ali próximo
+Recebi a indicação que eu poderia seguir pela direção do pórtico
+E assim eu fiz!
+
+Por que estou colocando isso aqui? Porque na minha posição é muito triste passar por isso também
+Mas tenho que aceitar e encarar de frente e reforçar o quão importante é se atentar aos detalhes do guia do atleta.
+
+Eu li o guia e me preocupei com os horários de check-in e horários de largada, mas não me atentei à esse detalhe da xuxinha e das duas voltas do triathlon.
+
+Estou expondo o ocorrido, pois fico triste também pelo problema técnico que ouve na organização.
+
+Pois sem saber do resultado, como todos ali estavam, fui chamado para o pódio e o rapaz que deveria ir não foi!
+
+Embora a organizadora informou que não tem necessidade de devolver a premiação, sinto que é o certo a fazer, então a organizadora já enviou o endereço.
+
+Provavelmente amanhã enviarei pelos correios.</div>
+                <span class="categoria">⚠️ Desafios</span>
+                <span class="categoria">🎯 Ética</span>
+                <span class="categoria">🔥 Legend</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 99614-2587</span>
+                    <span class="data">09/02/2026 - 12:01</span>
+                </div>
+                <div class="texto">Eu não sabia nadar, então fazia duathlon, mas tinha muita vontade de fazer tri, mas eu tinha medo de entrar numa piscina, quem dirá numa represa ou mar, então entrei na academia de natação, aprendi a nadar, fiz um Aquathlon pra ver como era e fiz minha inscrição no Ironman 70.3 SP, daí pensei agora treinar, fiz muito treino de T2, mas o frio no dia foi intenso, depois que saí da água, pensei agora eu encaro qualquer coisa kkkkkkk terminei Ironman em 6h, mas feliz da vida, chorei pra caramba kkkkkk foi muito bom, não sei o que é, mas Ironman tem uma energia essa prova que emociona a primeira vez, é caro, mas recomendo!!</div>
+                <span class="categoria">💪 Superação</span>
+                <span class="categoria">🎯 Motivação</span>
+            </div>
+
+            <!-- DIA 10/02/2026 -->
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 13 99784-6901</span>
+                    <span class="data">10/02/2026 - 21:31</span>
+                </div>
+                <div class="texto">Parabéns por sua atitude e exposição aqui no grupo! O triathlon é um esporte complexo, além de todos desafios físicos e mentais existem também estes desafios "técnicos" que vão ser diferentes em cada prova/organização, mas na minha opinião isso que faz ser um esporte que nos desafia a cada ciclo de prova. 
+A premiação é apenas um detalhe, a devolução do troféu como você bem disse "correta", não apaga todo seu esforço nos treinos, prova e superação em cada um dos três esportes. Leve isso como combustível para próxima prova! 🚀🤟🏻</div>
+                <span class="categoria">🎯 Motivação</span>
+            </div>
+
+            <!-- DIA 11/02/2026 -->
+            <div class="relato" data-categoria="superacao primeira-vez">
+                <div class="relato-header">
+                    <span class="autor">+55 11 7052-6446 (Adriana)</span>
+                    <span class="data">11/02/2026 - 09:51</span>
+                </div>
+                <div class="texto">Galera passando pra compartilhar que queria fazer um tri já faz três anos. Estava morando na Irlanda quando comecei sonhar e só ficava babando a galera aqui do Brasil compartilhando. Mas lá pra começar é bem diferente daqui, é escasso de comunidades, assessoria, provas curtas. De vdd o Brasil pode estar fraco em muita coisa, mas no incentivo a essas modalidades esportivas estamos indo muito bem. Porque a cada dia vejo mais e mais pessoas começando… mesmo com pouco é um ajudando o outro dando dicas… e foi assim que eu cheguei aqui. Parabéns a todos!!! Os iniciantes e a galera veterana que está sempre inspirando. É muito bom estar no meio de quem vive nossa realidade, fala a mesma língua, anseia pelas mesmas coisas. Sucesso e muita SAÚDE Sempre.</div>
+                <span class="categoria">🎯 Motivação</span>
+                <span class="categoria">🤝 Comunidade</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 11 99614-2587 (Ricardo)</span>
+                    <span class="data">11/02/2026 - 19:49</span>
+                </div>
+                <div class="texto">Recebi uma mensagem da Tubig Sports que me deixou muito emocionado.
+
+Saibam que Vocês também me emocionaram e fortaleceram muito meu coração!! Muito Obrigado à Vocês também pelas reações positivas e mensagens de apoio. Pode não parecer para alguns, mas para mim vale muito!! ❤️</div>
+                <span class="categoria">❤️ Gratidão</span>
+                <span class="categoria">🤝 Comunidade</span>
+            </div>
+
+            <div class="relato" data-categoria="superacao">
+                <div class="relato-header">
+                    <span class="autor">+55 15 98806-9765</span>
+                    <span class="data">11/02/2026 - 21:06</span>
+                </div>
+                <div class="texto">Uma das coisas que me encantou no triatlo foi isso
+A união das pessoas
+Sempre ajudando e incentivando o próximo</div>
+                <span class="categoria">🤝 Comunidade</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>💙 Feito com carinho para a comunidade de triatletas 💙</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">Super Action - Indaiatuba 2026</p>
+        </footer>
+    </div>
+
+    <script>
+        function filtrar(categoria) {
+            const relatos = document.querySelectorAll('.relato');
+            const botoes = document.querySelectorAll('.filtro-btn');
+            
+            // Remove active de todos os botões
+            botoes.forEach(btn => btn.classList.remove('active'));
+            
+            // Adiciona active no botão clicado
+            event.target.classList.add('active');
+            
+            if (categoria === 'todos') {
+                relatos.forEach(relato => {
+                    relato.style.display = 'block';
+                });
+            } else {
+                relatos.forEach(relato => {
+                    const categorias = relato.getAttribute('data-categoria');
+                    if (categorias && categorias.includes(categoria)) {
+                        relato.style.display = 'block';
+                    } else {
+                        relato.style.display = 'none';
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

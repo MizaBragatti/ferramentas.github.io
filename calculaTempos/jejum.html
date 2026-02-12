@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Jejum</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: inline-block;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .nav-link.primary {
+            background: #6c757d;
+        }
+
+        .nav-link.secondary {
+            background: #17a2b8;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-link.primary:hover {
+            background: #5a6268;
+        }
+
+        .nav-link.secondary:hover {
+            background: #138496;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #495057;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-start:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .result {
+            border: 2px solid #17a2b8;
+            background: #d1ecf1;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .result-title {
+            text-align: center;
+            color: #0c5460;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .counter {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .counter-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .counter-value {
+            font-family: monospace;
+            font-size: 28px;
+            color: #333;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .counter-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 6px;
+            text-transform: uppercase;
+        }
+
+        .status {
+            margin-top: 15px;
+            text-align: center;
+            color: #495057;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+
+            .counter {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏱️ Calculadora de Jejum</h1>
+        <p class="subtitle">Informe data e horário inicial para ver o tempo de jejum em tempo real</p>
+
+        <div class="navigation">
+            <a href="index.html" class="nav-link primary">← Comparador de Tempos</a>
+            <a href="pace.html" class="nav-link secondary">📊 Calculadora de Pace</a>
+        </div>
+
+        <div class="card">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="start-date">Data Inicial</label>
+                    <input type="date" id="start-date">
+                </div>
+
+                <div class="input-group">
+                    <label for="start-time">Horário Inicial</label>
+                    <input type="time" id="start-time" step="1">
+                </div>
+            </div>
+
+            <button class="btn-start" onclick="startFastingCounter()">Iniciar / Atualizar Jejum</button>
+        </div>
+
+        <div class="result">
+            <div class="result-title">Tempo de Jejum Atual</div>
+
+            <div class="counter">
+                <div class="counter-item">
+                    <div class="counter-value" id="days">00</div>
+                    <div class="counter-label">Dias</div>
+                </div>
+
+                <div class="counter-item">
+                    <div class="counter-value" id="hours">00</div>
+                    <div class="counter-label">Horas</div>
+                </div>
+
+                <div class="counter-item">
+                    <div class="counter-value" id="minutes">00</div>
+                    <div class="counter-label">Minutos</div>
+                </div>
+
+                <div class="counter-item">
+                    <div class="counter-value" id="seconds">00</div>
+                    <div class="counter-label">Segundos</div>
+                </div>
+            </div>
+
+            <div class="status" id="status">Preencha os dados e clique em iniciar.</div>
+        </div>
+    </div>
+
+    <script>
+        let fastingStartDate = null;
+        const STORAGE_KEY = 'jejumStartDateTime';
+
+        function pad(value) {
+            return String(value).padStart(2, '0');
+        }
+
+        function updateCounter() {
+            if (!fastingStartDate) return;
+
+            const now = new Date();
+            const diffMs = now.getTime() - fastingStartDate.getTime();
+
+            if (diffMs < 0) {
+                document.getElementById('status').textContent = 'A data/hora inicial não pode ser no futuro.';
+                document.getElementById('days').textContent = '00';
+                document.getElementById('hours').textContent = '00';
+                document.getElementById('minutes').textContent = '00';
+                document.getElementById('seconds').textContent = '00';
+                return;
+            }
+
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            document.getElementById('days').textContent = pad(days);
+            document.getElementById('hours').textContent = pad(hours);
+            document.getElementById('minutes').textContent = pad(minutes);
+            document.getElementById('seconds').textContent = pad(seconds);
+
+            document.getElementById('status').textContent = `Jejum iniciado em ${fastingStartDate.toLocaleDateString('pt-BR')} às ${fastingStartDate.toLocaleTimeString('pt-BR')}.`;
+        }
+
+        function startFastingCounter() {
+            const dateValue = document.getElementById('start-date').value;
+            const timeValue = document.getElementById('start-time').value;
+
+            if (!dateValue || !timeValue) {
+                document.getElementById('status').textContent = 'Informe data e horário inicial.';
+                return;
+            }
+
+            fastingStartDate = new Date(`${dateValue}T${timeValue}`);
+
+            if (Number.isNaN(fastingStartDate.getTime())) {
+                document.getElementById('status').textContent = 'Data ou horário inválido.';
+                return;
+            }
+
+            localStorage.setItem(STORAGE_KEY, fastingStartDate.toISOString());
+
+            updateCounter();
+        }
+
+        setInterval(updateCounter, 1000);
+
+        (function initializePage() {
+            const now = new Date();
+            const dateDefault = now.toISOString().split('T')[0];
+            const timeDefault = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            document.getElementById('start-date').value = dateDefault;
+            document.getElementById('start-time').value = timeDefault;
+
+            const storedDateTime = localStorage.getItem(STORAGE_KEY);
+            if (!storedDateTime) return;
+
+            const restoredDate = new Date(storedDateTime);
+            if (Number.isNaN(restoredDate.getTime())) {
+                localStorage.removeItem(STORAGE_KEY);
+                return;
+            }
+
+            fastingStartDate = restoredDate;
+            document.getElementById('start-date').value = restoredDate.toISOString().split('T')[0];
+            document.getElementById('start-time').value = `${pad(restoredDate.getHours())}:${pad(restoredDate.getMinutes())}:${pad(restoredDate.getSeconds())}`;
+            updateCounter();
+        })();
+    </script>
+</body>
+</html>
