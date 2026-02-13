@@ -337,6 +337,79 @@
             font-size: 4em;
             margin-bottom: 20px;
         }
+
+        .total-time-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .total-time-display .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .total-time-display .time {
+            font-size: 2.5em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .import-export-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 2px dashed #d1d5db;
+        }
+
+        .btn-export,
+        .btn-import {
+            flex: 1;
+            background: #8b5cf6;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-export:hover {
+            background: #7c3aed;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-import {
+            background: #10b981;
+        }
+
+        .btn-import:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-export:disabled,
+        .btn-import:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -353,6 +426,17 @@
                 <input type="number" id="secondsInput" placeholder="Segundos" min="0" max="59" value="0" />
             </div>
             <button class="btn btn-add" onclick="addTopic()">➕ Adicionar Assunto</button>
+
+            <div class="import-export-section">
+                <button class="btn-export" id="exportBtn" onclick="exportTopics()" disabled>📥 Exportar Assuntos</button>
+                <button class="btn-import" onclick="importTopics()">📤 Importar Assuntos</button>
+                <input type="file" id="fileInput" accept=".json" onchange="handleFileSelect(event)" />
+            </div>
+
+            <div class="total-time-display" id="totalTimeDisplay" style="display: none;">
+                <div class="label">⏱️ Tempo Total da Apresentação</div>
+                <div class="time" id="totalTimeValue">00:00</div>
+            </div>
 
             <div class="topics-list" id="topicsList"></div>
 
@@ -411,6 +495,19 @@
             }
         }
 
+        function updateTotalTimeInSetup() {
+            const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+            const totalTimeValue = document.getElementById('totalTimeValue');
+            
+            if (topics.length === 0) {
+                totalTimeDisplay.style.display = 'none';
+            } else {
+                const totalSeconds = topics.reduce((sum, topic) => sum + topic.duration, 0);
+                totalTimeValue.textContent = formatTime(totalSeconds);
+                totalTimeDisplay.style.display = 'block';
+            }
+        }
+
         function updateTopicsList() {
             const list = document.getElementById('topicsList');
             
@@ -422,6 +519,7 @@
                     </div>
                 `;
                 document.getElementById('startBtn').disabled = true;
+                document.getElementById('exportBtn').disabled = true;
             } else {
                 list.innerHTML = topics.map((topic, index) => `
                     <div class="topic-item" draggable="true" data-index="${index}">
@@ -440,10 +538,14 @@
                     </div>
                 `).join('');
                 document.getElementById('startBtn').disabled = false;
+                document.getElementById('exportBtn').disabled = false;
                 
                 // Adicionar eventos de drag and drop
                 addDragAndDropListeners();
             }
+            
+            // Atualizar tempo total
+            updateTotalTimeInSetup();
             
             // Salvar no localStorage sempre que a lista for atualizada
             saveTopics();
@@ -754,6 +856,94 @@
         document.getElementById('secondsInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addTopic();
         });
+
+        function exportTopics() {
+            if (topics.length === 0) {
+                alert('Não há assuntos para exportar!');
+                return;
+            }
+
+            const dataStr = JSON.stringify(topics, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Criar nome do arquivo com data/hora
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+            link.download = `timer-apresentacao-${dateStr}-${timeStr}.json`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function importTopics() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.json')) {
+                alert('Por favor, selecione um arquivo JSON válido!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedTopics = JSON.parse(e.target.result);
+                    
+                    // Validar estrutura dos dados
+                    if (!Array.isArray(importedTopics)) {
+                        throw new Error('Formato inválido: o arquivo deve conter uma lista de assuntos.');
+                    }
+
+                    // Validar cada assunto
+                    const validTopics = importedTopics.every(topic => 
+                        topic.name && 
+                        typeof topic.name === 'string' && 
+                        typeof topic.duration === 'number' && 
+                        topic.duration > 0
+                    );
+
+                    if (!validTopics) {
+                        throw new Error('Formato inválido: cada assunto deve ter um nome (texto) e duração (número).');
+                    }
+
+                    // Perguntar se deseja substituir ou adicionar aos existentes
+                    let shouldReplace = true;
+                    if (topics.length > 0) {
+                        shouldReplace = confirm(
+                            `Você tem ${topics.length} assunto(s) atual(is).\n\n` +
+                            `Deseja SUBSTITUIR todos pelos ${importedTopics.length} assunto(s) importados?\n\n` +
+                            `Clique OK para SUBSTITUIR ou Cancelar para ADICIONAR aos existentes.`
+                        );
+                    }
+
+                    if (shouldReplace) {
+                        topics = importedTopics;
+                    } else {
+                        topics = topics.concat(importedTopics);
+                    }
+
+                    cancelEdit();
+                    updateTopicsList();
+                    alert(`${importedTopics.length} assunto(s) importado(s) com sucesso!`);
+                } catch (error) {
+                    alert(`Erro ao importar arquivo: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Limpar o input para permitir reimportar o mesmo arquivo
+            event.target.value = '';
+        }
 
         // Carregar assuntos salvos e inicializar
         loadTopics();
