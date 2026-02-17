@@ -91,6 +91,9 @@ class ExpenseManager {
         const sortSelect = document.getElementById('sort-select');
         const filterStatus = document.getElementById('filter-status');
         const cancelBtn = document.getElementById('cancel-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const importBtn = document.getElementById('import-btn');
+        const importFileInput = document.getElementById('import-file');
 
         if (form) form.addEventListener('submit', (e) => this.handleSubmit(e));
         if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAll());
@@ -98,9 +101,116 @@ class ExpenseManager {
         if (sortSelect) sortSelect.addEventListener('change', (e) => this.applyFilters());
         if (filterStatus) filterStatus.addEventListener('change', (e) => this.applyFilters());
         if (cancelBtn) cancelBtn.addEventListener('click', () => this.cancelEdit());
+        if (exportBtn) exportBtn.addEventListener('click', () => this.exportExpenses());
+        if (importBtn && importFileInput) {
+            importBtn.addEventListener('click', () => importFileInput.click());
+        }
+        if (importFileInput) {
+            importFileInput.addEventListener('change', (e) => this.importExpensesFromFile(e));
+        }
 
         // Modal de confirmação
         this.setupModal();
+    }
+
+    // Exporta os gastos para arquivo JSON
+    exportExpenses() {
+        if (this.expenses.length === 0) {
+            alert('Não há gastos para exportar.');
+            return;
+        }
+
+        const payload = {
+            app: 'gastos-mensais',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            expenses: this.expenses
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const datePart = new Date().toISOString().split('T')[0];
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `gastos-${datePart}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+        this.showSuccessMessage('Gastos exportados com sucesso!');
+    }
+
+    // Importa gastos de um arquivo JSON
+    importExpensesFromFile(event) {
+        const input = event.target;
+        const file = input.files && input.files[0];
+
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            try {
+                const parsed = JSON.parse(reader.result);
+                const rawExpenses = Array.isArray(parsed) ? parsed : parsed.expenses;
+
+                if (!Array.isArray(rawExpenses)) {
+                    throw new Error('Formato inválido.');
+                }
+
+                const importedExpenses = rawExpenses.map((expense, index) => this.normalizeImportedExpense(expense, index));
+
+                if (importedExpenses.length === 0) {
+                    alert('O arquivo não possui gastos válidos para importação.');
+                    return;
+                }
+
+                const shouldReplace = confirm(`Importar ${importedExpenses.length} gasto(s)? Isso substituirá os dados atuais.`);
+                if (!shouldReplace) return;
+
+                this.expenses = importedExpenses;
+                this.saveExpenses();
+                this.applyFilters();
+                this.updateSummary();
+                this.showSuccessMessage('Gastos importados com sucesso!');
+            } catch (error) {
+                console.error('Erro ao importar gastos:', error);
+                alert('Não foi possível importar o arquivo. Verifique se é um JSON válido de gastos.');
+            } finally {
+                input.value = '';
+            }
+        };
+
+        reader.onerror = () => {
+            input.value = '';
+            alert('Erro ao ler o arquivo selecionado.');
+        };
+
+        reader.readAsText(file, 'utf-8');
+    }
+
+    // Normaliza dados importados
+    normalizeImportedExpense(expense, index) {
+        const normalizedValue = Number(expense.value);
+        const value = Number.isFinite(normalizedValue) ? normalizedValue : 0;
+        const dueDate = typeof expense.dueDate === 'string' && expense.dueDate.trim()
+            ? expense.dueDate
+            : new Date().toISOString().split('T')[0];
+
+        return {
+            id: expense.id ? String(expense.id) : `${Date.now()}-${index}`,
+            description: typeof expense.description === 'string' && expense.description.trim()
+                ? expense.description.trim()
+                : 'Sem descrição',
+            value,
+            dueDate,
+            isPaid: Boolean(expense.isPaid),
+            type: expense.type === 'income' ? 'income' : 'expense',
+            createdAt: expense.createdAt || new Date().toISOString(),
+            updatedAt: expense.updatedAt || null
+        };
     }
 
     // Configura modal de confirmação

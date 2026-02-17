@@ -29,6 +29,8 @@ Um sistema simples e eficiente para controlar gastos mensais, desenvolvido com H
 ### 💾 Persistência Local
 - Dados salvos automaticamente no navegador
 - Carregamento automático na próxima visita
+- Exportação dos gastos em arquivo JSON
+- Importação de backup JSON para restaurar os gastos
 
 ### 🎨 Interface Moderna
 - Design responsivo para mobile e desktop
@@ -68,6 +70,11 @@ Um sistema simples e eficiente para controlar gastos mensais, desenvolvido com H
 - Use a caixa de pesquisa para filtrar por descrição
 - Selecione o filtro de status (Todos, Pagos, Pendentes, Vencidos)
 - Selecione a ordenação desejada no dropdown
+
+### 6. Exportar e Importar Gastos
+1. Clique em **📤 Exportar Gastos** para baixar um arquivo `.json` com todos os gastos atuais
+2. Clique em **📥 Importar Gastos** para escolher um arquivo de backup `.json`
+3. Confirme a importação para substituir os gastos atuais pelos dados do arquivo
 
 ## ⌨️ Atalhos de Teclado
 
