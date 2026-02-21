@@ -1249,6 +1249,18 @@ footer p {
     header {
         padding: var(--spacing-lg);
     }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+
+    .user-menu {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
     
     header h1 {
         font-size: 1.5rem;
