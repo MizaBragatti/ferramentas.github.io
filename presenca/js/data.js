@@ -24,9 +24,12 @@ const DataManager = {
 
     // Helper to get Firebase path (shared students vs per-user data)
     getFirebasePath(key, userId) {
-        // Students are shared across all users
+        // Shared data across all users
         if (key === this.KEYS.STUDENTS) {
             return `shared/students`;
+        }
+        if (key === this.KEYS.ATTENDANCE) {
+            return `shared/attendance_records`;
         }
         // All other data is per-user
         return `users/${userId}/${key}`;
@@ -44,6 +47,7 @@ const DataManager = {
         }
 
         await this.initFirebase(user.uid);
+        await this.migrateAttendanceToShared(user.uid);
         console.log('DataManager initialized with Firebase for user:', user.uid);
     },
 
@@ -58,6 +62,37 @@ const DataManager = {
             await this.initializeDefaultModules();
         } else {
             console.log('Modules found in Firebase');
+        }
+    },
+
+    // Migrate attendance from user path to shared path
+    async migrateAttendanceToShared(userId) {
+        try {
+            const legacyPath = `users/${userId}/${this.KEYS.ATTENDANCE}`;
+            const sharedPath = this.getFirebasePath(this.KEYS.ATTENDANCE, userId);
+
+            if (legacyPath === sharedPath) return;
+
+            const legacyRef = ref(database, legacyPath);
+            const sharedRef = ref(database, sharedPath);
+
+            const legacySnapshot = await get(legacyRef);
+            if (!legacySnapshot.exists()) return;
+
+            const legacyData = legacySnapshot.val();
+            const { data: legacyStructured } = this.sanitizeAttendanceKeys(legacyData);
+
+            const sharedSnapshot = await get(sharedRef);
+            const sharedData = sharedSnapshot.exists() ? sharedSnapshot.val() : {};
+            const { data: sharedStructured } = this.sanitizeAttendanceKeys(sharedData);
+
+            const merged = this.mergeAttendanceData(sharedStructured, legacyStructured);
+            await set(sharedRef, merged);
+
+            await remove(legacyRef);
+            console.log('Attendance migration completed: user -> shared');
+        } catch (error) {
+            console.warn('Attendance migration failed:', error);
         }
     },
 
@@ -108,8 +143,8 @@ const DataManager = {
                     return [];
                 }
                 
-                // Convert Firebase object to array if needed
-                if (data && typeof data === 'object' && !Array.isArray(data)) {
+                // Convert Firebase object to array if needed (skip attendance structure)
+                if (key !== this.KEYS.ATTENDANCE && data && typeof data === 'object' && !Array.isArray(data)) {
                     const keys = Object.keys(data);
                     if (keys.every(k => !isNaN(k))) {
                         const arr = Object.values(data);
@@ -144,9 +179,9 @@ const DataManager = {
         if (snapshot.exists()) {
             const data = snapshot.val();
             
-            // Convert object to array if needed
+            // Convert object to array if needed (skip attendance structure)
             let processedData = data;
-            if (data && typeof data === 'object' && !Array.isArray(data)) {
+            if (key !== this.KEYS.ATTENDANCE && data && typeof data === 'object' && !Array.isArray(data)) {
                 const keys = Object.keys(data);
                 if (keys.every(k => !isNaN(k))) {
                     processedData = Object.values(data);
@@ -300,9 +335,35 @@ const DataManager = {
         await this.setData(this.KEYS.STUDENTS, filtered);
         
         // Also delete related attendance records
-        const attendance = await this.getAttendance();
-        const filteredAttendance = attendance.filter(a => a.studentId !== id);
-        await this.setData(this.KEYS.ATTENDANCE, filteredAttendance);
+        const attendance = await this.getAttendanceRaw();
+        let changed = false;
+        
+        Object.keys(attendance).forEach(year => {
+            Object.keys(attendance[year]).forEach(month => {
+                Object.keys(attendance[year][month]).forEach(day => {
+                    const dayBucket = attendance[year][month][day];
+                    Object.keys(dayBucket).forEach(recordId => {
+                        if (dayBucket[recordId].studentId === id) {
+                            delete dayBucket[recordId];
+                            changed = true;
+                        }
+                    });
+                    if (Object.keys(dayBucket).length === 0) {
+                        delete attendance[year][month][day];
+                    }
+                });
+                if (Object.keys(attendance[year][month]).length === 0) {
+                    delete attendance[year][month];
+                }
+            });
+            if (Object.keys(attendance[year]).length === 0) {
+                delete attendance[year];
+            }
+        });
+        
+        if (changed) {
+            await this.setData(this.KEYS.ATTENDANCE, attendance);
+        }
     },
 
     // Modules CRUD
@@ -353,14 +414,128 @@ const DataManager = {
         return null;
     },
 
+    // Attendance helpers (Year -> Month -> Day)
+    parseAttendanceDate(date) {
+        const [year, month, day] = date.split('-');
+        return { year, month, day };
+    },
+
+    makeAttendanceKey(id) {
+        return String(id).replace(/\./g, '_');
+    },
+
+    sanitizeAttendanceKeys(attendanceData) {
+        const structured = this.ensureAttendanceStructure(attendanceData);
+        let changed = false;
+
+        Object.keys(structured).forEach(year => {
+            Object.keys(structured[year]).forEach(month => {
+                Object.keys(structured[year][month]).forEach(day => {
+                    const dayBucket = structured[year][month][day];
+                    Object.keys(dayBucket).forEach(recordKey => {
+                        const safeKey = this.makeAttendanceKey(recordKey);
+                        if (safeKey !== recordKey) {
+                            dayBucket[safeKey] = dayBucket[recordKey];
+                            delete dayBucket[recordKey];
+                            changed = true;
+                        }
+                    });
+                });
+            });
+        });
+
+        return { data: structured, changed };
+    },
+
+    mergeAttendanceData(baseData, incomingData) {
+        const base = this.ensureAttendanceStructure(baseData);
+        const incoming = this.ensureAttendanceStructure(incomingData);
+
+        Object.keys(incoming).forEach(year => {
+            if (!base[year]) base[year] = {};
+            Object.keys(incoming[year]).forEach(month => {
+                if (!base[year][month]) base[year][month] = {};
+                Object.keys(incoming[year][month]).forEach(day => {
+                    if (!base[year][month][day]) base[year][month][day] = {};
+                    Object.keys(incoming[year][month][day]).forEach(recordKey => {
+                        if (!base[year][month][day][recordKey]) {
+                            base[year][month][day][recordKey] = incoming[year][month][day][recordKey];
+                        }
+                    });
+                });
+            });
+        });
+
+        return base;
+    },
+
+    ensureAttendanceStructure(attendanceData) {
+        if (!attendanceData) return {};
+        if (Array.isArray(attendanceData)) {
+            const structured = {};
+            attendanceData.forEach(record => {
+                if (!record || !record.date) return;
+                const { year, month, day } = this.parseAttendanceDate(record.date);
+                if (!structured[year]) structured[year] = {};
+                if (!structured[year][month]) structured[year][month] = {};
+                if (!structured[year][month][day]) structured[year][month][day] = {};
+                structured[year][month][day][record.id] = record;
+            });
+            return structured;
+        }
+        return attendanceData;
+    },
+
+    flattenAttendance(attendanceData) {
+        const structured = this.ensureAttendanceStructure(attendanceData);
+        const records = [];
+        Object.keys(structured).forEach(year => {
+            Object.keys(structured[year]).forEach(month => {
+                Object.keys(structured[year][month]).forEach(day => {
+                    const dayBucket = structured[year][month][day];
+                    Object.values(dayBucket).forEach(record => records.push(record));
+                });
+            });
+        });
+        return records;
+    },
+
+    async getAttendanceRaw() {
+        const data = await this.getData(this.KEYS.ATTENDANCE);
+        const { data: structured, changed } = this.sanitizeAttendanceKeys(data);
+        if (Array.isArray(data) || changed) {
+            await this.setData(this.KEYS.ATTENDANCE, structured);
+        }
+        return structured;
+    },
+
+    findAttendanceRecordById(attendance, id) {
+        for (const year of Object.keys(attendance)) {
+            for (const month of Object.keys(attendance[year])) {
+                for (const day of Object.keys(attendance[year][month])) {
+                    const dayBucket = attendance[year][month][day];
+                    for (const [recordKey, record] of Object.entries(dayBucket)) {
+                        if (record.id === id) {
+                            return { year, month, day, recordKey, record };
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    },
+
     // Attendance CRUD
     async getAttendance() {
-        return await this.getData(this.KEYS.ATTENDANCE) || [];
+        const data = await this.getData(this.KEYS.ATTENDANCE);
+        return this.flattenAttendance(data);
     },
 
     async getAttendanceByDate(date) {
-        const attendance = await this.getAttendance();
-        return attendance.filter(a => a.date === date);
+        const attendance = await this.getAttendanceRaw();
+        const { year, month, day } = this.parseAttendanceDate(date);
+        const dayBucket = attendance?.[year]?.[month]?.[day] || {};
+        return Object.values(dayBucket);
     },
 
     async getAttendanceByStudent(studentId) {
@@ -382,7 +557,7 @@ const DataManager = {
     },
 
     async addAttendanceRecord(record) {
-        const attendance = await this.getAttendance();
+        const attendance = await this.getAttendanceRaw();
         const newRecord = {
             id: Date.now() + Math.random(),
             studentId: record.studentId,
@@ -395,22 +570,28 @@ const DataManager = {
         };
         
         console.log('addAttendanceRecord - Adicionando novo registro:', newRecord);
-        attendance.push(newRecord);
+        const { year, month, day } = this.parseAttendanceDate(newRecord.date);
+        if (!attendance[year]) attendance[year] = {};
+        if (!attendance[year][month]) attendance[year][month] = {};
+        if (!attendance[year][month][day]) attendance[year][month][day] = {};
+        const recordKey = this.makeAttendanceKey(newRecord.id);
+        attendance[year][month][day][recordKey] = newRecord;
         await this.setData(this.KEYS.ATTENDANCE, attendance);
-        console.log('addAttendanceRecord - Total de registros agora:', attendance.length);
+        console.log('addAttendanceRecord - Registro adicionado na estrutura Ano/Mês/Dia');
         return newRecord;
     },
 
     async updateAttendanceRecord(id, updates) {
-        const attendance = await this.getAttendance();
-        const index = attendance.findIndex(a => a.id === id);
+        const attendance = await this.getAttendanceRaw();
+        const found = this.findAttendanceRecordById(attendance, id);
         
-        if (index !== -1) {
-            console.log('updateAttendanceRecord - Atualizando registro:', attendance[index]);
-            attendance[index] = { ...attendance[index], ...updates };
-            console.log('updateAttendanceRecord - Registro atualizado:', attendance[index]);
+        if (found) {
+            console.log('updateAttendanceRecord - Atualizando registro:', found.record);
+            const updated = { ...found.record, ...updates };
+            attendance[found.year][found.month][found.day][found.recordKey] = updated;
+            console.log('updateAttendanceRecord - Registro atualizado:', updated);
             await this.setData(this.KEYS.ATTENDANCE, attendance);
-            return attendance[index];
+            return updated;
         }
         console.warn('updateAttendanceRecord - Registro não encontrado com id:', id);
         return null;
@@ -418,8 +599,10 @@ const DataManager = {
 
     // Check if attendance exists for student on date
     async getAttendanceRecord(studentId, date) {
-        const attendance = await this.getAttendance();
-        return attendance.find(a => a.studentId === studentId && a.date === date);
+        const attendance = await this.getAttendanceRaw();
+        const { year, month, day } = this.parseAttendanceDate(date);
+        const dayBucket = attendance?.[year]?.[month]?.[day] || {};
+        return Object.values(dayBucket).find(a => a.studentId === studentId && a.date === date);
     },
 
     // Save or update attendance
@@ -520,7 +703,10 @@ const DataManager = {
     async importData(data) {
         if (data.students) await this.setData(this.KEYS.STUDENTS, data.students);
         if (data.modules) await this.setData(this.KEYS.MODULES, data.modules);
-        if (data.attendance) await this.setData(this.KEYS.ATTENDANCE, data.attendance);
+        if (data.attendance) {
+            const attendance = this.ensureAttendanceStructure(data.attendance);
+            await this.setData(this.KEYS.ATTENDANCE, attendance);
+        }
         if (data.alerts) await this.setData(this.KEYS.ALERTS, data.alerts);
     },
 
