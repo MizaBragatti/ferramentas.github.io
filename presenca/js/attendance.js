@@ -9,6 +9,9 @@ import Calculator from './calculations.js';
 let currentDate = '';
 let currentModuleFilter = 'all';
 let currentPhaseFilter = 'all';
+let isUpdating = false; // Flag to prevent concurrent updates
+let temporaryAttendance = {}; // Temporary storage for unsaved attendance marks
+let hasUnsavedChanges = false; // Flag to track unsaved changes
 
 // Initialize attendance page
 export async function initAttendancePage() {
@@ -16,14 +19,26 @@ export async function initAttendancePage() {
     setToday();
     await loadAttendance();
     setupEventListeners();
+    setupBeforeUnloadWarning();
 }
 
 // Setup event listeners
 function setupEventListeners() {
-    document.getElementById('attendanceDate').addEventListener('change', loadAttendance);
+    document.getElementById('attendanceDate').addEventListener('change', handleDateChange);
     document.getElementById('moduleFilter').addEventListener('change', handleModuleFilterChange);
-    document.getElementById('phaseFilter').addEventListener('change', loadAttendance);
+    document.getElementById('phaseFilter').addEventListener('change', handleFilterChange);
     document.getElementById('searchAttendance').addEventListener('keyup', filterAttendanceList);
+}
+
+// Setup warning before leaving page with unsaved changes
+function setupBeforeUnloadWarning() {
+    window.addEventListener('beforeunload', (e) => {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
+            return e.returnValue;
+        }
+    });
 }
 
 // Set date to today (Saturday)
@@ -34,20 +49,62 @@ function setToday() {
     currentDate = dateStr;
 }
 
+// Export setToday to window for onclick handler
+if (typeof window !== 'undefined') {
+    window.setToday = setToday;
+}
+
+// Handle date change with unsaved changes warning
+async function handleDateChange() {
+    if (hasUnsavedChanges) {
+        const confirm = window.confirm('Você tem alterações não salvas. Deseja salvar antes de mudar a data?');
+        if (confirm) {
+            await saveAttendance();
+        } else {
+            temporaryAttendance = {};
+            hasUnsavedChanges = false;
+            updateSaveButtonState();
+        }
+    }
+    await loadAttendance();
+}
+
+// Handle filter change with unsaved changes warning
+async function handleFilterChange() {
+    if (hasUnsavedChanges) {
+        const confirm = window.confirm('Você tem alterações não salvas. Deseja salvar antes de mudar o filtro?');
+        if (confirm) {
+            await saveAttendance();
+        } else {
+            temporaryAttendance = {};
+            hasUnsavedChanges = false;
+            updateSaveButtonState();
+        }
+    }
+    await loadAttendance();
+}
+
 // Handle module filter change
 function handleModuleFilterChange() {
     currentModuleFilter = document.getElementById('moduleFilter').value;
-    loadAttendance();
+    handleFilterChange();
 }
 
 // Load attendance list
-async function loadAttendance() {
+async function loadAttendance(clearTemporary = true) {
     currentDate = document.getElementById('attendanceDate').value;
     currentModuleFilter = document.getElementById('moduleFilter').value;
     currentPhaseFilter = document.getElementById('phaseFilter').value;
     
     if (!currentDate) {
         return;
+    }
+    
+    // Clear temporary storage when changing date/filters (only if specified)
+    if (clearTemporary) {
+        temporaryAttendance = {};
+        hasUnsavedChanges = false;
+        updateSaveButtonState();
     }
     
     const students = await DataManager.getStudents();
@@ -69,6 +126,8 @@ async function loadAttendance() {
     
     // Get existing attendance records for this date
     const existingRecords = await DataManager.getAttendanceByDate(currentDate);
+    
+    console.log(`loadAttendance: Carregados ${existingRecords.length} registros para a data ${currentDate}`, existingRecords);
     
     // Display alerts summary
     await displayAlertsSummary(filteredStudents);
@@ -122,7 +181,12 @@ async function renderAttendanceList(students, existingRecords) {
     for (let index = 0; index < students.length; index++) {
         const student = students[index];
         const record = existingRecords.find(r => r.studentId === student.id);
-        const isPresent = record ? record.present : null;
+        
+        // Check temporary storage first, then saved record
+        const tempKey = `${student.id}_${currentDate}`;
+        const isPresent = temporaryAttendance.hasOwnProperty(tempKey) 
+            ? temporaryAttendance[tempKey]
+            : (record ? record.present : null);
         
         // Get alert status for this student
         const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
@@ -170,19 +234,45 @@ async function renderAttendanceList(students, existingRecords) {
 
 // Mark attendance for a student
 async function markAttendance(studentId, moduleNumber, phaseNumber, present) {
-    // Update UI immediately for instant feedback
-    updateButtonState(studentId, present);
+    // Prevent concurrent updates
+    if (isUpdating) {
+        console.log('Update already in progress, queuing...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return markAttendance(studentId, moduleNumber, phaseNumber, present);
+    }
     
-    // Save to DataManager (localStorage first, Firebase background)
-    await DataManager.saveAttendance(studentId, currentDate, moduleNumber, phaseNumber, present);
+    isUpdating = true;
     
-    // Recalculate alerts in background (don't block UI)
-    Calculator.checkAlert(studentId, moduleNumber).catch(err => 
-        console.warn('Alert calculation delayed:', err)
-    );
-    
-    // Update summary without full reload
-    await updateAttendanceSummary();
+    try {
+        // Update UI immediately for instant feedback
+        updateButtonState(studentId, present);
+        
+        // Save to temporary storage (local memory only)
+        const tempKey = `${studentId}_${currentDate}`;
+        temporaryAttendance[tempKey] = present;
+        
+        // Store module and phase info for later save
+        temporaryAttendance[`${tempKey}_module`] = moduleNumber;
+        temporaryAttendance[`${tempKey}_phase`] = phaseNumber;
+        
+        hasUnsavedChanges = true;
+        updateSaveButtonState();
+        
+        // Update summary with temporary data
+        await updateAttendanceSummary();
+        
+        console.log('Marcação temporária salva:', { studentId, present });
+    } catch (error) {
+        console.error('Error marking attendance:', error);
+        showMessage('Erro ao marcar presença. Tente novamente.', 'error');
+    } finally {
+        isUpdating = false;
+    }
+}
+
+// Export markAttendance to window for onclick handlers
+if (typeof window !== 'undefined') {
+    window.markAttendance = markAttendance;
 }
 
 // Update button state immediately (optimistic UI update)
@@ -204,68 +294,216 @@ function updateButtonState(studentId, present) {
 
 // Mark all present
 async function markAllPresent() {
-    const confirmMark = confirm('Marcar todos os alunos como presentes?');
+    const confirmMark = confirm('Marcar todos os alunos como presentes? (Você precisará clicar em "Salvar Presença" depois)');
     
     if (!confirmMark) return;
     
     const students = await DataManager.getStudents();
-    const currentPhase = currentPhaseFilter !== 'all' ? parseInt(currentPhaseFilter) : 1;
     
-    for (const student of students) {
-        if (currentModuleFilter === 'all' || student.currentModule === parseInt(currentModuleFilter)) {
-            await DataManager.saveAttendance(student.id, currentDate, student.currentModule, currentPhase, true);
-            await Calculator.checkAlert(student.id, student.currentModule);
-        }
-    }
-    
-    await loadAttendance();
-    showMessage('Todos os alunos marcados como presentes!', 'success');
-}
-
-// Clear all marks
-async function clearAllMarks() {
-    const confirmClear = confirm('Limpar todas as marcações de presença desta data?');
-    
-    if (!confirmClear) return;
-    
-    const attendance = await DataManager.getAttendance();
-    const filtered = attendance.filter(a => a.date !== currentDate);
-    await DataManager.setData(DataManager.KEYS.ATTENDANCE, filtered);
-    
-    await loadAttendance();
-    showMessage('Marcações limpas!', 'info');
-}
-
-// Save attendance (just a confirmation)
-function saveAttendance() {
-    showMessage('Presença salva automaticamente!', 'success');
-    updateAttendanceSummary();
-}
-
-// Update attendance summary
-async function updateAttendanceSummary() {
-    const existingRecords = await DataManager.getAttendanceByDate(currentDate);
-    const students = await DataManager.getStudents();
-    
+    // Filter students based on current module filter
     let filteredStudents = students;
     if (currentModuleFilter !== 'all') {
         filteredStudents = students.filter(s => s.currentModule === parseInt(currentModuleFilter));
     }
     
-    const total = filteredStudents.length;
-    const present = existingRecords.filter(r => r.present && 
-        filteredStudents.some(s => s.id === r.studentId)).length;
-    const absent = existingRecords.filter(r => !r.present && 
-        filteredStudents.some(s => s.id === r.studentId)).length;
-    const unmarked = total - present - absent;
+    const currentPhase = currentPhaseFilter !== 'all' ? parseInt(currentPhaseFilter) : 1;
     
-    document.getElementById('totalCount').textContent = total;
-    document.getElementById('presentCount').textContent = present;
-    document.getElementById('absentCount').textContent = absent;
-    document.getElementById('unmarkedCount').textContent = unmarked;
+    let count = 0;
+    for (const student of filteredStudents) {
+        // Save to temporary storage
+        const tempKey = `${student.id}_${currentDate}`;
+        temporaryAttendance[tempKey] = true;
+        temporaryAttendance[`${tempKey}_module`] = student.currentModule;
+        temporaryAttendance[`${tempKey}_phase`] = currentPhase;
+        count++;
+    }
     
-    if (total > 0) {
-        document.getElementById('attendanceSummary').style.display = 'block';
+    hasUnsavedChanges = true;
+    updateSaveButtonState();
+    
+    // Reload without clearing temporary storage
+    await loadAttendance(false);
+    showMessage(`${count} aluno(s) marcados como presentes. Clique em "Salvar Presença" para confirmar.`, 'success');
+}
+
+// Export markAllPresent to window for onclick handler
+if (typeof window !== 'undefined') {
+    window.markAllPresent = markAllPresent;
+}
+
+// Clear all marks
+async function clearAllMarks() {
+    const confirmClear = confirm('Limpar todas as marcações temporárias (não salvas)?');
+    
+    if (!confirmClear) return;
+    
+    // Clear only temporary storage, keep saved data
+    temporaryAttendance = {};
+    hasUnsavedChanges = false;
+    updateSaveButtonState();
+    
+    // Reload with clearing (which is already done above)
+    await loadAttendance(true);
+    showMessage('Marcações temporárias limpas!', 'info');
+}
+
+// Export clearAllMarks to window for onclick handler
+if (typeof window !== 'undefined') {
+    window.clearAllMarks = clearAllMarks;
+}
+
+// Save attendance (save temporary marks to DataManager)
+async function saveAttendance() {
+    if (!hasUnsavedChanges) {
+        showMessage('Não há alterações para salvar.', 'info');
+        return;
+    }
+    
+    try {
+        const saveCount = Object.keys(temporaryAttendance).filter(k => !k.includes('_module') && !k.includes('_phase')).length;
+        
+        if (saveCount === 0) {
+            showMessage('Não há marcações para salvar.', 'info');
+            return;
+        }
+        
+        // Show saving message
+        showMessage(`Salvando ${saveCount} marcação(ões)...`, 'info');
+        
+        console.log('Iniciando salvamento. temporaryAttendance:', temporaryAttendance);
+        
+        // Save all temporary marks to DataManager (localStorage + Firebase)
+        let savedCount = 0;
+        for (const key in temporaryAttendance) {
+            if (key.includes('_module') || key.includes('_phase')) continue;
+            
+            // Split key: "studentId_date" (date format: 2026-02-06)
+            const parts = key.split('_');
+            const studentId = parts[0];
+            const date = parts.slice(1).join('_'); // Rejoin in case date has underscores
+            
+            const present = temporaryAttendance[key];
+            const moduleNumber = temporaryAttendance[`${key}_module`];
+            const phaseNumber = temporaryAttendance[`${key}_phase`];
+            
+            console.log(`Salvando: studentId=${studentId}, date=${date}, module=${moduleNumber}, phase=${phaseNumber}, present=${present}`);
+            
+            const result = await DataManager.saveAttendance(
+                parseInt(studentId), 
+                date, 
+                moduleNumber, 
+                phaseNumber, 
+                present
+            );
+            
+            console.log('Resultado do salvamento:', result);
+            savedCount++;
+            
+            // Recalculate alerts
+            Calculator.checkAlert(parseInt(studentId), moduleNumber).catch(err => 
+                console.warn('Alert calculation delayed:', err)
+            );
+        }
+        
+        console.log(`${savedCount} registros salvos no DataManager`);
+        
+        // Clear temporary storage
+        temporaryAttendance = {};
+        hasUnsavedChanges = false;
+        updateSaveButtonState();
+        
+        showMessage(`✓ ${saveCount} marcação(ões) salva(s) com sucesso!`, 'success');
+        
+        console.log('Todas as marcações foram salvas no banco de dados');
+    } catch (error) {
+        console.error('Error saving attendance:', error);
+        showMessage('Erro ao salvar presença. Tente novamente.', 'error');
+    }
+}
+
+// Export saveAttendance to window for onclick handler
+if (typeof window !== 'undefined') {
+    window.saveAttendance = saveAttendance;
+}
+
+// Update save button state to show unsaved changes
+function updateSaveButtonState() {
+    const saveButtons = document.querySelectorAll('button[onclick="saveAttendance()"]');
+    saveButtons.forEach(btn => {
+        if (hasUnsavedChanges) {
+            btn.classList.add('has-changes');
+            btn.textContent = '💾 Salvar Presença *';
+            btn.style.background = '#ff9800'; // Orange color for unsaved
+            btn.title = 'Há alterações não salvas! Clique para salvar.';
+        } else {
+            btn.classList.remove('has-changes');
+            btn.textContent = '💾 Salvar Presença';
+            btn.style.background = ''; // Reset to default
+            btn.title = 'Salvar presença no banco de dados';
+        }
+    });
+}
+
+// Update attendance summary
+async function updateAttendanceSummary() {
+    try {
+        const existingRecords = await DataManager.getAttendanceByDate(currentDate);
+        const students = await DataManager.getStudents();
+        
+        let filteredStudents = students;
+        if (currentModuleFilter !== 'all') {
+            filteredStudents = students.filter(s => s.currentModule === parseInt(currentModuleFilter));
+        }
+        
+        const total = filteredStudents.length;
+        
+        // Count students with records matching our filters
+        // Check temporary storage first, then saved records
+        let present = 0;
+        let absent = 0;
+        
+        filteredStudents.forEach(student => {
+            const tempKey = `${student.id}_${currentDate}`;
+            let studentPresent = null;
+            
+            // Check temporary storage first
+            if (temporaryAttendance.hasOwnProperty(tempKey)) {
+                studentPresent = temporaryAttendance[tempKey];
+            } else {
+                // Fall back to saved record
+                const record = existingRecords.find(r => r.studentId === student.id);
+                if (record) {
+                    studentPresent = record.present;
+                }
+            }
+            
+            if (studentPresent === true) {
+                present++;
+            } else if (studentPresent === false) {
+                absent++;
+            }
+        });
+        
+        const unmarked = total - present - absent;
+        
+        // Force DOM update
+        const totalEl = document.getElementById('totalCount');
+        const presentEl = document.getElementById('presentCount');
+        const absentEl = document.getElementById('absentCount');
+        const unmarkedEl = document.getElementById('unmarkedCount');
+        
+        if (totalEl) totalEl.textContent = total;
+        if (presentEl) presentEl.textContent = present;
+        if (absentEl) absentEl.textContent = absent;
+        if (unmarkedEl) unmarkedEl.textContent = unmarked;
+        
+        if (total > 0) {
+            document.getElementById('attendanceSummary').style.display = 'block';
+        }
+        
+        console.log('Summary updated:', { total, present, absent, unmarked });
+    } catch (error) {
+        console.error('Error updating summary:', error);
     }
 }
 
@@ -310,12 +548,4 @@ function showMessage(message, type = 'info') {
         messageEl.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => messageEl.remove(), 300);
     }, 3000);
-}
-
-// Export functions to window for onclick handlers
-if (typeof window !== 'undefined') {
-    window.markAttendance = markAttendance;
-    window.markAllPresent = markAllPresent;
-    window.clearAllMarks = clearAllMarks;
-    window.saveAttendance = saveAttendance;
 }

@@ -219,6 +219,7 @@ const DataManager = {
 
     setDataLocal(key, value) {
         localStorage.setItem(key, JSON.stringify(value));
+        console.log(`localStorage.setItem(${key}):`, value.length ? `${value.length} items` : value);
     },
 
     // Real-time listener for data changes
@@ -393,8 +394,10 @@ const DataManager = {
             timestamp: new Date().toISOString()
         };
         
+        console.log('addAttendanceRecord - Adicionando novo registro:', newRecord);
         attendance.push(newRecord);
         await this.setData(this.KEYS.ATTENDANCE, attendance);
+        console.log('addAttendanceRecord - Total de registros agora:', attendance.length);
         return newRecord;
     },
 
@@ -403,10 +406,13 @@ const DataManager = {
         const index = attendance.findIndex(a => a.id === id);
         
         if (index !== -1) {
+            console.log('updateAttendanceRecord - Atualizando registro:', attendance[index]);
             attendance[index] = { ...attendance[index], ...updates };
+            console.log('updateAttendanceRecord - Registro atualizado:', attendance[index]);
             await this.setData(this.KEYS.ATTENDANCE, attendance);
             return attendance[index];
         }
+        console.warn('updateAttendanceRecord - Registro não encontrado com id:', id);
         return null;
     },
 
@@ -418,15 +424,18 @@ const DataManager = {
 
     // Save or update attendance
     async saveAttendance(studentId, date, moduleNumber, phaseNumber, present) {
+        console.log(`saveAttendance chamado: studentId=${studentId}, date=${date}, module=${moduleNumber}, phase=${phaseNumber}, present=${present}`);
         const existing = await this.getAttendanceRecord(studentId, date);
         
         if (existing) {
+            console.log('Registro existente encontrado, atualizando:', existing);
             return await this.updateAttendanceRecord(existing.id, {
                 moduleNumber,
                 phaseNumber,
                 present
             });
         } else {
+            console.log('Nenhum registro existente, criando novo');
             return await this.addAttendanceRecord({
                 studentId,
                 date,

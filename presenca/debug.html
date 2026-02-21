@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Sistema de Presença</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .debug-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .debug-section h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .debug-info {
+            font-family: monospace;
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .btn-debug {
+            margin: 10px 5px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Página de Debug</h1>
+            <nav class="breadcrumb">
+                <a href="index.html">Início</a> &gt; Debug
+            </nav>
+        </header>
+
+        <div class="content">
+            <div class="debug-section">
+                <h3>Status da Autenticação</h3>
+                <div id="authStatus" class="status info">Verificando...</div>
+                <div class="debug-info" id="authInfo"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Dados do Firebase</h3>
+                <button class="btn btn-primary btn-debug" onclick="checkFirebaseData()">🔄 Verificar Firebase</button>
+                <button class="btn btn-secondary btn-debug" onclick="clearLocalCache()">🗑️ Limpar Cache Local</button>
+                <div id="firebaseStatus" class="status info" style="display:none;"></div>
+                <div class="debug-info" id="firebaseInfo"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Cache Local (localStorage)</h3>
+                <div class="debug-info" id="localStorageInfo"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Logs do Console</h3>
+                <div class="debug-info" id="consoleLogs" style="max-height: 400px;"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Informações do Dispositivo</h3>
+                <div class="debug-info" id="deviceInfo"></div>
+            </div>
+        </div>
+
+        <footer>
+            <a href="index.html" class="btn btn-secondary">⬅️ Voltar</a>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { getCurrentUser, onAuthChange, getUserData } from './js/auth.js';
+        import DataManager from './js/data.js';
+        import { database } from './js/firebase-config.js';
+        import { ref, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const logs = [];
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        // Capture console logs
+        console.log = function(...args) {
+            logs.push({ type: 'log', message: args.join(' '), time: new Date().toISOString() });
+            updateConsoleLogs();
+            originalConsoleLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            logs.push({ type: 'error', message: args.join(' '), time: new Date().toISOString() });
+            updateConsoleLogs();
+            originalConsoleError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            logs.push({ type: 'warn', message: args.join(' '), time: new Date().toISOString() });
+            updateConsoleLogs();
+            originalConsoleWarn.apply(console, args);
+        };
+
+        function updateConsoleLogs() {
+            const logsDiv = document.getElementById('consoleLogs');
+            logsDiv.innerHTML = logs.slice(-50).reverse().map(log => {
+                const color = log.type === 'error' ? 'red' : log.type === 'warn' ? 'orange' : 'black';
+                return `<div style="color: ${color}; margin-bottom: 5px;">
+                    <strong>[${new Date(log.time).toLocaleTimeString()}]</strong> ${log.message}
+                </div>`;
+            }).join('');
+        }
+
+        // Show device info
+        function showDeviceInfo() {
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'Online': navigator.onLine,
+                'Screen': `${screen.width}x${screen.height}`,
+                'Viewport': `${window.innerWidth}x${window.innerHeight}`,
+                'Cookie Enabled': navigator.cookieEnabled,
+                'localStorage Available': typeof(Storage) !== 'undefined'
+            };
+            
+            document.getElementById('deviceInfo').textContent = JSON.stringify(info, null, 2);
+        }
+
+        // Check auth status
+        async function checkAuthStatus() {
+            const authStatusDiv = document.getElementById('authStatus');
+            const authInfoDiv = document.getElementById('authInfo');
+            
+            onAuthChange(async (user) => {
+                if (user) {
+                    authStatusDiv.className = 'status success';
+                    authStatusDiv.textContent = '✅ Usuário autenticado';
+                    
+                    const userData = await getUserData(user.uid);
+                    const info = {
+                        'UID': user.uid,
+                        'Email': user.email,
+                        'Display Name': user.displayName,
+                        'Email Verified': user.emailVerified,
+                        'Profile Data': userData
+                    };
+                    authInfoDiv.textContent = JSON.stringify(info, null, 2);
+                } else {
+                    authStatusDiv.className = 'status error';
+                    authStatusDiv.textContent = '❌ Não autenticado';
+                    authInfoDiv.textContent = 'Usuário não está logado';
+                }
+            });
+        }
+
+        // Check Firebase data
+        window.checkFirebaseData = async function() {
+            const statusDiv = document.getElementById('firebaseStatus');
+            const infoDiv = document.getElementById('firebaseInfo');
+            
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔄 Verificando Firebase...';
+            
+            try {
+                const user = getCurrentUser();
+                if (!user) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Usuário não autenticado';
+                    infoDiv.textContent = 'Faça login primeiro';
+                    return;
+                }
+
+                // Check shared students
+                const studentsPath = 'shared/students';
+                const studentsRef = ref(database, studentsPath);
+                const studentsSnapshot = await get(studentsRef);
+                
+                // Check user data
+                const userPath = `users/${user.uid}`;
+                const userRef = ref(database, userPath);
+                const userSnapshot = await get(userRef);
+
+                const info = {
+                    'Firebase Connected': true,
+                    'User UID': user.uid,
+                    'Shared Students Path': studentsPath,
+                    'Students Exist': studentsSnapshot.exists(),
+                    'Students Data': studentsSnapshot.exists() ? studentsSnapshot.val() : null,
+                    'User Data Path': userPath,
+                    'User Data Exists': userSnapshot.exists(),
+                    'User Data': userSnapshot.exists() ? userSnapshot.val() : null
+                };
+
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Dados carregados do Firebase';
+                infoDiv.textContent = JSON.stringify(info, null, 2);
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Erro ao acessar Firebase: ' + error.message;
+                infoDiv.textContent = error.stack;
+                console.error('Firebase error:', error);
+            }
+        };
+
+        // Show localStorage
+        function showLocalStorage() {
+            const keys = Object.values(DataManager.KEYS);
+            const data = {};
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                data[key] = value ? JSON.parse(value) : null;
+            });
+            
+            document.getElementById('localStorageInfo').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Clear local cache
+        window.clearLocalCache = function() {
+            if (confirm('Limpar todo o cache local?\n\nIsso forçará o carregamento dos dados do Firebase.')) {
+                localStorage.clear();
+                alert('✅ Cache local limpo!\n\nRecarregue a página para buscar dados do Firebase.');
+                showLocalStorage();
+            }
+        };
+
+        // Initialize
+        showDeviceInfo();
+        checkAuthStatus();
+        showLocalStorage();
+        
+        // Update localStorage display every 2 seconds
+        setInterval(showLocalStorage, 2000);
+    </script>
+</body>
+</html>

@@ -332,6 +332,26 @@ header h1 {
     box-shadow: var(--shadow-sm);
 }
 
+/* Button with unsaved changes indicator */
+.btn.has-changes {
+    background: #ff9800 !important;
+    animation: pulse 2s infinite;
+    position: relative;
+}
+
+.btn.has-changes:hover {
+    background: #f57c00 !important;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
+    }
+}
+
 .btn-secondary {
     background: var(--gray-300);
     color: var(--gray-900);
