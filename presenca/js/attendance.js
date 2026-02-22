@@ -12,6 +12,108 @@ let currentPhaseFilter = 'all';
 let isUpdating = false; // Flag to prevent concurrent updates
 let temporaryAttendance = {}; // Temporary storage for unsaved attendance marks
 let hasUnsavedChanges = false; // Flag to track unsaved changes
+let currentDayRecords = []; // Daily records loaded directly from Firebase
+let cachedStudents = null;
+let cachedPeriodAttendance = null;
+let moduleStatsByStudent = new Map();
+
+function upsertAttendanceRecord(records, newRecord) {
+    const index = records.findIndex(r => r.studentId === newRecord.studentId && r.date === newRecord.date);
+    if (index >= 0) {
+        records[index] = newRecord;
+    } else {
+        records.push(newRecord);
+    }
+}
+
+function buildStudentModuleStats(attendanceRecords) {
+    const statsMap = new Map();
+
+    attendanceRecords.forEach(record => {
+        const key = `${record.studentId}_${record.moduleNumber}`;
+        const current = statsMap.get(key) || { total: 0, present: 0, absent: 0 };
+        current.total += 1;
+        if (record.present) {
+            current.present += 1;
+        } else {
+            current.absent += 1;
+        }
+        statsMap.set(key, current);
+    });
+
+    statsMap.forEach((value) => {
+        value.attendancePercentage = value.total > 0
+            ? Math.round((value.present / value.total) * 100)
+            : 0;
+        value.absencePercentage = value.total > 0
+            ? Math.round((value.absent / value.total) * 100)
+            : 0;
+    });
+
+    moduleStatsByStudent = statsMap;
+}
+
+async function ensureAttendanceCaches(forceRefresh = false) {
+    if (forceRefresh || !cachedStudents) {
+        cachedStudents = await DataManager.getStudents();
+    }
+
+    if (forceRefresh || !cachedPeriodAttendance) {
+        cachedPeriodAttendance = await DataManager.getAttendanceCurrentPeriod();
+        buildStudentModuleStats(cachedPeriodAttendance);
+    }
+}
+
+function getStudentModuleStats(studentId, moduleNumber) {
+    return moduleStatsByStudent.get(`${studentId}_${moduleNumber}`) || {
+        total: 0,
+        present: 0,
+        absent: 0,
+        attendancePercentage: 0,
+        absencePercentage: 0
+    };
+}
+
+function getAlertStatusFromStats(stats) {
+    if (stats.total === 0) {
+        return {
+            level: 'NONE',
+            status: 'No data',
+            icon: '⚪',
+            color: 'gray',
+            message: 'Sem dados'
+        };
+    }
+
+    if (stats.absencePercentage >= 40) {
+        return {
+            level: 'CRITICAL',
+            status: `${stats.attendancePercentage}% (CRÍTICO)`,
+            icon: '🔴',
+            color: 'red',
+            message: 'Deve repetir o módulo'
+        };
+    }
+
+    if (stats.absencePercentage >= 25) {
+        const remaining = Math.ceil((40 - stats.absencePercentage) / 100 * stats.total);
+        return {
+            level: 'WARNING',
+            status: `${stats.attendancePercentage}% (AVISO)`,
+            icon: '🟠',
+            color: 'orange',
+            message: `${remaining} faltas restantes até crítico`
+        };
+    }
+
+    return {
+        level: 'OK',
+        status: `${stats.attendancePercentage}% ✓`,
+        icon: '✅',
+        color: 'green',
+        message: 'Situação regular'
+    };
+}
 
 // Initialize attendance page
 export async function initAttendancePage() {
@@ -107,7 +209,8 @@ async function loadAttendance(clearTemporary = true) {
         updateSaveButtonState();
     }
     
-    const students = await DataManager.getStudents();
+    await ensureAttendanceCaches(false);
+    const students = cachedStudents || [];
     
     if (students.length === 0) {
         document.getElementById('attendanceTableBody').innerHTML = `
@@ -124,10 +227,11 @@ async function loadAttendance(clearTemporary = true) {
         filteredStudents = students.filter(s => s.currentModule === parseInt(currentModuleFilter));
     }
     
-    // Get existing attendance records for this date
-    const existingRecords = await DataManager.getAttendanceByDate(currentDate);
+    // Get existing attendance records for this date (force Firebase source)
+    const existingRecords = await DataManager.getAttendanceByDateFromFirebase(currentDate);
+    currentDayRecords = existingRecords;
     
-    console.log(`loadAttendance: Carregados ${existingRecords.length} registros para a data ${currentDate}`, existingRecords);
+    console.log(`loadAttendance: Carregados ${existingRecords.length} registros para a data ${currentDate}`);
     
     // Display alerts summary
     await displayAlertsSummary(filteredStudents);
@@ -144,7 +248,8 @@ async function displayAlertsSummary(students) {
     };
     
     for (const student of students) {
-        const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
+        const stats = getStudentModuleStats(student.id, student.currentModule);
+        const alertStatus = getAlertStatusFromStats(stats);
         if (alertStatus.level === 'CRITICAL') {
             alerts.critical.push({ student, alertStatus });
         } else if (alertStatus.level === 'WARNING') {
@@ -189,8 +294,8 @@ async function renderAttendanceList(students, existingRecords) {
             : (record ? record.present : null);
         
         // Get alert status for this student
-        const alertStatus = await Calculator.getAlertStatus(student.id, student.currentModule);
-        const stats = await Calculator.calculateModuleAttendance(student.id, student.currentModule);
+        const stats = getStudentModuleStats(student.id, student.currentModule);
+        const alertStatus = getAlertStatusFromStats(stats);
         
         // Determine current phase (simplified - based on filter or default to 1)
         const currentPhase = currentPhaseFilter !== 'all' ? parseInt(currentPhaseFilter) : 1;
@@ -261,7 +366,7 @@ async function markAttendance(studentId, moduleNumber, phaseNumber, present) {
         // Update summary with temporary data
         await updateAttendanceSummary();
         
-        console.log('Marcação temporária salva:', { studentId, present });
+        console.log('Marcação temporária salva');
     } catch (error) {
         console.error('Error marking attendance:', error);
         showMessage('Erro ao marcar presença. Tente novamente.', 'error');
@@ -298,7 +403,8 @@ async function markAllPresent() {
     
     if (!confirmMark) return;
     
-    const students = await DataManager.getStudents();
+    await ensureAttendanceCaches(false);
+    const students = cachedStudents || [];
     
     // Filter students based on current module filter
     let filteredStudents = students;
@@ -320,9 +426,8 @@ async function markAllPresent() {
     
     hasUnsavedChanges = true;
     updateSaveButtonState();
-    
-    // Reload without clearing temporary storage
-    await loadAttendance(false);
+
+    await renderAttendanceList(filteredStudents, currentDayRecords);
     showMessage(`${count} aluno(s) marcados como presentes. Clique em "Salvar Presença" para confirmar.`, 'success');
 }
 
@@ -342,8 +447,12 @@ async function clearAllMarks() {
     hasUnsavedChanges = false;
     updateSaveButtonState();
     
-    // Reload with clearing (which is already done above)
-    await loadAttendance(true);
+    let filteredStudents = cachedStudents || [];
+    if (currentModuleFilter !== 'all') {
+        filteredStudents = filteredStudents.filter(s => s.currentModule === parseInt(currentModuleFilter));
+    }
+
+    await renderAttendanceList(filteredStudents, currentDayRecords);
     showMessage('Marcações temporárias limpas!', 'info');
 }
 
@@ -370,7 +479,7 @@ async function saveAttendance() {
         // Show saving message
         showMessage(`Salvando ${saveCount} marcação(ões)...`, 'info');
         
-        console.log('Iniciando salvamento. temporaryAttendance:', temporaryAttendance);
+        console.log('Iniciando salvamento...');
         
         // Save all temporary marks to DataManager (localStorage + Firebase)
         let savedCount = 0;
@@ -386,8 +495,6 @@ async function saveAttendance() {
             const moduleNumber = temporaryAttendance[`${key}_module`];
             const phaseNumber = temporaryAttendance[`${key}_phase`];
             
-            console.log(`Salvando: studentId=${studentId}, date=${date}, module=${moduleNumber}, phase=${phaseNumber}, present=${present}`);
-            
             const result = await DataManager.saveAttendance(
                 parseInt(studentId), 
                 date, 
@@ -395,8 +502,15 @@ async function saveAttendance() {
                 phaseNumber, 
                 present
             );
-            
-            console.log('Resultado do salvamento:', result);
+
+            upsertAttendanceRecord(currentDayRecords, result);
+            if (DataManager.isDateInCurrentPeriod(result.date)) {
+                if (!cachedPeriodAttendance) {
+                    cachedPeriodAttendance = [];
+                }
+                upsertAttendanceRecord(cachedPeriodAttendance, result);
+            }
+
             savedCount++;
             
             // Recalculate alerts
@@ -407,10 +521,22 @@ async function saveAttendance() {
         
         console.log(`${savedCount} registros salvos no DataManager`);
         
+        // Rebuild module stats from updated period cache
+        if (cachedPeriodAttendance) {
+            buildStudentModuleStats(cachedPeriodAttendance);
+        }
+
         // Clear temporary storage
         temporaryAttendance = {};
         hasUnsavedChanges = false;
         updateSaveButtonState();
+
+        // Re-render using local updated state (no extra Firebase read)
+        let filteredStudents = cachedStudents || [];
+        if (currentModuleFilter !== 'all') {
+            filteredStudents = filteredStudents.filter(s => s.currentModule === parseInt(currentModuleFilter));
+        }
+        await renderAttendanceList(filteredStudents, currentDayRecords);
         
         showMessage(`✓ ${saveCount} marcação(ões) salva(s) com sucesso!`, 'success');
         
@@ -447,8 +573,8 @@ function updateSaveButtonState() {
 // Update attendance summary
 async function updateAttendanceSummary() {
     try {
-        const existingRecords = await DataManager.getAttendanceByDate(currentDate);
-        const students = await DataManager.getStudents();
+        const existingRecords = currentDayRecords;
+        const students = cachedStudents || [];
         
         let filteredStudents = students;
         if (currentModuleFilter !== 'all') {
@@ -501,7 +627,7 @@ async function updateAttendanceSummary() {
             document.getElementById('attendanceSummary').style.display = 'block';
         }
         
-        console.log('Summary updated:', { total, present, absent, unmarked });
+        console.log('Summary updated');
     } catch (error) {
         console.error('Error updating summary:', error);
     }

@@ -21,8 +21,10 @@ const DataManager = {
     // Firebase enabled flag
     useFirebase: true,
     listeners: {},
+    lastBackgroundSyncAt: {},
+    syncThrottleMs: 20000,
 
-    // Helper to get Firebase path (shared students vs per-user data)
+    // Helper to get Firebase path (shared data vs per-user data)
     getFirebasePath(key, userId) {
         // Shared data across all users
         if (key === this.KEYS.STUDENTS) {
@@ -33,6 +35,10 @@ const DataManager = {
         }
         // All other data is per-user
         return `users/${userId}/${key}`;
+    },
+
+    isSharedKey(key) {
+        return key === this.KEYS.STUDENTS || key === this.KEYS.ATTENDANCE;
     },
 
     // Initialize data structure (Firebase only)
@@ -47,7 +53,6 @@ const DataManager = {
         }
 
         await this.initFirebase(user.uid);
-        await this.migrateAttendanceToShared(user.uid);
         console.log('DataManager initialized with Firebase for user:', user.uid);
     },
 
@@ -65,37 +70,6 @@ const DataManager = {
         }
     },
 
-    // Migrate attendance from user path to shared path
-    async migrateAttendanceToShared(userId) {
-        try {
-            const legacyPath = `users/${userId}/${this.KEYS.ATTENDANCE}`;
-            const sharedPath = this.getFirebasePath(this.KEYS.ATTENDANCE, userId);
-
-            if (legacyPath === sharedPath) return;
-
-            const legacyRef = ref(database, legacyPath);
-            const sharedRef = ref(database, sharedPath);
-
-            const legacySnapshot = await get(legacyRef);
-            if (!legacySnapshot.exists()) return;
-
-            const legacyData = legacySnapshot.val();
-            const { data: legacyStructured } = this.sanitizeAttendanceKeys(legacyData);
-
-            const sharedSnapshot = await get(sharedRef);
-            const sharedData = sharedSnapshot.exists() ? sharedSnapshot.val() : {};
-            const { data: sharedStructured } = this.sanitizeAttendanceKeys(sharedData);
-
-            const merged = this.mergeAttendanceData(sharedStructured, legacyStructured);
-            await set(sharedRef, merged);
-
-            await remove(legacyRef);
-            console.log('Attendance migration completed: user -> shared');
-        } catch (error) {
-            console.warn('Attendance migration failed:', error);
-        }
-    },
-
     // Initialize localStorage (deprecated - Firebase only)
     initLocalStorage() {
         // localStorage is now used only as offline cache
@@ -107,13 +81,32 @@ const DataManager = {
     async getData(key) {
         // Try localStorage first for instant response
         const localData = this.getDataLocal(key);
+
+        // Attendance uses local-first with background sync throttling
+        if (key === this.KEYS.ATTENDANCE) {
+            if (localData !== null) {
+                if (this.useFirebase && this.shouldBackgroundSync(key)) {
+                    this.syncFromFirebase(key).catch(err =>
+                        console.warn(`Background sync failed for ${key}:`, err)
+                    );
+                }
+                return this.normalizeAttendanceData(localData);
+            }
+
+            const firebaseAttendance = await this.getDataFromFirebase(key);
+            if (firebaseAttendance && firebaseAttendance.length > 0) {
+                return firebaseAttendance;
+            }
+
+            return [];
+        }
         
         // If we have local data, return it immediately
         if (localData !== null) {
-            console.log(`getData(${key}) from localStorage cache:`, localData);
+            console.log(`getData(${key}) from localStorage cache:`, this.summarizeForLog(localData));
             
             // Sync with Firebase in background (don't wait)
-            if (this.useFirebase) {
+            if (this.useFirebase && this.shouldBackgroundSync(key)) {
                 this.syncFromFirebase(key).catch(err => 
                     console.warn(`Background sync failed for ${key}:`, err)
                 );
@@ -143,8 +136,15 @@ const DataManager = {
                     return [];
                 }
                 
-                // Convert Firebase object to array if needed (skip attendance structure)
-                if (key !== this.KEYS.ATTENDANCE && data && typeof data === 'object' && !Array.isArray(data)) {
+                // Normalize attendance structure (supports nested year/month/day export)
+                if (key === this.KEYS.ATTENDANCE) {
+                    const normalizedAttendance = this.normalizeAttendanceData(data);
+                    this.setDataLocal(key, normalizedAttendance);
+                    return normalizedAttendance;
+                }
+
+                // Convert Firebase numeric-key object to array if needed
+                if (data && typeof data === 'object' && !Array.isArray(data)) {
                     const keys = Object.keys(data);
                     if (keys.every(k => !isNaN(k))) {
                         const arr = Object.values(data);
@@ -167,10 +167,68 @@ const DataManager = {
         return [];
     },
 
+    // Force read directly from Firebase (bypasses local cache)
+    async getDataFromFirebase(key) {
+        if (!this.useFirebase) return [];
+
+        try {
+            const user = getCurrentUser();
+            if (!user) {
+                console.log(`getDataFromFirebase(${key}): No user, returning empty array`);
+                return [];
+            }
+
+            if (key === this.KEYS.ATTENDANCE) {
+                const attendance = await this.fetchAttendanceFromFirebase(user.uid);
+                if (attendance.length > 0) {
+                    this.setDataLocal(key, attendance);
+                    return attendance;
+                }
+
+                const localCache = this.getDataLocal(key);
+                return this.normalizeAttendanceData(localCache);
+            }
+
+            const path = this.getFirebasePath(key, user.uid);
+            const dataRef = ref(database, path);
+            const snapshot = await get(dataRef);
+
+            if (!snapshot.exists()) {
+                this.setDataLocal(key, []);
+                return [];
+            }
+
+            const data = snapshot.val();
+            let processedData = data;
+
+            if (data && typeof data === 'object' && !Array.isArray(data)) {
+                const keys = Object.keys(data);
+                if (keys.every(k => !isNaN(k))) {
+                    processedData = Object.values(data);
+                }
+            }
+
+            this.setDataLocal(key, processedData);
+            return processedData || [];
+        } catch (error) {
+            console.error(`getDataFromFirebase(${key}) error:`, error);
+            return [];
+        }
+    },
+
     // Background sync from Firebase
     async syncFromFirebase(key) {
         const user = getCurrentUser();
         if (!user) return;
+
+        if (key === this.KEYS.ATTENDANCE) {
+            const attendance = await this.fetchAttendanceFromFirebase(user.uid);
+            if (attendance.length > 0) {
+                this.setDataLocal(key, attendance);
+                console.log(`Background sync completed for ${key}`);
+            }
+            return;
+        }
         
         const path = this.getFirebasePath(key, user.uid);
         const dataRef = ref(database, path);
@@ -179,9 +237,9 @@ const DataManager = {
         if (snapshot.exists()) {
             const data = snapshot.val();
             
-            // Convert object to array if needed (skip attendance structure)
+            // Convert object to array if needed
             let processedData = data;
-            if (key !== this.KEYS.ATTENDANCE && data && typeof data === 'object' && !Array.isArray(data)) {
+            if (data && typeof data === 'object' && !Array.isArray(data)) {
                 const keys = Object.keys(data);
                 if (keys.every(k => !isNaN(k))) {
                     processedData = Object.values(data);
@@ -196,13 +254,17 @@ const DataManager = {
 
     // Generic set data (localStorage immediate, Firebase background)
     async setData(key, value) {
+        const valueForLocal = key === this.KEYS.ATTENDANCE
+            ? this.normalizeAttendanceData(value)
+            : value;
+
         // Save to localStorage immediately for instant response
-        this.setDataLocal(key, value);
+        this.setDataLocal(key, valueForLocal);
         console.log(`setData(${key}): Saved to localStorage cache`);
         
         // Sync to Firebase in background (don't block UI)
         if (this.useFirebase) {
-            this.syncToFirebase(key, value).catch(err => {
+            this.syncToFirebase(key, valueForLocal).catch(err => {
                 console.warn(`Background Firebase sync failed for ${key}:`, err);
                 // Data is still in localStorage, so operation appears successful to user
             });
@@ -223,7 +285,11 @@ const DataManager = {
         try {
             const path = this.getFirebasePath(key, user.uid);
             const dataRef = ref(database, path);
-            await set(dataRef, value);
+            const valueForFirebase = key === this.KEYS.ATTENDANCE
+                ? this.serializeAttendanceForFirebase(value)
+                : value;
+
+            await set(dataRef, valueForFirebase);
             console.log(`Background sync to Firebase completed for ${key}`);
             
             // Emit synced event
@@ -255,6 +321,194 @@ const DataManager = {
     setDataLocal(key, value) {
         localStorage.setItem(key, JSON.stringify(value));
         console.log(`localStorage.setItem(${key}):`, value.length ? `${value.length} items` : value);
+    },
+
+    summarizeForLog(value) {
+        if (Array.isArray(value)) {
+            return `${value.length} items`;
+        }
+        if (value && typeof value === 'object') {
+            return `${Object.keys(value).length} keys`;
+        }
+        return value;
+    },
+
+    shouldBackgroundSync(key) {
+        const now = Date.now();
+        const last = this.lastBackgroundSyncAt[key] || 0;
+        if (now - last >= this.syncThrottleMs) {
+            this.lastBackgroundSyncAt[key] = now;
+            return true;
+        }
+        return false;
+    },
+
+    isAttendanceRecord(value) {
+        return !!(
+            value &&
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            typeof value.studentId !== 'undefined' &&
+            typeof value.date === 'string' &&
+            typeof value.present === 'boolean'
+        );
+    },
+
+    normalizeAttendanceData(data) {
+        if (!data) return [];
+        if (Array.isArray(data)) return data;
+
+        const records = [];
+        const walk = (node) => {
+            if (!node) return;
+
+            if (Array.isArray(node)) {
+                node.forEach(walk);
+                return;
+            }
+
+            if (this.isAttendanceRecord(node)) {
+                records.push(node);
+                return;
+            }
+
+            if (typeof node === 'object') {
+                Object.values(node).forEach(walk);
+            }
+        };
+
+        walk(data);
+        return records;
+    },
+
+    getAttendanceDateParts(dateString) {
+        if (!dateString || typeof dateString !== 'string') return null;
+
+        const parts = dateString.split('-');
+        if (parts.length !== 3) return null;
+
+        const [year, month, day] = parts;
+        if (!year || !month || !day) return null;
+
+        return { year, month, day };
+    },
+
+    getAttendanceRecordKey(record) {
+        const rawId = record && record.id != null
+            ? String(record.id)
+            : `${Date.now()}_${Math.random().toString().slice(2, 8)}`;
+
+        return rawId.replace(/\./g, '_');
+    },
+
+    serializeAttendanceForFirebase(attendanceData) {
+        const records = this.normalizeAttendanceData(attendanceData);
+        const tree = {};
+
+        for (const record of records) {
+            if (!this.isAttendanceRecord(record)) continue;
+
+            const dateParts = this.getAttendanceDateParts(record.date);
+            if (!dateParts) continue;
+
+            const { year, month, day } = dateParts;
+            if (!tree[year]) tree[year] = {};
+            if (!tree[year][month]) tree[year][month] = {};
+            if (!tree[year][month][day]) tree[year][month][day] = {};
+
+            const recordKey = this.getAttendanceRecordKey(record);
+            tree[year][month][day][recordKey] = record;
+        }
+
+        return tree;
+    },
+
+    getAttendanceCandidatePaths(userId) {
+        return [
+            this.getFirebasePath(this.KEYS.ATTENDANCE, userId),
+            `shared/attendanceRecords`,
+            `shared/attendance/records`,
+            `users/${userId}/attendanceRecords`,
+            `users/${userId}/attendance/records`
+        ];
+    },
+
+    getAttendanceDayCandidatePaths(userId, dateString) {
+        const dateParts = this.getAttendanceDateParts(dateString);
+        if (!dateParts) return [];
+
+        const { year, month, day } = dateParts;
+        const monthNoLeading = String(parseInt(month, 10));
+        const dayNoLeading = String(parseInt(day, 10));
+
+        return [
+            `shared/attendance_records/${year}/${month}/${day}`,
+            `shared/attendance_records/${year}/${monthNoLeading}/${dayNoLeading}`,
+            `users/${userId}/attendance_records/${year}/${month}/${day}`,
+            `users/${userId}/attendance_records/${year}/${monthNoLeading}/${dayNoLeading}`
+        ];
+    },
+
+    getCanonicalAttendanceDayPath(dateString) {
+        const dateParts = this.getAttendanceDateParts(dateString);
+        if (!dateParts) return null;
+
+        const { year, month, day } = dateParts;
+        return `shared/attendance_records/${year}/${month}/${day}`;
+    },
+
+    async fetchAttendanceByDateFromFirebase(userId, dateString) {
+        const candidatePaths = this.getAttendanceDayCandidatePaths(userId, dateString);
+
+        for (const path of candidatePaths) {
+            try {
+                const dataRef = ref(database, path);
+                const snapshot = await get(dataRef);
+                if (!snapshot.exists()) continue;
+
+                const normalized = this.normalizeAttendanceData(snapshot.val())
+                    .filter(record => record.date === dateString);
+
+                if (normalized.length > 0) {
+                    console.log(`Attendance day loaded from Firebase path: ${path} (${normalized.length} registros)`);
+                    return normalized;
+                }
+            } catch (error) {
+                const message = String(error?.message || error || '');
+                if (!message.toLowerCase().includes('permission denied')) {
+                    console.warn(`Failed reading attendance day from ${path}:`, error);
+                }
+            }
+        }
+
+        return [];
+    },
+
+    async fetchAttendanceFromFirebase(userId) {
+        const candidatePaths = this.getAttendanceCandidatePaths(userId);
+
+        for (const path of candidatePaths) {
+            try {
+                const dataRef = ref(database, path);
+                const snapshot = await get(dataRef);
+                if (!snapshot.exists()) continue;
+
+                const normalized = this.normalizeAttendanceData(snapshot.val());
+                if (normalized.length > 0) {
+                    console.log(`Attendance loaded from Firebase path: ${path} (${normalized.length} registros)`);
+                    return normalized;
+                }
+            } catch (error) {
+                const message = String(error?.message || error || '');
+                if (message.toLowerCase().includes('permission denied')) {
+                    console.log(`Attendance path not accessible: ${path}`);
+                } else {
+                    console.warn(`Failed reading attendance from ${path}:`, error);
+                }
+            }
+        }
+
+        return [];
     },
 
     // Real-time listener for data changes
@@ -335,35 +589,9 @@ const DataManager = {
         await this.setData(this.KEYS.STUDENTS, filtered);
         
         // Also delete related attendance records
-        const attendance = await this.getAttendanceRaw();
-        let changed = false;
-        
-        Object.keys(attendance).forEach(year => {
-            Object.keys(attendance[year]).forEach(month => {
-                Object.keys(attendance[year][month]).forEach(day => {
-                    const dayBucket = attendance[year][month][day];
-                    Object.keys(dayBucket).forEach(recordId => {
-                        if (dayBucket[recordId].studentId === id) {
-                            delete dayBucket[recordId];
-                            changed = true;
-                        }
-                    });
-                    if (Object.keys(dayBucket).length === 0) {
-                        delete attendance[year][month][day];
-                    }
-                });
-                if (Object.keys(attendance[year][month]).length === 0) {
-                    delete attendance[year][month];
-                }
-            });
-            if (Object.keys(attendance[year]).length === 0) {
-                delete attendance[year];
-            }
-        });
-        
-        if (changed) {
-            await this.setData(this.KEYS.ATTENDANCE, attendance);
-        }
+        const attendance = await this.getAttendance();
+        const filteredAttendance = attendance.filter(a => a.studentId !== id);
+        await this.setData(this.KEYS.ATTENDANCE, filteredAttendance);
     },
 
     // Modules CRUD
@@ -414,128 +642,66 @@ const DataManager = {
         return null;
     },
 
-    // Attendance helpers (Year -> Month -> Day)
-    parseAttendanceDate(date) {
-        const [year, month, day] = date.split('-');
-        return { year, month, day };
-    },
-
-    makeAttendanceKey(id) {
-        return String(id).replace(/\./g, '_');
-    },
-
-    sanitizeAttendanceKeys(attendanceData) {
-        const structured = this.ensureAttendanceStructure(attendanceData);
-        let changed = false;
-
-        Object.keys(structured).forEach(year => {
-            Object.keys(structured[year]).forEach(month => {
-                Object.keys(structured[year][month]).forEach(day => {
-                    const dayBucket = structured[year][month][day];
-                    Object.keys(dayBucket).forEach(recordKey => {
-                        const safeKey = this.makeAttendanceKey(recordKey);
-                        if (safeKey !== recordKey) {
-                            dayBucket[safeKey] = dayBucket[recordKey];
-                            delete dayBucket[recordKey];
-                            changed = true;
-                        }
-                    });
-                });
-            });
-        });
-
-        return { data: structured, changed };
-    },
-
-    mergeAttendanceData(baseData, incomingData) {
-        const base = this.ensureAttendanceStructure(baseData);
-        const incoming = this.ensureAttendanceStructure(incomingData);
-
-        Object.keys(incoming).forEach(year => {
-            if (!base[year]) base[year] = {};
-            Object.keys(incoming[year]).forEach(month => {
-                if (!base[year][month]) base[year][month] = {};
-                Object.keys(incoming[year][month]).forEach(day => {
-                    if (!base[year][month][day]) base[year][month][day] = {};
-                    Object.keys(incoming[year][month][day]).forEach(recordKey => {
-                        if (!base[year][month][day][recordKey]) {
-                            base[year][month][day][recordKey] = incoming[year][month][day][recordKey];
-                        }
-                    });
-                });
-            });
-        });
-
-        return base;
-    },
-
-    ensureAttendanceStructure(attendanceData) {
-        if (!attendanceData) return {};
-        if (Array.isArray(attendanceData)) {
-            const structured = {};
-            attendanceData.forEach(record => {
-                if (!record || !record.date) return;
-                const { year, month, day } = this.parseAttendanceDate(record.date);
-                if (!structured[year]) structured[year] = {};
-                if (!structured[year][month]) structured[year][month] = {};
-                if (!structured[year][month][day]) structured[year][month][day] = {};
-                structured[year][month][day][record.id] = record;
-            });
-            return structured;
-        }
-        return attendanceData;
-    },
-
-    flattenAttendance(attendanceData) {
-        const structured = this.ensureAttendanceStructure(attendanceData);
-        const records = [];
-        Object.keys(structured).forEach(year => {
-            Object.keys(structured[year]).forEach(month => {
-                Object.keys(structured[year][month]).forEach(day => {
-                    const dayBucket = structured[year][month][day];
-                    Object.values(dayBucket).forEach(record => records.push(record));
-                });
-            });
-        });
-        return records;
-    },
-
-    async getAttendanceRaw() {
-        const data = await this.getData(this.KEYS.ATTENDANCE);
-        const { data: structured, changed } = this.sanitizeAttendanceKeys(data);
-        if (Array.isArray(data) || changed) {
-            await this.setData(this.KEYS.ATTENDANCE, structured);
-        }
-        return structured;
-    },
-
-    findAttendanceRecordById(attendance, id) {
-        for (const year of Object.keys(attendance)) {
-            for (const month of Object.keys(attendance[year])) {
-                for (const day of Object.keys(attendance[year][month])) {
-                    const dayBucket = attendance[year][month][day];
-                    for (const [recordKey, record] of Object.entries(dayBucket)) {
-                        if (record.id === id) {
-                            return { year, month, day, recordKey, record };
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    },
-
     // Attendance CRUD
     async getAttendance() {
-        const data = await this.getData(this.KEYS.ATTENDANCE);
-        return this.flattenAttendance(data);
+        const attendance = await this.getData(this.KEYS.ATTENDANCE);
+        return this.normalizeAttendanceData(attendance);
+    },
+
+    // Current academic period helpers (current year + current semester)
+    getCurrentPeriod() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const semester = month <= 6 ? 1 : 2;
+
+        const startDate = semester === 1
+            ? `${year}-01-01`
+            : `${year}-07-01`;
+        const endDate = semester === 1
+            ? `${year}-06-30`
+            : `${year}-12-31`;
+
+        return {
+            year,
+            semester,
+            startDate,
+            endDate,
+            label: `${year} - ${semester}º semestre`
+        };
+    },
+
+    isDateInCurrentPeriod(dateString) {
+        if (!dateString) return false;
+        const { startDate, endDate } = this.getCurrentPeriod();
+        return dateString >= startDate && dateString <= endDate;
+    },
+
+    filterAttendanceToCurrentPeriod(attendance = []) {
+        return attendance.filter(record => this.isDateInCurrentPeriod(record.date));
+    },
+
+    async getAttendanceCurrentPeriod() {
+        const attendance = await this.getAttendance();
+        return this.filterAttendanceToCurrentPeriod(attendance);
     },
 
     async getAttendanceByDate(date) {
-        const attendance = await this.getAttendanceRaw();
-        const { year, month, day } = this.parseAttendanceDate(date);
-        const dayBucket = attendance?.[year]?.[month]?.[day] || {};
-        return Object.values(dayBucket);
+        const attendance = await this.getAttendance();
+        return attendance.filter(a => a.date === date);
+    },
+
+    async getAttendanceByDateFromFirebase(date) {
+        const user = getCurrentUser();
+        if (!user) return [];
+
+        const dayAttendance = await this.fetchAttendanceByDateFromFirebase(user.uid, date);
+        if (dayAttendance.length > 0) {
+            return dayAttendance;
+        }
+
+        const attendance = await this.getDataFromFirebase(this.KEYS.ATTENDANCE);
+        return attendance.filter(a => a.date === date);
     },
 
     async getAttendanceByStudent(studentId) {
@@ -543,8 +709,18 @@ const DataManager = {
         return attendance.filter(a => a.studentId === studentId);
     },
 
+    async getAttendanceByStudentCurrentPeriod(studentId) {
+        const attendance = await this.getAttendanceCurrentPeriod();
+        return attendance.filter(a => a.studentId === studentId);
+    },
+
     async getAttendanceByModule(moduleNumber) {
         const attendance = await this.getAttendance();
+        return attendance.filter(a => a.moduleNumber === moduleNumber);
+    },
+
+    async getAttendanceByModuleCurrentPeriod(moduleNumber) {
+        const attendance = await this.getAttendanceCurrentPeriod();
         return attendance.filter(a => a.moduleNumber === moduleNumber);
     },
 
@@ -556,12 +732,26 @@ const DataManager = {
         );
     },
 
+    async getAttendanceByPhaseCurrentPeriod(moduleNumber, phaseNumber) {
+        const attendance = await this.getAttendanceCurrentPeriod();
+        return attendance.filter(a => 
+            a.moduleNumber === moduleNumber && 
+            a.phaseNumber === phaseNumber
+        );
+    },
+
     async addAttendanceRecord(record) {
-        const attendance = await this.getAttendanceRaw();
+        const attendance = await this.getAttendance();
+        const recordDate = record.date || new Date().toISOString().split('T')[0];
+        const recordYear = parseInt(recordDate.split('-')[0], 10);
+        const recordSemester = parseInt(recordDate.split('-')[1], 10) <= 6 ? 1 : 2;
+
         const newRecord = {
             id: Date.now() + Math.random(),
             studentId: record.studentId,
-            date: record.date,
+            date: recordDate,
+            year: recordYear,
+            semester: recordSemester,
             moduleNumber: record.moduleNumber,
             phaseNumber: record.phaseNumber,
             present: record.present,
@@ -570,28 +760,22 @@ const DataManager = {
         };
         
         console.log('addAttendanceRecord - Adicionando novo registro:', newRecord);
-        const { year, month, day } = this.parseAttendanceDate(newRecord.date);
-        if (!attendance[year]) attendance[year] = {};
-        if (!attendance[year][month]) attendance[year][month] = {};
-        if (!attendance[year][month][day]) attendance[year][month][day] = {};
-        const recordKey = this.makeAttendanceKey(newRecord.id);
-        attendance[year][month][day][recordKey] = newRecord;
+        attendance.push(newRecord);
         await this.setData(this.KEYS.ATTENDANCE, attendance);
-        console.log('addAttendanceRecord - Registro adicionado na estrutura Ano/Mês/Dia');
+        console.log('addAttendanceRecord - Total de registros agora:', attendance.length);
         return newRecord;
     },
 
     async updateAttendanceRecord(id, updates) {
-        const attendance = await this.getAttendanceRaw();
-        const found = this.findAttendanceRecordById(attendance, id);
+        const attendance = await this.getAttendance();
+        const index = attendance.findIndex(a => a.id === id);
         
-        if (found) {
-            console.log('updateAttendanceRecord - Atualizando registro:', found.record);
-            const updated = { ...found.record, ...updates };
-            attendance[found.year][found.month][found.day][found.recordKey] = updated;
-            console.log('updateAttendanceRecord - Registro atualizado:', updated);
+        if (index !== -1) {
+            console.log('updateAttendanceRecord - Atualizando registro:', attendance[index]);
+            attendance[index] = { ...attendance[index], ...updates };
+            console.log('updateAttendanceRecord - Registro atualizado:', attendance[index]);
             await this.setData(this.KEYS.ATTENDANCE, attendance);
-            return updated;
+            return attendance[index];
         }
         console.warn('updateAttendanceRecord - Registro não encontrado com id:', id);
         return null;
@@ -599,33 +783,87 @@ const DataManager = {
 
     // Check if attendance exists for student on date
     async getAttendanceRecord(studentId, date) {
-        const attendance = await this.getAttendanceRaw();
-        const { year, month, day } = this.parseAttendanceDate(date);
-        const dayBucket = attendance?.[year]?.[month]?.[day] || {};
-        return Object.values(dayBucket).find(a => a.studentId === studentId && a.date === date);
+        const attendance = await this.getAttendance();
+        return attendance.find(a => a.studentId === studentId && a.date === date);
     },
 
     // Save or update attendance
     async saveAttendance(studentId, date, moduleNumber, phaseNumber, present) {
         console.log(`saveAttendance chamado: studentId=${studentId}, date=${date}, module=${moduleNumber}, phase=${phaseNumber}, present=${present}`);
-        const existing = await this.getAttendanceRecord(studentId, date);
-        
-        if (existing) {
-            console.log('Registro existente encontrado, atualizando:', existing);
-            return await this.updateAttendanceRecord(existing.id, {
-                moduleNumber,
-                phaseNumber,
-                present
+
+        const user = getCurrentUser();
+        if (!user) {
+            throw new Error('User must be authenticated to save attendance');
+        }
+
+        const dayPath = this.getCanonicalAttendanceDayPath(date);
+        if (!dayPath) {
+            throw new Error(`Invalid attendance date: ${date}`);
+        }
+
+        this.emitSyncStatus('syncing');
+
+        try {
+            const dayRef = ref(database, dayPath);
+            const snapshot = await get(dayRef);
+            const rawDayData = snapshot.exists() ? snapshot.val() : {};
+
+            let existingKey = null;
+            let existingRecord = null;
+
+            Object.entries(rawDayData || {}).forEach(([key, value]) => {
+                if (this.isAttendanceRecord(value) && value.studentId === studentId && value.date === date) {
+                    existingKey = key;
+                    existingRecord = value;
+                }
             });
-        } else {
-            console.log('Nenhum registro existente, criando novo');
-            return await this.addAttendanceRecord({
-                studentId,
-                date,
-                moduleNumber,
-                phaseNumber,
-                present
-            });
+
+            const recordYear = parseInt(date.split('-')[0], 10);
+            const recordSemester = parseInt(date.split('-')[1], 10) <= 6 ? 1 : 2;
+
+            const recordToSave = existingRecord
+                ? {
+                    ...existingRecord,
+                    moduleNumber,
+                    phaseNumber,
+                    present,
+                    timestamp: new Date().toISOString()
+                }
+                : {
+                    id: Date.now() + Math.random(),
+                    studentId,
+                    date,
+                    year: recordYear,
+                    semester: recordSemester,
+                    moduleNumber,
+                    phaseNumber,
+                    present,
+                    notes: '',
+                    timestamp: new Date().toISOString()
+                };
+
+            const recordKey = existingKey || this.getAttendanceRecordKey(recordToSave);
+            const recordRef = ref(database, `${dayPath}/${recordKey}`);
+            await set(recordRef, recordToSave);
+
+            // Update local cache incrementally
+            const localAttendance = this.normalizeAttendanceData(this.getDataLocal(this.KEYS.ATTENDANCE));
+            const localIndex = localAttendance.findIndex(r => r.studentId === studentId && r.date === date);
+
+            if (localIndex !== -1) {
+                localAttendance[localIndex] = recordToSave;
+            } else {
+                localAttendance.push(recordToSave);
+            }
+
+            this.setDataLocal(this.KEYS.ATTENDANCE, localAttendance);
+            this.emitSyncStatus('synced');
+
+            return recordToSave;
+        } catch (error) {
+            this.emitSyncStatus('error');
+            console.error('saveAttendance failed:', error);
+            throw error;
         }
     },
 
@@ -703,10 +941,7 @@ const DataManager = {
     async importData(data) {
         if (data.students) await this.setData(this.KEYS.STUDENTS, data.students);
         if (data.modules) await this.setData(this.KEYS.MODULES, data.modules);
-        if (data.attendance) {
-            const attendance = this.ensureAttendanceStructure(data.attendance);
-            await this.setData(this.KEYS.ATTENDANCE, attendance);
-        }
+        if (data.attendance) await this.setData(this.KEYS.ATTENDANCE, data.attendance);
         if (data.alerts) await this.setData(this.KEYS.ALERTS, data.alerts);
     },
 
@@ -722,9 +957,9 @@ const DataManager = {
         }
 
         try {
-            // Clear Firebase data (skip students as they're shared)
+            // Clear Firebase data (skip shared keys)
             for (const key of Object.values(this.KEYS)) {
-                if (key === this.KEYS.STUDENTS) continue; // Don't delete shared students
+                if (this.isSharedKey(key)) continue; // Don't delete shared data
                 const path = this.getFirebasePath(key, user.uid);
                 const dataRef = ref(database, path);
                 await remove(dataRef);

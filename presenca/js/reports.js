@@ -15,12 +15,9 @@ export async function initReportsPage() {
 
 // Set default date range (current year)
 function setDefaultDates() {
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const endOfYear = new Date(now.getFullYear(), 11, 31);
-    
-    document.getElementById('reportPeriodStart').value = startOfYear.toISOString().split('T')[0];
-    document.getElementById('reportPeriodEnd').value = endOfYear.toISOString().split('T')[0];
+    const currentPeriod = DataManager.getCurrentPeriod();
+    document.getElementById('reportPeriodStart').value = currentPeriod.startDate;
+    document.getElementById('reportPeriodEnd').value = currentPeriod.endDate;
 }
 
 // Load all reports
@@ -90,7 +87,7 @@ async function loadAlerts() {
 // Load overview statistics
 async function loadOverview() {
     const students = await DataManager.getStudents();
-    const attendance = await DataManager.getAttendance();
+    const attendance = await DataManager.getAttendanceCurrentPeriod();
     const alerts = await Calculator.getAllAlerts();
     
     // Get unique dates
@@ -302,10 +299,11 @@ async function exportToJSON() {
 // Export to CSV
 async function exportToCSV() {
     const students = await DataManager.getStudents();
-    const attendance = await DataManager.getAttendance();
+    const currentPeriod = DataManager.getCurrentPeriod();
     
     // Create CSV header
-    let csv = 'ID,Nome,Telefone,Módulo Atual,Presença Geral,Faltas Geral,Taxa de Presença\n';
+    let csv = `Período,${currentPeriod.label}\n`;
+    csv += 'ID,Nome,Telefone,Módulo Atual,Presença Geral,Faltas Geral,Taxa de Presença\n';
     
     // Add student rows
     for (const student of students) {

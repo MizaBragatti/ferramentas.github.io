@@ -6,9 +6,13 @@
 import DataManager from './data.js';
 
 const Calculator = {
+    getCurrentPeriodInfo() {
+        return DataManager.getCurrentPeriod();
+    },
+
     // Calculate attendance statistics for a student in a specific module
     async calculateModuleAttendance(studentId, moduleNumber) {
-        const attendance = (await DataManager.getAttendanceByStudent(studentId))
+        const attendance = (await DataManager.getAttendanceByStudentCurrentPeriod(studentId))
             .filter(a => a.moduleNumber === moduleNumber);
 
         const total = attendance.length;
@@ -26,7 +30,7 @@ const Calculator = {
 
     // Calculate attendance for a specific phase
     async calculatePhaseAttendance(studentId, moduleNumber, phaseNumber) {
-        const attendance = (await DataManager.getAttendanceByStudent(studentId))
+        const attendance = (await DataManager.getAttendanceByStudentCurrentPeriod(studentId))
             .filter(a => a.moduleNumber === moduleNumber && a.phaseNumber === phaseNumber);
 
         const total = attendance.length;
@@ -44,7 +48,7 @@ const Calculator = {
 
     // Calculate overall attendance for a student
     async calculateOverallAttendance(studentId) {
-        const attendance = await DataManager.getAttendanceByStudent(studentId);
+        const attendance = await DataManager.getAttendanceByStudentCurrentPeriod(studentId);
 
         const total = attendance.length;
         const present = attendance.filter(a => a.present).length;
