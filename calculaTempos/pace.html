@@ -179,9 +179,66 @@
             font-style: italic;
         }
 
+        .calculator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .calculator h2 {
+            margin: 0;
+            flex: 1;
+        }
+
+        .btn-toggle-inverse {
+            padding: 8px 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-toggle-inverse:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-toggle-inverse.active {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .mode-indicator {
+            font-size: 11px;
+            color: #6c757d;
+            font-style: italic;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #e9ecef;
+            border-radius: 5px;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .calculators {
                 grid-template-columns: 1fr;
+            }
+
+            .calculator-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .calculator h2 {
+                margin-bottom: 0;
             }
         }
     </style>
@@ -194,99 +251,218 @@
         <div class="navigation" style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
             <a href="index.html" class="nav-link">← Voltar para Comparação</a>
             <a href="jejum.html" class="nav-link" style="background: #28a745;">⏱️ Ir para Jejum</a>
+            <a href="tempo-operacoes.html" class="nav-link" style="background: #6c757d;">🧮 Operações com Tempos</a>
         </div>
 
         <div class="calculators">
             <!-- NATAÇÃO -->
             <div class="calculator swim">
-                <h2>🏊‍♂️ Natação</h2>
-                
-                <div class="input-group">
-                    <label for="swim-time">Tempo</label>
-                    <input type="text" id="swim-time" placeholder="00:00:00.000">
-                    <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                <div class="calculator-header">
+                    <h2>🏊‍♂️ Natação</h2>
+                    <button class="btn-toggle-inverse" onclick="toggleSwimMode()">↔️ Inverso</button>
                 </div>
 
-                <div class="input-group">
-                    <label for="swim-distance">Distância (metros)</label>
-                    <input type="number" id="swim-distance" placeholder="1500" value="1500" step="50">
-                    <div class="helper-text">Ex: 750m, 1500m, 3800m</div>
+                <div id="swim-mode-indicator" class="mode-indicator">Modo: Calcular Pace</div>
+
+                <!-- Modo Normal: Calcular Pace -->
+                <div id="swim-normal-mode">
+                    <div class="input-group">
+                        <label for="swim-time">Tempo</label>
+                        <input type="text" id="swim-time" placeholder="00:00:00.000">
+                        <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="swim-distance">Distância (metros)</label>
+                        <input type="number" id="swim-distance" placeholder="1500" value="1500" step="50">
+                        <div class="helper-text">Ex: 750m, 1500m, 3800m</div>
+                    </div>
+
+                    <button class="btn-calculate" onclick="calculateSwimPace()">Calcular Pace</button>
+
+                    <div class="result">
+                        <div class="result-label">Pace (min/100m)</div>
+                        <div class="result-value" id="swim-pace">--:--</div>
+                    </div>
+
+                    <div class="result" style="margin-top: 10px;">
+                        <div class="result-label">Velocidade Média</div>
+                        <div class="result-value" id="swim-speed" style="font-size: 20px;">-- m/s</div>
+                    </div>
                 </div>
 
-                <button class="btn-calculate" onclick="calculateSwimPace()">Calcular Pace</button>
+                <!-- Modo Inverso: Calcular Tempo/Distância -->
+                <div id="swim-inverse-mode" style="display: none;">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="swim-inverse-pace">Pace (min/100m)</label>
+                            <input type="text" id="swim-inverse-pace" placeholder="00:00">
+                            <div class="helper-text">MM:SS</div>
+                        </div>
+                        <div class="input-group">
+                            <label for="swim-inverse-distance-or-time">Distância (m) ou Tempo</label>
+                            <select id="swim-inverse-select" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-bottom: 8px;">
+                                <option value="distance">Calcular Tempo (informe distância)</option>
+                                <option value="time">Calcular Distância (informe tempo)</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="result">
-                    <div class="result-label">Pace (min/100m)</div>
-                    <div class="result-value" id="swim-pace">--:--</div>
-                </div>
+                    <div id="swim-inverse-input-field" class="input-group">
+                        <label for="swim-inverse-value">Distância (metros)</label>
+                        <input type="number" id="swim-inverse-value" placeholder="1500" value="1500" step="50">
+                    </div>
 
-                <div class="result" style="margin-top: 10px;">
-                    <div class="result-label">Velocidade Média</div>
-                    <div class="result-value" id="swim-speed" style="font-size: 20px;">-- m/s</div>
+                    <button class="btn-calculate" onclick="calculateSwimInverse()">Calcular</button>
+
+                    <div class="result">
+                        <div class="result-label" id="swim-inverse-result-label">Tempo</div>
+                        <div class="result-value" id="swim-inverse-result">--:--:--</div>
+                    </div>
                 </div>
             </div>
 
             <!-- BIKE -->
             <div class="calculator bike">
-                <h2>🚴‍♂️ Bike</h2>
-                
-                <div class="input-group">
-                    <label for="bike-time">Tempo</label>
-                    <input type="text" id="bike-time" placeholder="00:00:00.000">
-                    <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                <div class="calculator-header">
+                    <h2>🚴‍♂️ Bike</h2>
+                    <button class="btn-toggle-inverse" onclick="toggleBikeMode()">↔️ Inverso</button>
                 </div>
 
-                <div class="input-group">
-                    <label for="bike-distance">Distância (km)</label>
-                    <input type="number" id="bike-distance" placeholder="40" value="40" step="1">
-                    <div class="helper-text">Ex: 20km, 40km, 90km, 180km</div>
+                <div id="bike-mode-indicator" class="mode-indicator">Modo: Calcular Velocidade</div>
+
+                <!-- Modo Normal: Calcular Velocidade -->
+                <div id="bike-normal-mode">
+                    <div class="input-group">
+                        <label for="bike-time">Tempo</label>
+                        <input type="text" id="bike-time" placeholder="00:00:00.000">
+                        <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="bike-distance">Distância (km)</label>
+                        <input type="number" id="bike-distance" placeholder="40" value="40" step="1">
+                        <div class="helper-text">Ex: 20km, 40km, 90km, 180km</div>
+                    </div>
+
+                    <button class="btn-calculate" onclick="calculateBikePace()">Calcular Velocidade</button>
+
+                    <div class="result">
+                        <div class="result-label">Velocidade Média</div>
+                        <div class="result-value" id="bike-speed">-- km/h</div>
+                    </div>
+
+                    <div class="result" style="margin-top: 10px;">
+                        <div class="result-label">Pace (min/km)</div>
+                        <div class="result-value" id="bike-pace" style="font-size: 20px;">--:--</div>
+                    </div>
                 </div>
 
-                <button class="btn-calculate" onclick="calculateBikePace()">Calcular Velocidade</button>
+                <!-- Modo Inverso: Calcular Tempo/Distância -->
+                <div id="bike-inverse-mode" style="display: none;">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="bike-inverse-speed">Velocidade (km/h)</label>
+                            <input type="number" id="bike-inverse-speed" placeholder="30" step="0.5">
+                        </div>
+                        <div class="input-group">
+                            <label for="bike-inverse-select">Calcular</label>
+                            <select id="bike-inverse-select" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px;">
+                                <option value="distance">Tempo (informe distância)</option>
+                                <option value="time">Distância (informe tempo)</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="result">
-                    <div class="result-label">Velocidade Média</div>
-                    <div class="result-value" id="bike-speed">-- km/h</div>
-                </div>
+                    <div id="bike-inverse-input-field" class="input-group">
+                        <label for="bike-inverse-value">Distância (km)</label>
+                        <input type="number" id="bike-inverse-value" placeholder="40" value="40" step="1">
+                    </div>
 
-                <div class="result" style="margin-top: 10px;">
-                    <div class="result-label">Pace (min/km)</div>
-                    <div class="result-value" id="bike-pace" style="font-size: 20px;">--:--</div>
+                    <button class="btn-calculate" onclick="calculateBikeInverse()">Calcular</button>
+
+                    <div class="result">
+                        <div class="result-label" id="bike-inverse-result-label">Tempo</div>
+                        <div class="result-value" id="bike-inverse-result">--:--:--</div>
+                    </div>
                 </div>
             </div>
 
             <!-- CORRIDA -->
             <div class="calculator run">
-                <h2>🏃‍♂️ Corrida</h2>
-                
-                <div class="input-group">
-                    <label for="run-time">Tempo</label>
-                    <input type="text" id="run-time" placeholder="00:00:00.000">
-                    <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                <div class="calculator-header">
+                    <h2>🏃‍♂️ Corrida</h2>
+                    <button class="btn-toggle-inverse" onclick="toggleRunMode()">↔️ Inverso</button>
                 </div>
 
-                <div class="input-group">
-                    <label for="run-distance">Distância (km)</label>
-                    <input type="number" id="run-distance" placeholder="10" value="10" step="0.5">
-                    <div class="helper-text">Ex: 5km, 10km, 21.1km, 42.2km</div>
+                <div id="run-mode-indicator" class="mode-indicator">Modo: Calcular Pace</div>
+
+                <!-- Modo Normal: Calcular Pace -->
+                <div id="run-normal-mode">
+                    <div class="input-group">
+                        <label for="run-time">Tempo</label>
+                        <input type="text" id="run-time" placeholder="00:00:00.000">
+                        <div class="helper-text">Formato: HH:MM:SS.mmm</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="run-distance">Distância (km)</label>
+                        <input type="number" id="run-distance" placeholder="10" value="10" step="0.5">
+                        <div class="helper-text">Ex: 5km, 10km, 21.1km, 42.2km</div>
+                    </div>
+
+                    <button class="btn-calculate" onclick="calculateRunPace()">Calcular Pace</button>
+
+                    <div class="result">
+                        <div class="result-label">Pace (min/km)</div>
+                        <div class="result-value" id="run-pace">--:--</div>
+                    </div>
+
+                    <div class="result" style="margin-top: 10px;">
+                        <div class="result-label">Velocidade Média</div>
+                        <div class="result-value" id="run-speed" style="font-size: 20px;">-- km/h</div>
+                    </div>
                 </div>
 
-                <button class="btn-calculate" onclick="calculateRunPace()">Calcular Pace</button>
+                <!-- Modo Inverso: Calcular Tempo/Distância -->
+                <div id="run-inverse-mode" style="display: none;">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="run-inverse-pace">Pace (min/km)</label>
+                            <input type="text" id="run-inverse-pace" placeholder="00:00">
+                            <div class="helper-text">MM:SS</div>
+                        </div>
+                        <div class="input-group">
+                            <label for="run-inverse-select">Calcular</label>
+                            <select id="run-inverse-select" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px;">
+                                <option value="distance">Tempo (informe distância)</option>
+                                <option value="time">Distância (informe tempo)</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="result">
-                    <div class="result-label">Pace (min/km)</div>
-                    <div class="result-value" id="run-pace">--:--</div>
-                </div>
+                    <div id="run-inverse-input-field" class="input-group">
+                        <label for="run-inverse-value">Distância (km)</label>
+                        <input type="number" id="run-inverse-value" placeholder="10" value="10" step="0.5">
+                    </div>
 
-                <div class="result" style="margin-top: 10px;">
-                    <div class="result-label">Velocidade Média</div>
-                    <div class="result-value" id="run-speed" style="font-size: 20px;">-- km/h</div>
+                    <button class="btn-calculate" onclick="calculateRunInverse()">Calcular</button>
+
+                    <div class="result">
+                        <div class="result-label" id="run-inverse-result-label">Tempo</div>
+                        <div class="result-value" id="run-inverse-result">--:--:--</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ========== MODO ESTADO ==========
+        let swimInverseMode = false;
+        let bikeInverseMode = false;
+        let runInverseMode = false;
+
         // Função para converter tempo (HH:MM:SS.mmm) em segundos
         function timeToSeconds(timeStr) {
             if (!timeStr || timeStr.trim() === '') return 0;
@@ -307,6 +483,23 @@
             return (hours * 3600) + (minutes * 60) + seconds + (milliseconds / 1000);
         }
 
+        // Função para converter tempo MM:SS em segundos
+        function timeMinSecToSeconds(timeStr) {
+            if (!timeStr || timeStr.trim() === '') return 0;
+            
+            const parts = timeStr.split(':');
+            if (parts.length !== 2) return null;
+            
+            const minutes = parseInt(parts[0]);
+            const seconds = parseInt(parts[1]);
+            
+            if (isNaN(minutes) || isNaN(seconds)) {
+                return null;
+            }
+            
+            return (minutes * 60) + seconds;
+        }
+
         // Função para converter segundos em formato MM:SS
         function secondsToMinSec(totalSeconds) {
             const minutes = Math.floor(totalSeconds / 60);
@@ -314,6 +507,140 @@
             return `${minutes}:${String(seconds).padStart(2, '0')}`;
         }
 
+        // Função para converter segundos em formato HH:MM:SS
+        function secondsToHMS(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // ========== TOGGLE MODES ==========
+        function toggleSwimMode() {
+            swimInverseMode = !swimInverseMode;
+            const btn = event.target;
+            const normalMode = document.getElementById('swim-normal-mode');
+            const inverseMode = document.getElementById('swim-inverse-mode');
+            const indicator = document.getElementById('swim-mode-indicator');
+            
+            if (swimInverseMode) {
+                normalMode.style.display = 'none';
+                inverseMode.style.display = 'block';
+                btn.classList.add('active');
+                indicator.textContent = 'Modo: Calcular Tempo/Distância (informe Pace)';
+            } else {
+                normalMode.style.display = 'block';
+                inverseMode.style.display = 'none';
+                btn.classList.remove('active');
+                indicator.textContent = 'Modo: Calcular Pace';
+            }
+        }
+
+        function toggleBikeMode() {
+            bikeInverseMode = !bikeInverseMode;
+            const btn = event.target;
+            const normalMode = document.getElementById('bike-normal-mode');
+            const inverseMode = document.getElementById('bike-inverse-mode');
+            const indicator = document.getElementById('bike-mode-indicator');
+            
+            if (bikeInverseMode) {
+                normalMode.style.display = 'none';
+                inverseMode.style.display = 'block';
+                btn.classList.add('active');
+                indicator.textContent = 'Modo: Calcular Tempo/Distância (informe Velocidade)';
+            } else {
+                normalMode.style.display = 'block';
+                inverseMode.style.display = 'none';
+                btn.classList.remove('active');
+                indicator.textContent = 'Modo: Calcular Velocidade';
+            }
+        }
+
+        function toggleRunMode() {
+            runInverseMode = !runInverseMode;
+            const btn = event.target;
+            const normalMode = document.getElementById('run-normal-mode');
+            const inverseMode = document.getElementById('run-inverse-mode');
+            const indicator = document.getElementById('run-mode-indicator');
+            
+            if (runInverseMode) {
+                normalMode.style.display = 'none';
+                inverseMode.style.display = 'block';
+                btn.classList.add('active');
+                indicator.textContent = 'Modo: Calcular Tempo/Distância (informe Pace)';
+            } else {
+                normalMode.style.display = 'block';
+                inverseMode.style.display = 'none';
+                btn.classList.remove('active');
+                indicator.textContent = 'Modo: Calcular Pace';
+            }
+        }
+
+        // Listeners para mudar labels quando muda o tipo de cálculo
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('swim-inverse-select').addEventListener('change', function() {
+                const field = document.getElementById('swim-inverse-input-field');
+                const label = field.querySelector('label');
+                const input = document.getElementById('swim-inverse-value');
+                const resultLabel = document.getElementById('swim-inverse-result-label');
+                
+                if (this.value === 'distance') {
+                    label.textContent = 'Distância (metros)';
+                    input.placeholder = '1500';
+                    input.value = '1500';
+                    resultLabel.textContent = 'Tempo';
+                } else {
+                    label.textContent = 'Tempo';
+                    input.placeholder = '00:00:00.000';
+                    input.value = '';
+                    resultLabel.textContent = 'Distância (metros)';
+                }
+            });
+
+            document.getElementById('bike-inverse-select').addEventListener('change', function() {
+                const field = document.getElementById('bike-inverse-input-field');
+                const label = field.querySelector('label');
+                const input = document.getElementById('bike-inverse-value');
+                const resultLabel = document.getElementById('bike-inverse-result-label');
+                
+                if (this.value === 'distance') {
+                    label.textContent = 'Distância (km)';
+                    input.placeholder = '40';
+                    input.type = 'number';
+                    input.value = '40';
+                    resultLabel.textContent = 'Tempo';
+                } else {
+                    label.textContent = 'Tempo';
+                    input.placeholder = '00:00:00.000';
+                    input.type = 'text';
+                    input.value = '';
+                    resultLabel.textContent = 'Distância (km)';
+                }
+            });
+
+            document.getElementById('run-inverse-select').addEventListener('change', function() {
+                const field = document.getElementById('run-inverse-input-field');
+                const label = field.querySelector('label');
+                const input = document.getElementById('run-inverse-value');
+                const resultLabel = document.getElementById('run-inverse-result-label');
+                
+                if (this.value === 'distance') {
+                    label.textContent = 'Distância (km)';
+                    input.placeholder = '10';
+                    input.type = 'number';
+                    input.value = '10';
+                    resultLabel.textContent = 'Tempo';
+                } else {
+                    label.textContent = 'Tempo';
+                    input.placeholder = '00:00:00.000';
+                    input.type = 'text';
+                    input.value = '';
+                    resultLabel.textContent = 'Distância (km)';
+                }
+            });
+        });
+
+        // ========== CÁLCULOS NORMAIS (MANTIDOS) ==========
         // Calcular pace da natação
         function calculateSwimPace() {
             const timeStr = document.getElementById('swim-time').value;
@@ -395,20 +722,141 @@
             document.getElementById('run-speed').textContent = speedKmh.toFixed(2) + ' km/h';
         }
 
+        // ========== CÁLCULOS INVERSOS (NOVOS) ==========
+        // Calcular Tempo/Distância da Natação (Inverso)
+        function calculateSwimInverse() {
+            const paceStr = document.getElementById('swim-inverse-pace').value;
+            const mode = document.getElementById('swim-inverse-select').value;
+            const value = parseFloat(document.getElementById('swim-inverse-value').value);
+            
+            const paceInSeconds = timeMinSecToSeconds(paceStr);
+            
+            if (paceInSeconds === null || paceInSeconds <= 0) {
+                alert('Por favor, insira um pace válido (MM:SS).');
+                return;
+            }
+            
+            if (!value || value <= 0) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+            
+            if (mode === 'distance') {
+                // Calcular tempo: distance em metros, pace em segundos/100m
+                const timeInSeconds = (paceInSeconds * value) / 100;
+                document.getElementById('swim-inverse-result').textContent = secondsToHMS(timeInSeconds);
+            } else {
+                // Calcular distância: value em formato HH:MM:SS, pace em segundos/100m
+                const timeInSeconds = timeToSeconds(value);
+                if (timeInSeconds === null) {
+                    alert('Por favor, insira um tempo válido (HH:MM:SS.mmm).');
+                    return;
+                }
+                const distanceInMeters = (timeInSeconds * 100) / paceInSeconds;
+                document.getElementById('swim-inverse-result').textContent = distanceInMeters.toFixed(0) + ' m';
+            }
+        }
+
+        // Calcular Tempo/Distância da Bike (Inverso)
+        function calculateBikeInverse() {
+            const speed = parseFloat(document.getElementById('bike-inverse-speed').value);
+            const mode = document.getElementById('bike-inverse-select').value;
+            const value = document.getElementById('bike-inverse-value').value;
+            
+            if (!speed || speed <= 0) {
+                alert('Por favor, insira uma velocidade válida (km/h).');
+                return;
+            }
+            
+            if (!value) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+            
+            if (mode === 'distance') {
+                // Calcular tempo: value é distância em km, speed em km/h
+                const timeInHours = value / speed;
+                const timeInSeconds = timeInHours * 3600;
+                document.getElementById('bike-inverse-result').textContent = secondsToHMS(timeInSeconds);
+            } else {
+                // Calcular distância: value é tempo em HH:MM:SS, speed em km/h
+                const timeInSeconds = timeToSeconds(value);
+                if (timeInSeconds === null) {
+                    alert('Por favor, insira um tempo válido (HH:MM:SS.mmm).');
+                    return;
+                }
+                const timeInHours = timeInSeconds / 3600;
+                const distanceInKm = speed * timeInHours;
+                document.getElementById('bike-inverse-result').textContent = distanceInKm.toFixed(2) + ' km';
+            }
+        }
+
+        // Calcular Tempo/Distância da Corrida (Inverso)
+        function calculateRunInverse() {
+            const paceStr = document.getElementById('run-inverse-pace').value;
+            const mode = document.getElementById('run-inverse-select').value;
+            const value = document.getElementById('run-inverse-value').value;
+            
+            const paceInSeconds = timeMinSecToSeconds(paceStr);
+            
+            if (paceInSeconds === null || paceInSeconds <= 0) {
+                alert('Por favor, insira um pace válido (MM:SS).');
+                return;
+            }
+            
+            if (!value) {
+                alert('Por favor, insira um valor válido.');
+                return;
+            }
+            
+            if (mode === 'distance') {
+                // Calcular tempo: value é distância em km, pace em segundos/km
+                const timeInSeconds = paceInSeconds * value;
+                document.getElementById('run-inverse-result').textContent = secondsToHMS(timeInSeconds);
+            } else {
+                // Calcular distância: value é tempo em HH:MM:SS, pace em segundos/km
+                const timeInSeconds = timeToSeconds(value);
+                if (timeInSeconds === null) {
+                    alert('Por favor, insira um tempo válido (HH:MM:SS.mmm).');
+                    return;
+                }
+                const distanceInKm = timeInSeconds / paceInSeconds;
+                document.getElementById('run-inverse-result').textContent = distanceInKm.toFixed(2) + ' km';
+            }
+        }
+
         // Auto-formatação de tempo
         document.querySelectorAll('input[type="text"]').forEach(input => {
             input.addEventListener('input', function(e) {
+                // Ignorar inputs de modo inverso para não auto-formatar
+                if (this.id.includes('inverse')) {
+                    const isTimeField = this.placeholder === '00:00:00.000' || this.placeholder === '00:00';
+                    if (!isTimeField) return;
+                }
+                
                 let value = e.target.value.replace(/[^0-9]/g, '');
                 
                 if (value.length > 0) {
-                    if (value.length <= 2) {
-                        e.target.value = value;
-                    } else if (value.length <= 4) {
-                        e.target.value = value.slice(0, 2) + ':' + value.slice(2);
-                    } else if (value.length <= 6) {
-                        e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4);
+                    if (this.placeholder === '00:00') {
+                        // Formato MM:SS
+                        if (value.length <= 2) {
+                            e.target.value = value;
+                        } else if (value.length <= 4) {
+                            e.target.value = value.slice(0, 2) + ':' + value.slice(2);
+                        } else {
+                            e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4);
+                        }
                     } else {
-                        e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4, 6) + '.' + value.slice(6, 9);
+                        // Formato HH:MM:SS.mmm
+                        if (value.length <= 2) {
+                            e.target.value = value;
+                        } else if (value.length <= 4) {
+                            e.target.value = value.slice(0, 2) + ':' + value.slice(2);
+                        } else if (value.length <= 6) {
+                            e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4);
+                        } else {
+                            e.target.value = value.slice(0, 2) + ':' + value.slice(2, 4) + ':' + value.slice(4, 6) + '.' + value.slice(6, 9);
+                        }
                     }
                 }
             });

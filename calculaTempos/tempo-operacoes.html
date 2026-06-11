@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operações com Tempos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6c757d;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: inline-block;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .nav-link.primary {
+            background: #6c757d;
+        }
+
+        .nav-link.secondary {
+            background: #17a2b8;
+        }
+
+        .nav-link.tertiary {
+            background: #28a745;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-link.primary:hover {
+            background: #5a6268;
+        }
+
+        .nav-link.secondary:hover {
+            background: #138496;
+        }
+
+        .nav-link.tertiary:hover {
+            background: #218838;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #495057;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+            font-family: monospace;
+            background: white;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .time-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .time-row {
+            display: grid;
+            grid-template-columns: 140px 1fr auto;
+            gap: 10px;
+            align-items: end;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .time-row.excluded {
+            opacity: 0.65;
+            background: #f1f3f5;
+        }
+
+        .include-group {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #495057;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .include-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+            cursor: pointer;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            margin-bottom: 6px;
+        }
+
+        .btn-small {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-add {
+            background: #17a2b8;
+        }
+
+        .btn-add:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .btn-remove {
+            background: #dc3545;
+        }
+
+        .btn-remove:hover {
+            background: #c82333;
+        }
+
+        .btn-calculate {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-calculate:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #e7f3ff;
+            border: 2px solid #17a2b8;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .result-label {
+            color: #0c5460;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .result-value {
+            font-size: 34px;
+            font-weight: bold;
+            color: #333;
+            font-family: monospace;
+        }
+
+        .status {
+            margin-top: 10px;
+            text-align: center;
+            color: #495057;
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .time-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Operações com Tempos</h1>
+        <p class="subtitle">Some ou subtraia 2 ou mais tempos no formato HH:MM:SS.mmm</p>
+
+        <div class="navigation">
+            <a href="index.html" class="nav-link primary">← Comparador de Tempos</a>
+            <a href="pace.html" class="nav-link secondary">📊 Calculadora de Pace</a>
+            <a href="jejum.html" class="nav-link tertiary">⏱️ Calculadora de Jejum</a>
+        </div>
+
+        <div class="card">
+            <div class="time-rows" id="timeRows"></div>
+
+            <div class="btn-row">
+                <button class="btn-small btn-add" onclick="addTimeRow()">+ Adicionar tempo</button>
+            </div>
+
+            <div class="helper-text">Aceita HH:MM:SS ou HH:MM:SS.mmm (milissegundos opcionais)</div>
+
+            <button class="btn-calculate" onclick="calculateTimeOperation()">Calcular</button>
+
+            <div class="result">
+                <div class="result-label">Resultado</div>
+                <div class="result-value" id="result">00:00:00.000</div>
+            </div>
+
+            <div class="status" id="status">Preencha e selecione ao menos 2 tempos para calcular.</div>
+        </div>
+    </div>
+
+    <script>
+        function parseTimeToMilliseconds(timeStr) {
+            if (!timeStr || timeStr.trim() === '') return null;
+
+            const trimmed = timeStr.trim();
+            const parts = trimmed.split(':');
+
+            if (parts.length !== 3) return null;
+
+            const hours = Number(parts[0]);
+            const minutes = Number(parts[1]);
+
+            const secParts = parts[2].split('.');
+            const seconds = Number(secParts[0]);
+            const milliseconds = secParts[1] ? Number(secParts[1].padEnd(3, '0').slice(0, 3)) : 0;
+
+            if (
+                Number.isNaN(hours) ||
+                Number.isNaN(minutes) ||
+                Number.isNaN(seconds) ||
+                Number.isNaN(milliseconds) ||
+                minutes < 0 ||
+                minutes > 59 ||
+                seconds < 0 ||
+                seconds > 59 ||
+                hours < 0
+            ) {
+                return null;
+            }
+
+            return (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + milliseconds;
+        }
+
+        function formatMilliseconds(totalMilliseconds) {
+            const sign = totalMilliseconds < 0 ? '-' : '';
+            const absolute = Math.abs(totalMilliseconds);
+
+            const hours = Math.floor(absolute / 3600000);
+            const remainderAfterHours = absolute % 3600000;
+
+            const minutes = Math.floor(remainderAfterHours / 60000);
+            const remainderAfterMinutes = remainderAfterHours % 60000;
+
+            const seconds = Math.floor(remainderAfterMinutes / 1000);
+            const milliseconds = remainderAfterMinutes % 1000;
+
+            return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+        }
+
+        function updateRemoveButtons() {
+            const rows = document.querySelectorAll('.time-row');
+            const canRemove = rows.length > 2;
+
+            rows.forEach((row) => {
+                const removeButton = row.querySelector('.btn-remove');
+                removeButton.style.display = canRemove ? 'inline-block' : 'none';
+            });
+        }
+
+        function updateTimeLabels() {
+            const rows = document.querySelectorAll('.time-row');
+            rows.forEach((row, index) => {
+                const label = row.querySelector('.time-label');
+                label.textContent = `Tempo ${index + 1}`;
+            });
+        }
+
+        function addTimeRow(defaultSignal = 'add', defaultValue = '') {
+            const rowsContainer = document.getElementById('timeRows');
+
+            const row = document.createElement('div');
+            row.className = 'time-row';
+            row.innerHTML = `
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label>Sinal</label>
+                    <select class="signal-select">
+                        <option value="add" ${defaultSignal === 'add' ? 'selected' : ''}>Somar (+)</option>
+                        <option value="subtract" ${defaultSignal === 'subtract' ? 'selected' : ''}>Subtrair (-)</option>
+                    </select>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label class="time-label">Tempo</label>
+                    <input type="text" class="time-input" placeholder="00:45:30.250" value="${defaultValue}">
+                    <div class="include-group">
+                        <input type="checkbox" class="include-checkbox" checked onchange="toggleRowInclusion(this)">
+                        <span>Incluir no cálculo</span>
+                    </div>
+                </div>
+
+                <button class="btn-small btn-remove" onclick="removeTimeRow(this)">Remover</button>
+            `;
+
+            rowsContainer.appendChild(row);
+            updateTimeLabels();
+            updateRemoveButtons();
+        }
+
+        function toggleRowInclusion(checkbox) {
+            const row = checkbox.closest('.time-row');
+            row.classList.toggle('excluded', !checkbox.checked);
+        }
+
+        function removeTimeRow(button) {
+            const rows = document.querySelectorAll('.time-row');
+            if (rows.length <= 2) {
+                document.getElementById('status').textContent = 'É necessário manter ao menos 2 campos de tempo.';
+                return;
+            }
+
+            const row = button.closest('.time-row');
+            row.remove();
+            updateTimeLabels();
+            updateRemoveButtons();
+            document.getElementById('status').textContent = 'Campo removido com sucesso.';
+        }
+
+        function calculateTimeOperation() {
+            const rows = document.querySelectorAll('.time-row');
+            let total = 0;
+            let selectedAndFilledCount = 0;
+
+            for (const row of rows) {
+                const include = row.querySelector('.include-checkbox').checked;
+                if (!include) {
+                    continue;
+                }
+
+                const signal = row.querySelector('.signal-select').value;
+                const rawTime = row.querySelector('.time-input').value;
+
+                if (!rawTime || rawTime.trim() === '') {
+                    continue;
+                }
+
+                const msValue = parseTimeToMilliseconds(rawTime);
+                if (msValue === null) {
+                    document.getElementById('status').textContent = 'Formato inválido. Use HH:MM:SS ou HH:MM:SS.mmm em todos os campos preenchidos.';
+                    return;
+                }
+
+                total += signal === 'add' ? msValue : -msValue;
+                selectedAndFilledCount += 1;
+            }
+
+            if (selectedAndFilledCount < 2) {
+                document.getElementById('status').textContent = 'Selecione e preencha pelo menos 2 tempos para calcular.';
+                return;
+            }
+
+            document.getElementById('result').textContent = formatMilliseconds(total);
+            document.getElementById('status').textContent = `Cálculo concluído com ${selectedAndFilledCount} tempo(s) selecionado(s).`;
+        }
+
+        addTimeRow('add');
+        addTimeRow('add');
+    </script>
+</body>
+</html>
