@@ -20,11 +20,26 @@ body {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
     color: var(--text-dark);
     overflow-x: hidden;
+}
+
+.top-banner {
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 30px;
+}
+
+.top-banner__image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 20px;
+    box-shadow: var(--card-shadow);
 }
 
 .container {
