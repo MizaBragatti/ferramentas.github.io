@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Acompanhamento do desafio O Maior Vendedor do Mundo" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Desafio O Maior Vendedor</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="top-bar">
+        <div>
+          <p class="brand">O Maior Vendedor</p>
+          <p class="subtitle">Desafio dos 10 pergaminhos</p>
+        </div>
+      </header>
+
+      <section class="hero-card">
+        <div>
+          <p class="eyebrow">Pergaminho ativo</p>
+          <h1 id="active-title">Pergaminho I</h1>
+          <p id="active-status">0 de 30 dias concluídos</p>
+          <p id="window-checks" class="small-text"></p>
+        </div>
+        <div class="progress-pill">
+          <span id="global-progress">0%</span>
+        </div>
+      </section>
+
+      <section class="grid-section" id="pergaminho-list"></section>
+
+      <section class="checkin-panel">
+        <div class="panel-header">
+          <div>
+            <span class="window-label">Janela atual</span>
+            <h2 id="current-window">Carregando...</h2>
+          </div>
+          <div class="status-pill" id="day-status">Dia 1 de 30</div>
+        </div>
+
+        <div class="panel-body">
+          <div class="timer-box">
+            <span>Temporizador de leitura</span>
+            <strong id="countdown">180s</strong>
+          </div>
+          <div class="actions-row">
+            <button id="start-btn" class="button-secondary">Iniciar Leitura</button>
+            <button id="finish-btn" class="button-primary" disabled>Concluir Leitura</button>
+          </div>
+          <p class="hint-text" id="message">Use o botão iniciar para começar.</p>
+          <p class="hint-text">Intervalo mínimo de 4h entre janela anterior e atual.</p>
+        </div>
+      </section>
+
+      <section class="alert-card hidden" id="reset-alert">
+        <p>Mais de 24h sem leitura. Deseja reiniciar este pergaminho no Dia 1?</p>
+        <div class="alert-actions">
+          <button id="keep-btn" class="button-secondary">Manter</button>
+          <button id="reset-btn" class="button-primary">Reiniciar</button>
+        </div>
+      </section>
+
+      <section class="editor-panel">
+        <h3>Editar progresso</h3>
+        <div class="editor-grid">
+          <label>
+            Pergaminho
+            <select id="editor-pergaminho"></select>
+          </label>
+          <label>
+            Dia
+            <input id="editor-dia" type="number" min="1" max="30" />
+          </label>
+        </div>
+        <div class="editor-checks">
+          <label><input type="checkbox" id="editor-manha" /> Manhã</label>
+          <label><input type="checkbox" id="editor-tarde" /> Tarde</label>
+          <label><input type="checkbox" id="editor-noite" /> Noite</label>
+        </div>
+        <button id="editor-save" class="button-primary">Salvar ajuste</button>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
