@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drivers Mentais</title>
+    <meta
+      name="description"
+      content="Sistema pessoal para organizar drivers mentais inspirados em componentes de computador."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-icon">🧠</div>
+          <div>
+            <p class="eyebrow">Sistema</p>
+            <h1>Drivers Mentais</h1>
+          </div>
+        </div>
+
+        <div class="hardware-panel">
+          <h2>Componentes ativos</h2>
+          <div class="component-grid">
+            <div class="component-card">
+              <span class="component-badge">CPU</span>
+              <small>Processo</small>
+            </div>
+            <div class="component-card">
+              <span class="component-badge">RAM</span>
+              <small>Memória</small>
+            </div>
+            <div class="component-card">
+              <span class="component-badge">GPU</span>
+              <small>Foco</small>
+            </div>
+            <div class="component-card">
+              <span class="component-badge">SSD</span>
+              <small>Armazenar</small>
+            </div>
+            <div class="component-card">
+              <span class="component-badge">OS</span>
+              <small>Auto gestão</small>
+            </div>
+            <div class="component-card">
+              <span class="component-badge">NET</span>
+              <small>Conexão</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-box">
+          <span class="status-dot"></span>
+          <span>Mente em operação</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section id="loginSection" class="auth-panel active">
+          <div class="auth-card">
+            <div class="auth-header">
+              <div class="mini-icon">⚙️</div>
+              <div>
+                <p class="eyebrow light">Acesso restrito</p>
+                <h2>Login do sistema</h2>
+              </div>
+            </div>
+
+            <form id="loginForm">
+              <label>
+                <span>Email</span>
+                <input id="emailInput" type="email" placeholder="seu@email.com" required />
+              </label>
+
+              <label>
+                <span>Senha</span>
+                <input id="passwordInput" type="password" placeholder="Sua senha" required />
+              </label>
+
+              <button type="submit" class="primary-btn">Entrar</button>
+            </form>
+
+            <div id="authMessage" class="message hidden" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section id="appSection" class="app-panel hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow light">Painel</p>
+              <h2>Drivers instalados</h2>
+            </div>
+
+            <div class="topbar-actions">
+              <button id="randomDriverBtn" class="secondary-btn" type="button">Driver do dia</button>
+              <button id="newDriverBtn" class="primary-btn" type="button">+ Novo driver</button>
+              <button id="logoutBtn" class="ghost-btn" type="button">Sair</button>
+            </div>
+          </header>
+
+          <div class="stats-grid">
+            <article class="stat-card">
+              <span class="stat-label">Total</span>
+              <strong id="totalDrivers">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Favoritos</span>
+              <strong id="favoriteDrivers">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Categorias</span>
+              <strong id="categoryDrivers">0</strong>
+            </article>
+          </div>
+
+          <div class="toolbar">
+            <div class="search-box">
+              <label for="searchInput">Buscar</label>
+              <input id="searchInput" type="text" placeholder="Pesquisar frase, tag ou categoria" />
+            </div>
+
+            <div class="select-box">
+              <label for="categoryFilter">Categoria</label>
+              <select id="categoryFilter">
+                <option value="all">Todas</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="driversList" class="drivers-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="driverModal" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow light">Configuração</p>
+            <h3 id="modalTitle">Novo driver</h3>
+          </div>
+          <button id="closeModalBtn" class="icon-btn" type="button" aria-label="Fechar modal">×</button>
+        </div>
+
+        <form id="driverForm">
+          <label>
+            <span>Frase / driver</span>
+            <textarea id="driverText" rows="4" placeholder="Ex.: Não espere perfeição para agir." required></textarea>
+          </label>
+
+          <div class="form-row">
+            <label>
+              <span>Categoria</span>
+              <input id="driverCategory" type="text" placeholder="Ex.: Ação" required />
+            </label>
+
+            <label>
+              <span>Fonte</span>
+              <input id="driverSource" type="text" placeholder="Pablo Marçal" />
+            </label>
+          </div>
+
+          <label>
+            <span>Tags</span>
+            <input id="driverTags" type="text" placeholder="ex.: foco, disciplina, decisão" />
+          </label>
+
+          <label>
+            <span>Observação pessoal</span>
+            <textarea id="driverNotes" rows="3" placeholder="Como essa frase me ajuda?"></textarea>
+          </label>
+
+          <div class="checkbox-row">
+            <label class="checkbox-wrapper">
+              <input id="driverFavorite" type="checkbox" />
+              <span>Favorito</span>
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="cancelDriverBtn" class="ghost-btn">Cancelar</button>
+            <button type="submit" class="primary-btn">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
