@@ -9,5 +9,8 @@ window.firebaseConfig = {
 
 window.allowedEmails = [
   "mizabragatti@hotmail.com",
-  "mizabgt@gmail.com"
+  "mizabgt@gmail.com",
+  "waltergaldino02@gmail.com",
+  "samuel.alencar85@gmail.com",
+  "henrique.maiacardosoo10@gmail.com"
 ];
